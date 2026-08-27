@@ -1,0 +1,10 @@
+project_id = "oadwfgujhjqgnydigwux"
+
+[functions.notify-seller]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.create-payment-intent]
+verify_jwt = false

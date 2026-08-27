@@ -1,0 +1,120 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-glow: var(--primary-glow);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --gradient-primary: var(--gradient-primary);
+  --gradient-receipt: var(--gradient-receipt);
+  --shadow-card: var(--shadow-card);
+  --shadow-sheet: var(--shadow-sheet);
+}
+
+:root {
+  --radius: 0.75rem;
+  --background: oklch(0.972 0.008 247);
+  --foreground: oklch(0.208 0.042 265);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.208 0.042 265);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.208 0.042 265);
+  --primary: oklch(0.546 0.213 261);
+  --primary-foreground: oklch(0.99 0 0);
+  --primary-glow: oklch(0.68 0.19 250);
+  --secondary: oklch(0.958 0.011 247);
+  --secondary-foreground: oklch(0.28 0.05 265);
+  --muted: oklch(0.958 0.011 247);
+  --muted-foreground: oklch(0.55 0.03 257);
+  --accent: oklch(0.94 0.02 250);
+  --accent-foreground: oklch(0.28 0.05 265);
+  --destructive: oklch(0.577 0.245 27);
+  --destructive-foreground: oklch(0.99 0 0);
+  --success: oklch(0.55 0.14 158);
+  --success-foreground: oklch(0.99 0 0);
+  --warning: oklch(0.66 0.16 60);
+  --warning-foreground: oklch(0.99 0 0);
+  --info: oklch(0.60 0.15 260);
+  --info-foreground: oklch(0.99 0 0);
+  --border: oklch(0.9 0.015 255);
+  --input: oklch(0.9 0.015 255);
+  --ring: oklch(0.546 0.213 261);
+  --gradient-primary: linear-gradient(135deg, oklch(0.546 0.213 261) 0%, oklch(0.68 0.19 250) 100%);
+  --gradient-receipt: linear-gradient(135deg, oklch(0.35 0.14 262) 0%, oklch(0.28 0.10 265) 100%);
+  --shadow-card: 0 1px 3px 0 oklch(0.2 0.05 265 / 0.08), 0 1px 2px -1px oklch(0.2 0.05 265 / 0.08);
+  --shadow-sheet: 0 -8px 30px -8px oklch(0.2 0.05 265 / 0.15);
+}
+
+.dark {
+  --background: oklch(0.15 0.03 265);
+  --foreground: oklch(0.98 0 0);
+  --card: oklch(0.22 0.04 265);
+  --card-foreground: oklch(0.98 0 0);
+  --popover: oklch(0.22 0.04 265);
+  --popover-foreground: oklch(0.98 0 0);
+  --primary: oklch(0.68 0.19 250);
+  --primary-foreground: oklch(0.15 0.03 265);
+  --secondary: oklch(0.28 0.04 265);
+  --secondary-foreground: oklch(0.98 0 0);
+  --muted: oklch(0.28 0.04 265);
+  --muted-foreground: oklch(0.72 0.03 257);
+  --accent: oklch(0.28 0.04 265);
+  --accent-foreground: oklch(0.98 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.68 0.19 250);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  html, body { background-color: var(--color-background); color: var(--color-foreground); }
+  body { font-family: -apple-system, BlinkMacSystemFont, "PingFang HK", "Noto Sans HK", "Microsoft JhengHei", sans-serif; }
+}
+
+@utility app-shell {
+  max-width: 32rem;
+  margin-inline: auto;
+  min-height: 100dvh;
+  background: var(--color-background);
+  position: relative;
+  overflow-x: hidden;
+}
+
+@utility gradient-primary {
+  background: var(--gradient-primary);
+}
+
+@utility gradient-receipt {
+  background: var(--gradient-receipt);
+}
