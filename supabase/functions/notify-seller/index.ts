@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
         <h2 style="margin:0 0 12px">🚨 有新爭議需要裁決</h2>
         <p style="color:#555;margin:0 0 8px">交易 <strong>${transaction_id}</strong> 有用戶提出爭議${mall_name ? `（${mall_name}）` : ""}。</p>
         <p style="color:#555;margin:0 0 8px">請登入 Admin Panel 查看證據並裁決。</p>
-        <p style="margin:16px 0"><a href="https://buytime-hk.lovable.app/admin" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none">前往 Admin Panel</a></p>
+        <p style="margin:16px 0"><a href="https://www.buytime.hk/admin" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none">前往 Admin Panel</a></p>
         <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
         <p style="color:#bbb;font-size:11px">買時間 Beta</p>
       </div>`;
