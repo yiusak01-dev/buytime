@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "vite build && echo '=== OUTPUT DIRS ===' && ls -la && ls -la dist 2>/dev/null || true && ls -la .output 2>/dev/null || true && ls -la .vinxi 2>/dev/null || true",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
