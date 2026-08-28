@@ -24,6 +24,10 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
   };
 }
 
+export const supabaseAuthMiddleware = createMiddleware({ type: 'function' }).server(
+  async ({ next }) => next()
+);
+
 export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server(
   async ({ next }) => {
     const SUPABASE_URL = process.env.SUPABASE_URL;
