@@ -1,9 +1,6 @@
-import { createStartHandler, defaultStreamHandler } from "@tanstack/react-start/server";
 import { createRouter } from "./router";
-import { supabaseAuthMiddleware } from "./integrations/supabase/auth-middleware";
-import { errorMiddleware } from "./lib/error-capture";
 
-export const startInstance = createStartHandler({
-  createRouter,
-  middleware: [supabaseAuthMiddleware, errorMiddleware],
-})(defaultStreamHandler);
+// startInstance must be client-safe (no @tanstack/react-start/server imports).
+// Server-side request handling is done by src/server.ts via @tanstack/react-start/server-entry.
+// TanStack Start's client hydration uses this to set up the router.
+export const startInstance = createRouter();
