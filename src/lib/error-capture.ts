@@ -15,6 +15,17 @@ if (typeof globalThis.addEventListener === "function") {
   );
 }
 
+import { createMiddleware } from "@tanstack/react-start";
+
+export const errorMiddleware = createMiddleware().server(async ({ next }) => {
+  try {
+    return await next();
+  } catch (error) {
+    record(error);
+    throw error;
+  }
+});
+
 export function consumeLastCapturedError(): unknown {
   if (!lastCapturedError) return undefined;
   if (Date.now() - lastCapturedError.at > TTL_MS) {
