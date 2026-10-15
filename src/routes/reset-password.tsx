@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Lock } from "lucide-react";
 
 export const Route = createFileRoute("/reset-password")({
-  head: () => ({ meta: [{ title: "重設密碼 · 買時間" }] }),
+  head: () => ({ meta: [{ title: "重設密碼 · 啱啱好" }] }),
   component: ResetPasswordPage,
 });
 
