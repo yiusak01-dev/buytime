@@ -441,7 +441,7 @@ export function NgaamMarketplace() {
   // Show only genuine mutual-interest opportunities, never fabricated matches.
   // In the pilot phase each opportunity still requires its creator's approval.
   const suggestions = useMemo(() => {
-    const norm = (v: string) => v.trim().toLocaleLowerCase('zh-HK').replace(/\\s+/g, ' ');
+    const norm = (v: string) => v.trim().toLocaleLowerCase('zh-HK').replace(/\s+/g, ' ');
     const liveMine = own.filter(o => o.status === 'active' && Date.parse(o.expires_at) > Date.now());
     return visible.filter(candidate => liveMine.some(mine => (
       candidate.owner_id !== userId &&
