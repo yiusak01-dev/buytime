@@ -438,6 +438,22 @@ export function NgaamMarketplace() {
   }, [mallId, userId, version]);
   const selectedMall = malls.find(m => m.id === mallId) ?? null;
   const visible = useMemo(() => opportunities.filter(o => !blocked.has(o.owner_id) && (category === 'all' || o.category === category)), [opportunities, blocked, category]);
+  // Show only genuine mutual-interest opportunities, never fabricated matches.
+  // In the pilot phase each opportunity still requires its creator's approval.
+  const suggestions = useMemo(() => {
+    const norm = (v: string) => v.trim().toLocaleLowerCase('zh-HK').replace(/\\s+/g, ' ');
+    const liveMine = own.filter(o => o.status === 'active' && Date.parse(o.expires_at) > Date.now());
+    return visible.filter(candidate => liveMine.some(mine => (
+      candidate.owner_id !== userId &&
+      candidate.mall_id === mine.mall_id &&
+      candidate.category === mine.category &&
+      // Two shoppers looking to share an existing multi-buy offer CAN match.
+      (candidate.intent !== mine.intent ||
+        (candidate.category === 'group_buy' && candidate.intent === 'need' && mine.intent === 'need')) &&
+      Boolean(norm(candidate.merchant_name)) &&
+      norm(candidate.merchant_name) === norm(mine.merchant_name)
+    )));
+  }, [visible, own, userId]);
   const enabledMalls = malls.filter(m => m.enabled);
   const refreshing = () => setVersion(v => v + 1);
   const openPost = () => setPage('post');
@@ -457,6 +473,15 @@ export function NgaamMarketplace() {
           {error && <div role="alert" className="ngaam-error">{error}</div>}
           {busy && <p className="ngaam-muted">更新中…</p>}
           {!busy && visible.length === 0 && <div className="ngaam-empty"><div className="ngaam-empty-icon"><Search size={30} /></div><strong>呢度仲未有人放機會</strong><p>{!selectedMall ? '我哋會逐個商場開放。' : '你可以做第一個提出需要嘅人，等同場嘅人回應你。'}</p><button className="ngaam-button ngaam-button-dark" onClick={openPost}>我想搵／我有 <ArrowRight size={17} /></button></div>}
+          {userId && suggestions.length > 0 && (
+            <section aria-label="啱啱配得埋嘅機會">
+              <div className="ngaam-section-row"><div><span className="ngaam-eyebrow">03 / 配對建議</span><h2>啱啱有機會配得埋！</h2></div></div>
+              <p className="ngaam-muted">根據你嘅真實刊登、同一商場及相同店舖建議。仲需要對方確認。</p>
+              <div className="ngaam-opportunity-list">{suggestions.map(o =>
+                <Card key={o.id} item={o} onOpen={() => setDetail(o)} />)}
+              </div>
+            </section>
+          )}
           <div className="ngaam-opportunity-list">{visible.map(o => <Card key={o.id} item={o} onOpen={() => setDetail(o)} />)}</div>
         </section>
         <div className="ngaam-bottom-banner"><div><span>有嘢用唔着？</span><strong>放上嚟，可能啱啱有人要。</strong></div><button onClick={openPost} aria-label="刊登機會"><Plus size={23} /></button></div>
