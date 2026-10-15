@@ -1,27 +1,12 @@
-import type { CapacitorConfig } from "@capacitor/cli";
+import type { CapacitorConfig } from '@capacitor/cli';
 
+// Build with bundled assets; not a remote web site wrapper.
 const config: CapacitorConfig = {
-  appId: "hk.buytime.app",
-  appName: "買時間",
-  webDir: "dist/public",
-  server: {
-    url: "https://buytime.hk",
-    cleartext: false,
-  },
+  appId: 'hk.ngaamngaamho.app',
+  appName: '啱啱好',
+  webDir: 'dist/public',
   plugins: {
-    PushNotifications: {
-      presentationOptions: ["badge", "sound", "alert"],
-    },
-    FirebaseMessaging: {
-      presentationOptions: ["badge", "sound", "alert"],
-    },
-  },
-  android: {
-    buildOptions: {
-      keystorePath: "buytime.keystore",
-      keystoreAlias: "buytime",
-    },
+    PushNotifications: { presentationOptions: ['badge', 'sound', 'alert'] },
   },
 };
-
 export default config;
