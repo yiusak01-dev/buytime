@@ -1,55 +1,22 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ChevronLeft } from "lucide-react";
-
-export const Route = createFileRoute("/privacy")({
-  head: () => ({
-    meta: [
-      { title: "私隱政策 · 買時間" },
-      { name: "description", content: "買時間私隱政策 Beta 1.0" },
-    ],
-  }),
+import { createFileRoute, Link } from '@tanstack/react-router';
+export const Route = createFileRoute('/privacy')({
+  head: () => ({ meta: [{ title: '私隱政策 · 啱啱好' }] }),
   component: PrivacyPage,
 });
-
-const SECTIONS: { title: string; body: React.ReactNode }[] = [
-  { title: "1. 收集的資料", body: "本平台收集以下資料：登記時提供的電郵地址及用戶名稱、上架收據的商場、金額及有效期資料、交易紀錄（買賣雙方配對資料）。" },
-  { title: "2. 使用目的", body: "所收集資料僅用於：提供配對服務、聯絡用戶處理交易事宜、改善平台服務。" },
-  { title: "3. 資料保密", body: "本平台不會將你的個人資料出售、出租或披露予第三方，除非法律要求。" },
-  { title: "4. 資料儲存", body: "用戶資料儲存於安全的雲端伺服器（Supabase），受業界標準加密保護。" },
-  { title: "5. 查閱及更正", body: "你有權查閱及更正本人資料。如需查閱，請電郵至 hello@buytime.hk。" },
-  { title: "6. Cookie", body: "本平台使用必要的 Cookie 維持登入狀態，不作任何追蹤或廣告用途。" },
-  { title: "7. 聯絡我們", body: "如對私隱政策有任何疑問，請電郵：hello@buytime.hk" },
+const SECTIONS: Array<[string,string]> = [
+ ['我哋收集乜嘢資料？','建立帳戶時嘅電郵同顯示名稱；你選擇嘅商場、刊登資料、配對、對話、舉報、封鎖，以及你允許接收通知時所需嘅裝置資料。'],
+ ['點解要收集？','只用於提供同場即時配對、傳送通知、維護帳戶安全及處理用戶舉報。'],
+ ['邊個睇到？','公開刊登嘅內容會畀其他用戶睇到。配對對話應只限參與者同必要嘅獲授權管理員存取。唔會公開你嘅電郵同電話。'],
+ ['可唔可以唔開定位？','可以。你可以自行揀商場，無需持續提供精確位置。'],
+ ['帳戶刪除','你可以喺「我的配對」要求刪除帳戶。正式上架之前須測試刪除流程以及依法須保留嘅資料處理。'],
+ ['第三方服務','帳戶及資料庫現時由 Supabase 支援，其他技術服務可能包括網站託管及通知提供商。'],
+ ['正式政策待補充','開發版草稿。公開上架前須核實營運者法律名稱、有效電郵、完整資料保留期限、跨境資料處理及生效日期。'],
 ];
-
 function PrivacyPage() {
-  const navigate = useNavigate();
-  return (
-    <div className="app-shell pb-16">
-      <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md px-4 pt-4 pb-3 border-b border-border/60 flex items-center gap-2">
-        <button
-          onClick={() => navigate({ to: "/profile" })}
-          className="w-9 h-9 -ml-2 grid place-items-center rounded-full hover:bg-accent"
-          aria-label="返回"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-xl font-bold leading-tight">私隱政策</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Beta 1.0 · 生效日期：2026年7月</p>
-        </div>
-      </header>
-
-      <main className="px-4 py-5 space-y-4">
-        {SECTIONS.map((s) => (
-          <section key={s.title} className="bg-card rounded-2xl p-4 shadow-[var(--shadow-card)]">
-            <h2 className="text-sm font-bold text-foreground mb-2">{s.title}</h2>
-            <div className="text-sm text-muted-foreground leading-relaxed">{s.body}</div>
-          </section>
-        ))}
-        <p className="text-center text-[11px] text-muted-foreground pt-2">
-          依據《個人資料（私隱）條例》（香港法例第486章）
-        </p>
-      </main>
-    </div>
-  );
+return <main style={{maxWidth:620,margin:'auto',padding:'26px 20px 80px',fontFamily:'-apple-system, PingFang HK, sans-serif',background:'#fffdf8',minHeight:'100dvh',color:'#063f35'}}>
+<Link to="/" style={{color:'#063f35',fontWeight:800}}>← 返回啱啱好</Link>
+<h1 style={{fontSize:32,fontWeight:900,margin:'24px 0 4px'}}>私隱政策</h1>
+<p style={{fontSize:13,marginBottom:24}}>啱啱好 · 開發版政策草稿（尚未可作正式對外政策）</p>
+{SECTIONS.map(([title,body])=><section key={title} style={{border:'1px solid #e6e9e1',background:'white',borderRadius:16,padding:18,marginBottom:12}}><h2 style={{fontSize:16,fontWeight:850,margin:'0 0 8px'}}>{title}</h2><p style={{fontSize:14,lineHeight:1.75,margin:0}}>{body}</p></section>)}
+</main>;
 }
