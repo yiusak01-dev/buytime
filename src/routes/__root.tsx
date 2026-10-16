@@ -3,6 +3,7 @@ import {
   Outlet,
   Link,
   createRootRouteWithContext,
+  redirect,
   useRouter,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
@@ -73,6 +74,11 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  beforeLoad: ({ location }) => {
+    // Legacy receipt-selling and escrow routes must not be accessible in the new app.
+    const allowed = ['/', '/auth', '/privacy', '/terms', '/reset-password'];
+    if (!allowed.includes(location.pathname)) throw redirect({ to: '/' });
+  },
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
@@ -86,16 +92,10 @@ function RootComponent() {
     (async () => {
       const { supabase } = await import("@/integrations/supabase/client");
       const { syncUserToOwn } = await import("@/lib/own-db");
-      const { captureReferralFromUrl, recordPendingReferral, ensureReferralCode } =
-        await import("@/lib/referrals");
-
-      captureReferralFromUrl();
 
       function applyRealUser(user: import("@supabase/supabase-js").User) {
         void (async () => {
           await syncUserToOwn(user);
-          await ensureReferralCode(user.id);
-          await recordPendingReferral(user);
         })();
         const displayName =
           (user.user_metadata?.name as string | undefined) ||

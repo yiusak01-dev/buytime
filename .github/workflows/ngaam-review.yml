@@ -1,0 +1,31 @@
+name: Ngaam development checks
+on:
+  push:
+    branches:
+      - feat/ngaam-ngaam-ho-mvp
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'supabase/migrations/**'
+      - 'package.json'
+      - 'capacitor.config.ts'
+      - '.github/workflows/ngaam-review.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Check types
+        run: npx tsc --noEmit
+      - name: Build application
+        run: npm run build
