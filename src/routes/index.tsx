@@ -20,7 +20,7 @@ import {
 } from "@/lib/user-prefs";
 
 import type { ReceiptWithMall } from "@/lib/types";
-import { Search, Sparkles, ArrowUpDown, Bell, Star } from "lucide-react";
+import { Search, Sparkles, ArrowUpDown, Bell, Star, ParkingCircle, Utensils, Ticket, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
@@ -29,10 +29,10 @@ const MallMap = lazy(() => import("@/components/MallMap"));
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "買時間 · 香港泊車收據交易平台" },
-      { name: "description", content: "香港商場泊車收據二手交易，即買即用免費泊車。" },
-      { property: "og:title", content: "買時間 · 香港泊車收據交易平台" },
-      { property: "og:description", content: "香港商場泊車收據二手交易，即買即用免費泊車。" },
+      { title: "啱啱好 · 啱時間 啱地方 啱啱好" },
+      { name: "description", content: "香港社區交易平台：泊車收據、食飯排隊、優惠券、夾單拼購" },
+      { property: "og:title", content: "啱啱好 · 啱時間 啱地方 啱啱好" },
+      { property: "og:description", content: "香港社區交易平台：泊車收據、食飯排隊、優惠券、夾單拼購" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -199,17 +199,8 @@ function Home() {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-xs text-white/70">{t("home.hello", { name: store.user.name })}</div>
-            <div className="text-xl font-bold mt-0.5 flex items-center gap-2">
-              買時間
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white/20`}>
-                {tierMeta.emoji} {t(`tier.${tier}`)}
-              </span>
-            </div>
-            <div className="text-[11px] text-white/80 mt-0.5">
-              {totalCompleted === null
-                ? t("home.dealsCompletedUnknown")
-                : t("home.dealsCompleted", { count: totalCompleted })}
-            </div>
+            <div className="text-2xl font-bold mt-0.5 tracking-tight">啱啱好</div>
+            <div className="text-[11px] text-white/80 mt-0.5">啱時間 啱地方 啱啱好</div>
           </div>
           <Link
             to="/profile"
@@ -220,12 +211,24 @@ function Home() {
           </Link>
         </div>
 
-        <NearbyBanner
-          district={district}
-          onChange={setDistrict}
-          favouriteIds={favouriteIds}
-          onFavouritesChange={setFavouriteIds}
-        />
+        {/* Category shortcuts */}
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { to: "/parking", icon: ParkingCircle, label: "泊車", color: "bg-blue-500/30" },
+            { to: "/dining", icon: Utensils, label: "食飯", color: "bg-orange-500/30" },
+            { to: "/offers", icon: Ticket, label: "優惠", color: "bg-purple-500/30" },
+            { to: "/group-buy", icon: ShoppingBag, label: "夾單", color: "bg-green-500/30" },
+          ].map(({ to, icon: Icon, label, color }) => (
+            <Link
+              key={to}
+              to={to}
+              className={`flex flex-col items-center gap-1.5 py-2.5 rounded-2xl ${color} hover:bg-white/20 transition-colors`}
+            >
+              <Icon className="w-5 h-5" strokeWidth={2} />
+              <span className="text-xs font-semibold">{label}</span>
+            </Link>
+          ))}
+        </div>
       </header>
 
       <>

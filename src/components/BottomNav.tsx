@@ -1,25 +1,23 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, MessageCircle, Plus, Bell, User } from "lucide-react";
+import { Home, MessageCircle, ParkingCircle, Utensils, Ticket, ShoppingBag, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useUnreadChats } from "@/hooks/useUnreadChats";
-import { useUnreadNotifications } from "@/hooks/useUnreadNotifications";
 import i18n from "@/i18n/config";
 
-type NavItem = { to: string; labelKey: string; icon: typeof Home; prominent?: boolean };
+type NavItem = { to: string; labelKey: string; icon: typeof Home };
 const items: NavItem[] = [
   { to: "/", labelKey: "nav.home", icon: Home },
-  { to: "/chats", labelKey: "nav.chats", icon: MessageCircle },
-  { to: "/sell", labelKey: "nav.sell", icon: Plus, prominent: true },
-  { to: "/announcements", labelKey: "nav.announcements", icon: Bell },
-  { to: "/profile", labelKey: "nav.profile", icon: User },
+  { to: "/parking", labelKey: "nav.parking", icon: ParkingCircle },
+  { to: "/dining", labelKey: "nav.dining", icon: Utensils },
+  { to: "/offers", labelKey: "nav.offers", icon: Ticket },
+  { to: "/group-buy", labelKey: "nav.groupBuy", icon: ShoppingBag },
 ];
 
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const hasUnread = useUnreadChats();
-  const hasUnreadNotifs = useUnreadNotifications();
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -35,18 +33,7 @@ export function BottomNav() {
             const active = it.to === "/" ? pathname === "/" : pathname.startsWith(it.to);
             const Icon = it.icon;
             const isChats = it.to === "/chats";
-            const isNotifs = it.to === "/announcements";
-            const showDot = (isChats && hasUnread) || (isNotifs && hasUnreadNotifs);
-
-            if (it.prominent) {
-              return (
-                <Link key={it.to} to={it.to as string} className="flex items-start justify-center pt-1">
-                  <div className="-mt-6 w-14 h-14 rounded-full gradient-primary text-primary-foreground grid place-items-center shadow-lg shadow-primary/30 ring-4 ring-background">
-                    <Icon className="w-6 h-6" strokeWidth={2.5} />
-                  </div>
-                </Link>
-              );
-            }
+            const showDot = isChats && hasUnread;
 
             return (
               <Link key={it.to} to={it.to as string} className={cn(

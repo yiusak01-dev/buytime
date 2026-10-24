@@ -5,7 +5,11 @@
     "sell": "Sell",
     "transactions": "Orders",
     "announcements": "Alerts",
-    "profile": "Me"
+    "profile": "Me",
+    "parking": "Parking",
+    "dining": "Dining",
+    "offers": "Offers",
+    "groupBuy": "Group Buy"
   },
   "common": {
     "confirm": "Confirm",

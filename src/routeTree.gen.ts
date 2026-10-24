@@ -9,89 +9,33 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TransactionsRouteImport } from './routes/transactions'
-import { Route as TermsRouteImport } from './routes/terms'
-import { Route as SellRouteImport } from './routes/sell'
-import { Route as SearchRouteImport } from './routes/search'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as NotificationsRouteImport } from './routes/notifications'
-import { Route as MyListingsRouteImport } from './routes/my-listings'
-import { Route as HelpRouteImport } from './routes/help'
-import { Route as ChatsRouteImport } from './routes/chats'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AnnouncementsRouteImport } from './routes/announcements'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DisputeTransactionIdRouteImport } from './routes/dispute.$transactionId'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AnnouncementsRouteImport } from './routes/announcements'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ChatsRouteImport } from './routes/chats'
+import { Route as DiningRouteImport } from './routes/dining'
+import { Route as GroupBuyRouteImport } from './routes/group-buy'
+import { Route as HelpRouteImport } from './routes/help'
+import { Route as MyListingsRouteImport } from './routes/my-listings'
+import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as OffersRouteImport } from './routes/offers'
+import { Route as ParkingRouteImport } from './routes/parking'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SearchRouteImport } from './routes/search'
+import { Route as SellRouteImport } from './routes/sell'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as ChatIdRouteImport } from './routes/chat.$id'
-import { Route as ApiPublicNotifyPriceAlertsRouteImport } from './routes/api/public/notify-price-alerts'
+import { Route as DisputeTransactionIdRouteImport } from './routes/dispute.$transactionId'
 import { Route as ApiPublicAwardReferralDiscountRouteImport } from './routes/api/public/award-referral-discount'
+import { Route as ApiPublicNotifyPriceAlertsRouteImport } from './routes/api/public/notify-price-alerts'
 
-const TransactionsRoute = TransactionsRouteImport.update({
-  id: '/transactions',
-  path: '/transactions',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SellRoute = SellRouteImport.update({
-  id: '/sell',
-  path: '/sell',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SearchRoute = SearchRouteImport.update({
-  id: '/search',
-  path: '/search',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotificationsRoute = NotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MyListingsRoute = MyListingsRouteImport.update({
-  id: '/my-listings',
-  path: '/my-listings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HelpRoute = HelpRouteImport.update({
-  id: '/help',
-  path: '/help',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChatsRoute = ChatsRouteImport.update({
-  id: '/chats',
-  path: '/chats',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AnnouncementsRoute = AnnouncementsRouteImport.update({
-  id: '/announcements',
-  path: '/announcements',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -99,14 +43,89 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AnnouncementsRoute = AnnouncementsRouteImport.update({
+  id: '/announcements',
+  path: '/announcements',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DisputeTransactionIdRoute = DisputeTransactionIdRouteImport.update({
-  id: '/dispute/$transactionId',
-  path: '/dispute/$transactionId',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatsRoute = ChatsRouteImport.update({
+  id: '/chats',
+  path: '/chats',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiningRoute = DiningRouteImport.update({
+  id: '/dining',
+  path: '/dining',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GroupBuyRoute = GroupBuyRouteImport.update({
+  id: '/group-buy',
+  path: '/group-buy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyListingsRoute = MyListingsRouteImport.update({
+  id: '/my-listings',
+  path: '/my-listings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OffersRoute = OffersRouteImport.update({
+  id: '/offers',
+  path: '/offers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ParkingRoute = ParkingRouteImport.update({
+  id: '/parking',
+  path: '/parking',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SellRoute = SellRouteImport.update({
+  id: '/sell',
+  path: '/sell',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TransactionsRoute = TransactionsRouteImport.update({
+  id: '/transactions',
+  path: '/transactions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChatIdRoute = ChatIdRouteImport.update({
@@ -114,16 +133,21 @@ const ChatIdRoute = ChatIdRouteImport.update({
   path: '/chat/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicNotifyPriceAlertsRoute =
-  ApiPublicNotifyPriceAlertsRouteImport.update({
-    id: '/api/public/notify-price-alerts',
-    path: '/api/public/notify-price-alerts',
-    getParentRoute: () => rootRouteImport,
-  } as any)
+const DisputeTransactionIdRoute = DisputeTransactionIdRouteImport.update({
+  id: '/dispute/$transactionId',
+  path: '/dispute/$transactionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicAwardReferralDiscountRoute =
   ApiPublicAwardReferralDiscountRouteImport.update({
     id: '/api/public/award-referral-discount',
     path: '/api/public/award-referral-discount',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicNotifyPriceAlertsRoute =
+  ApiPublicNotifyPriceAlertsRouteImport.update({
+    id: '/api/public/notify-price-alerts',
+    path: '/api/public/notify-price-alerts',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -133,9 +157,13 @@ export interface FileRoutesByFullPath {
   '/announcements': typeof AnnouncementsRoute
   '/auth': typeof AuthRoute
   '/chats': typeof ChatsRoute
+  '/dining': typeof DiningRoute
+  '/group-buy': typeof GroupBuyRoute
   '/help': typeof HelpRoute
   '/my-listings': typeof MyListingsRoute
   '/notifications': typeof NotificationsRoute
+  '/offers': typeof OffersRoute
+  '/parking': typeof ParkingRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -154,9 +182,13 @@ export interface FileRoutesByTo {
   '/announcements': typeof AnnouncementsRoute
   '/auth': typeof AuthRoute
   '/chats': typeof ChatsRoute
+  '/dining': typeof DiningRoute
+  '/group-buy': typeof GroupBuyRoute
   '/help': typeof HelpRoute
   '/my-listings': typeof MyListingsRoute
   '/notifications': typeof NotificationsRoute
+  '/offers': typeof OffersRoute
+  '/parking': typeof ParkingRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -176,9 +208,13 @@ export interface FileRoutesById {
   '/announcements': typeof AnnouncementsRoute
   '/auth': typeof AuthRoute
   '/chats': typeof ChatsRoute
+  '/dining': typeof DiningRoute
+  '/group-buy': typeof GroupBuyRoute
   '/help': typeof HelpRoute
   '/my-listings': typeof MyListingsRoute
   '/notifications': typeof NotificationsRoute
+  '/offers': typeof OffersRoute
+  '/parking': typeof ParkingRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -199,9 +235,13 @@ export interface FileRouteTypes {
     | '/announcements'
     | '/auth'
     | '/chats'
+    | '/dining'
+    | '/group-buy'
     | '/help'
     | '/my-listings'
     | '/notifications'
+    | '/offers'
+    | '/parking'
     | '/privacy'
     | '/profile'
     | '/reset-password'
@@ -220,9 +260,13 @@ export interface FileRouteTypes {
     | '/announcements'
     | '/auth'
     | '/chats'
+    | '/dining'
+    | '/group-buy'
     | '/help'
     | '/my-listings'
     | '/notifications'
+    | '/offers'
+    | '/parking'
     | '/privacy'
     | '/profile'
     | '/reset-password'
@@ -241,9 +285,13 @@ export interface FileRouteTypes {
     | '/announcements'
     | '/auth'
     | '/chats'
+    | '/dining'
+    | '/group-buy'
     | '/help'
     | '/my-listings'
     | '/notifications'
+    | '/offers'
+    | '/parking'
     | '/privacy'
     | '/profile'
     | '/reset-password'
@@ -263,9 +311,13 @@ export interface RootRouteChildren {
   AnnouncementsRoute: typeof AnnouncementsRoute
   AuthRoute: typeof AuthRoute
   ChatsRoute: typeof ChatsRoute
+  DiningRoute: typeof DiningRoute
+  GroupBuyRoute: typeof GroupBuyRoute
   HelpRoute: typeof HelpRoute
   MyListingsRoute: typeof MyListingsRoute
   NotificationsRoute: typeof NotificationsRoute
+  OffersRoute: typeof OffersRoute
+  ParkingRoute: typeof ParkingRoute
   PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -281,25 +333,167 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/transactions': { id: '/transactions'; path: '/transactions'; fullPath: '/transactions'; preLoaderRoute: typeof TransactionsRouteImport; parentRoute: typeof rootRouteImport }
-    '/terms': { id: '/terms'; path: '/terms'; fullPath: '/terms'; preLoaderRoute: typeof TermsRouteImport; parentRoute: typeof rootRouteImport }
-    '/sell': { id: '/sell'; path: '/sell'; fullPath: '/sell'; preLoaderRoute: typeof SellRouteImport; parentRoute: typeof rootRouteImport }
-    '/search': { id: '/search'; path: '/search'; fullPath: '/search'; preLoaderRoute: typeof SearchRouteImport; parentRoute: typeof rootRouteImport }
-    '/reset-password': { id: '/reset-password'; path: '/reset-password'; fullPath: '/reset-password'; preLoaderRoute: typeof ResetPasswordRouteImport; parentRoute: typeof rootRouteImport }
-    '/profile': { id: '/profile'; path: '/profile'; fullPath: '/profile'; preLoaderRoute: typeof ProfileRouteImport; parentRoute: typeof rootRouteImport }
-    '/privacy': { id: '/privacy'; path: '/privacy'; fullPath: '/privacy'; preLoaderRoute: typeof PrivacyRouteImport; parentRoute: typeof rootRouteImport }
-    '/notifications': { id: '/notifications'; path: '/notifications'; fullPath: '/notifications'; preLoaderRoute: typeof NotificationsRouteImport; parentRoute: typeof rootRouteImport }
-    '/my-listings': { id: '/my-listings'; path: '/my-listings'; fullPath: '/my-listings'; preLoaderRoute: typeof MyListingsRouteImport; parentRoute: typeof rootRouteImport }
-    '/help': { id: '/help'; path: '/help'; fullPath: '/help'; preLoaderRoute: typeof HelpRouteImport; parentRoute: typeof rootRouteImport }
-    '/chats': { id: '/chats'; path: '/chats'; fullPath: '/chats'; preLoaderRoute: typeof ChatsRouteImport; parentRoute: typeof rootRouteImport }
-    '/auth': { id: '/auth'; path: '/auth'; fullPath: '/auth'; preLoaderRoute: typeof AuthRouteImport; parentRoute: typeof rootRouteImport }
-    '/announcements': { id: '/announcements'; path: '/announcements'; fullPath: '/announcements'; preLoaderRoute: typeof AnnouncementsRouteImport; parentRoute: typeof rootRouteImport }
-    '/admin': { id: '/admin'; path: '/admin'; fullPath: '/admin'; preLoaderRoute: typeof AdminRouteImport; parentRoute: typeof rootRouteImport }
-    '/': { id: '/'; path: '/'; fullPath: '/'; preLoaderRoute: typeof IndexRouteImport; parentRoute: typeof rootRouteImport }
-    '/dispute/$transactionId': { id: '/dispute/$transactionId'; path: '/dispute/$transactionId'; fullPath: '/dispute/$transactionId'; preLoaderRoute: typeof DisputeTransactionIdRouteImport; parentRoute: typeof rootRouteImport }
-    '/chat/$id': { id: '/chat/$id'; path: '/chat/$id'; fullPath: '/chat/$id'; preLoaderRoute: typeof ChatIdRouteImport; parentRoute: typeof rootRouteImport }
-    '/api/public/notify-price-alerts': { id: '/api/public/notify-price-alerts'; path: '/api/public/notify-price-alerts'; fullPath: '/api/public/notify-price-alerts'; preLoaderRoute: typeof ApiPublicNotifyPriceAlertsRouteImport; parentRoute: typeof rootRouteImport }
-    '/api/public/award-referral-discount': { id: '/api/public/award-referral-discount'; path: '/api/public/award-referral-discount'; fullPath: '/api/public/award-referral-discount'; preLoaderRoute: typeof ApiPublicAwardReferralDiscountRouteImport; parentRoute: typeof rootRouteImport }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/announcements': {
+      id: '/announcements'
+      path: '/announcements'
+      fullPath: '/announcements'
+      preLoaderRoute: typeof AnnouncementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chats': {
+      id: '/chats'
+      path: '/chats'
+      fullPath: '/chats'
+      preLoaderRoute: typeof ChatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dining': {
+      id: '/dining'
+      path: '/dining'
+      fullPath: '/dining'
+      preLoaderRoute: typeof DiningRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/group-buy': {
+      id: '/group-buy'
+      path: '/group-buy'
+      fullPath: '/group-buy'
+      preLoaderRoute: typeof GroupBuyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-listings': {
+      id: '/my-listings'
+      path: '/my-listings'
+      fullPath: '/my-listings'
+      preLoaderRoute: typeof MyListingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/offers': {
+      id: '/offers'
+      path: '/offers'
+      fullPath: '/offers'
+      preLoaderRoute: typeof OffersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/parking': {
+      id: '/parking'
+      path: '/parking'
+      fullPath: '/parking'
+      preLoaderRoute: typeof ParkingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sell': {
+      id: '/sell'
+      path: '/sell'
+      fullPath: '/sell'
+      preLoaderRoute: typeof SellRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/transactions': {
+      id: '/transactions'
+      path: '/transactions'
+      fullPath: '/transactions'
+      preLoaderRoute: typeof TransactionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chat/$id': {
+      id: '/chat/$id'
+      path: '/chat/$id'
+      fullPath: '/chat/$id'
+      preLoaderRoute: typeof ChatIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dispute/$transactionId': {
+      id: '/dispute/$transactionId'
+      path: '/dispute/$transactionId'
+      fullPath: '/dispute/$transactionId'
+      preLoaderRoute: typeof DisputeTransactionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/award-referral-discount': {
+      id: '/api/public/award-referral-discount'
+      path: '/api/public/award-referral-discount'
+      fullPath: '/api/public/award-referral-discount'
+      preLoaderRoute: typeof ApiPublicAwardReferralDiscountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/notify-price-alerts': {
+      id: '/api/public/notify-price-alerts'
+      path: '/api/public/notify-price-alerts'
+      fullPath: '/api/public/notify-price-alerts'
+      preLoaderRoute: typeof ApiPublicNotifyPriceAlertsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -309,9 +503,13 @@ const rootRouteChildren: RootRouteChildren = {
   AnnouncementsRoute: AnnouncementsRoute,
   AuthRoute: AuthRoute,
   ChatsRoute: ChatsRoute,
+  DiningRoute: DiningRoute,
+  GroupBuyRoute: GroupBuyRoute,
   HelpRoute: HelpRoute,
   MyListingsRoute: MyListingsRoute,
   NotificationsRoute: NotificationsRoute,
+  OffersRoute: OffersRoute,
+  ParkingRoute: ParkingRoute,
   PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
   ResetPasswordRoute: ResetPasswordRoute,
@@ -327,13 +525,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

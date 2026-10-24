@@ -5,7 +5,11 @@
     "sell": "放售",
     "transactions": "交易",
     "announcements": "通告",
-    "profile": "我的"
+    "profile": "我的",
+    "parking": "泊車",
+    "dining": "食飯",
+    "offers": "優惠",
+    "groupBuy": "夾單"
   },
   "common": {
     "confirm": "確認",
