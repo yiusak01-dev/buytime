@@ -194,40 +194,52 @@ function Home() {
 
   return (
     <AppLayout>
-      {/* Header */}
-      <header className="px-4 pt-5 pb-4 gradient-primary text-white rounded-b-3xl space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-xs text-white/70">{t("home.hello", { name: store.user.name })}</div>
-            <div className="text-2xl font-bold mt-0.5 tracking-tight">啱啱好</div>
-            <div className="text-[11px] text-white/80 mt-0.5">啱時間 啱地方 啱啱好</div>
-          </div>
-          <Link
-            to="/profile"
-            aria-label={t("nav.profile")}
-            className="w-9 h-9 rounded-full bg-white/20 grid place-items-center text-base font-bold hover:bg-white/30 transition-colors"
-          >
-            {store.user.initial}
-          </Link>
-        </div>
-
-        {/* Category shortcuts */}
-        <div className="grid grid-cols-4 gap-2">
-          {[
-            { to: "/parking", icon: ParkingCircle, label: "泊車", color: "bg-blue-500/30" },
-            { to: "/dining", icon: Utensils, label: "食飯", color: "bg-orange-500/30" },
-            { to: "/offers", icon: Ticket, label: "優惠", color: "bg-purple-500/30" },
-            { to: "/group-buy", icon: ShoppingBag, label: "夾單", color: "bg-green-500/30" },
-          ].map(({ to, icon: Icon, label, color }) => (
+      {/* Hero Header — yellow brand style */}
+      <header className="relative overflow-hidden rounded-b-3xl">
+        {/* Yellow gradient background */}
+        <div className="bg-[#F5C518] px-5 pt-6 pb-5">
+          {/* Top bar */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-1.5">
+              <span className="text-2xl font-black text-[#1a1a1a] tracking-tight">啱啱好</span>
+              <span className="w-2 h-2 rounded-full bg-[#E8421A] mt-1" />
+            </div>
             <Link
-              key={to}
-              to={to}
-              className={`flex flex-col items-center gap-1.5 py-2.5 rounded-2xl ${color} hover:bg-white/20 transition-colors`}
+              to="/profile"
+              aria-label={t("nav.profile")}
+              className="w-9 h-9 rounded-full bg-white/40 grid place-items-center text-base font-bold text-[#1a1a1a] hover:bg-white/60 transition-colors"
             >
-              <Icon className="w-5 h-5" strokeWidth={2} />
-              <span className="text-xs font-semibold">{label}</span>
+              {store.user.initial}
             </Link>
-          ))}
+          </div>
+
+          {/* Big tagline */}
+          <div className="mb-1">
+            <div className="text-[11px] text-[#1a1a1a]/60 font-medium mb-1">香港商場 · 即時資源配對</div>
+            <div className="text-3xl font-black text-[#1a1a1a] leading-tight">
+              啱時間<br />啱地方<br />啱啱好！
+            </div>
+          </div>
+          <div className="text-xs text-[#1a1a1a]/60 mt-2 mb-4">你身邊有人用唔着嘅，可能就係你而家想搵嘅。</div>
+
+          {/* Category grid — colourful cards */}
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { to: "/parking", icon: ParkingCircle, label: "泊車", bg: "bg-[#4CAF82]", text: "text-white" },
+              { to: "/dining", icon: Utensils, label: "食飯候位", bg: "bg-[#5B8DEF]", text: "text-white" },
+              { to: "/offers", icon: Ticket, label: "購物優惠", bg: "bg-[#E8649A]", text: "text-white" },
+              { to: "/group-buy", icon: ShoppingBag, label: "夾單", bg: "bg-[#E8421A]", text: "text-white" },
+            ].map(({ to, icon: Icon, label, bg, text }) => (
+              <Link
+                key={to}
+                to={to}
+                className={`flex flex-col items-center gap-1.5 py-3 rounded-2xl ${bg} hover:opacity-90 transition-opacity`}
+              >
+                <Icon className={`w-5 h-5 ${text}`} strokeWidth={2} />
+                <span className={`text-[10px] font-bold ${text} text-center leading-tight`}>{label}</span>
+              </Link>
+            ))}
+          </div>
         </div>
       </header>
 
