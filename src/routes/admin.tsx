@@ -16,12 +16,14 @@ import {
   type Dispute,
   type AppRole,
 } from "@/lib/escrow-db";
+import { AahAppealsTab, AahReportsTab, AahVouchersTab, AahAdminLogTab } from "@/components/aah/admin/AahAdminTabs";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPanel,
 });
 
-type Tab = "disputes" | "audit" | "users" | "reports";
+type Tab = "appeals" | "aahReports" | "vouchers" | "log" | "users" | "legacy";
+type LegacyTab = "disputes" | "reports" | "audit";
 
 const REASON_LABEL: Record<string, string> = {
   seller_no_show: "賣家冇出現",
@@ -44,7 +46,8 @@ function AdminPanel() {
   const [checking, setChecking] = useState(true);
   const [me, setMe] = useState<string | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
-  const [tab, setTab] = useState<Tab>("disputes");
+  const [tab, setTab] = useState<Tab>("appeals");
+  const [legacy, setLegacy] = useState<LegacyTab>("disputes");
 
   useEffect(() => {
     (async () => {
@@ -78,19 +81,21 @@ function AdminPanel() {
   const isSuper = roles.includes("super_admin");
 
   return (
-    <AppLayout title="Admin Panel" subtitle={isSuper ? "Super Admin" : "Admin"}>
+    <AppLayout title="啱啱好 Admin" subtitle={isSuper ? "Super Admin" : "Admin"} hideNav>
       <div className="sticky top-[73px] z-20 bg-background/95 backdrop-blur border-b border-border/60">
-        <div className="flex">
+        <div className="flex overflow-x-auto scrollbar-hide">
           {([
-            ["disputes", "爭議"],
-            ["audit", "Audit Log"],
-            ["reports", "檢舉記錄"],
+            ["appeals", "申訴"],
+            ["aahReports", "舉報"],
+            ["vouchers", "禮券"],
+            ["log", "操作紀錄"],
             ...(isSuper ? ([["users", "用戶"]] as [Tab, string][]) : []),
+            ["legacy", "舊版"],
           ] as [Tab, string][]).map(([t, label]) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`flex-1 py-3 text-sm font-semibold border-b-2 ${
+              className={`shrink-0 min-w-[64px] flex-1 px-3 py-3 text-sm font-semibold whitespace-nowrap border-b-2 ${
                 tab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground"
               }`}
             >
@@ -101,10 +106,26 @@ function AdminPanel() {
       </div>
 
       <div className="p-4">
-        {tab === "disputes" && me && <DisputesTab adminId={me} />}
-        {tab === "audit" && <AuditTab />}
-        {tab === "reports" && me && <ReportsTab adminId={me} />}
+        {tab === "appeals" && <AahAppealsTab />}
+        {tab === "aahReports" && <AahReportsTab />}
+        {tab === "vouchers" && <AahVouchersTab />}
+        {tab === "log" && <AahAdminLogTab />}
         {tab === "users" && isSuper && me && <UsersTab adminId={me} />}
+        {tab === "legacy" && me && (
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">買時間年代嘅托管交易（平台代收錢）。啱啱好已經唔經手錢，呢度只係處理舊交易遺留嘅爭議同紀錄。</p>
+            <div className="inline-flex rounded-lg border border-border p-0.5">
+              {([["disputes", "托管爭議"], ["reports", "檢舉記錄"], ["audit", "Audit Log"]] as [LegacyTab, string][]).map(([t, l]) => (
+                <button key={t} onClick={() => setLegacy(t)} className={`px-3 py-1.5 text-xs font-semibold rounded-md ${legacy === t ? "bg-foreground text-background" : "text-muted-foreground"}`}>
+                  {l}
+                </button>
+              ))}
+            </div>
+            {legacy === "disputes" && <DisputesTab adminId={me} />}
+            {legacy === "reports" && <ReportsTab adminId={me} />}
+            {legacy === "audit" && <AuditTab />}
+          </div>
+        )}
       </div>
     </AppLayout>
   );

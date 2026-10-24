@@ -222,7 +222,8 @@ create policy aah_messages_insert on public.aah_messages for insert
     and (m.status = 'active' or m.ended_at > now() - interval '30 minutes')));
 
 create policy aah_ledger_select_own on public.aah_point_ledger for select using (user_id = auth.uid());
-create policy aah_reports_insert on public.aah_reports for insert with check (reporter_id = auth.uid());
+-- 冇出現只可以經 aah_report_no_show() 報告（會檢查時間同到場紀錄）
+create policy aah_reports_insert on public.aah_reports for insert with check (reporter_id = auth.uid() and kind <> 'noshow');
 create policy aah_reports_select_own on public.aah_reports for select using (reporter_id = auth.uid() or accused_id = auth.uid());
 create policy aah_appeals_own on public.aah_appeals for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy aah_pins_select_own on public.aah_pins for select using (user_id = auth.uid());
