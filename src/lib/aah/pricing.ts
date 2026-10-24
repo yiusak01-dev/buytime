@@ -1,0 +1,99 @@
+import { calcParkingHours } from "@/lib/parking-rules";
+import type { AahMall } from "./types";
+
+/**
+ * 香港公眾假期（2026）。上線前請對照 gov.hk 公佈核實；
+ * 星期日本身已經當週末計，所以只需要列平日嘅假期。
+ */
+export const HK_PUBLIC_HOLIDAYS = new Set<string>([
+  "2026-01-01",
+  "2026-02-17", "2026-02-18", "2026-02-19",
+  "2026-04-03", "2026-04-04", "2026-04-06", "2026-04-07",
+  "2026-05-01", "2026-05-25",
+  "2026-06-19",
+  "2026-07-01",
+  "2026-09-26",
+  "2026-10-01", "2026-10-19",
+  "2026-12-25", "2026-12-26",
+]);
+
+const WEEKDAY_ZH = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+
+/** 用香港時間取日期 */
+export function hkDateParts(ts: number) {
+  const d = new Date(ts + 8 * 3600 * 1000);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return { iso: `${y}-${m}-${day}`, dow: d.getUTCDay(), hour: d.getUTCHours(), minute: d.getUTCMinutes() };
+}
+
+export type DayInfo = { weekend: boolean; label: string };
+
+export function dayInfo(ts: number): DayInfo {
+  const { iso, dow } = hkDateParts(ts);
+  if (HK_PUBLIC_HOLIDAYS.has(iso)) return { weekend: true, label: "公眾假期" };
+  if (dow === 0 || dow === 6) return { weekend: true, label: WEEKDAY_ZH[dow] };
+  return { weekend: false, label: WEEKDAY_ZH[dow] };
+}
+
+function rulesFor(mall: AahMall, ts: number) {
+  const day = dayInfo(ts);
+  const cond = day.weekend ? mall.condWeekend ?? mall.condWeekday : mall.condWeekday;
+  const rate = day.weekend ? mall.rateWeekend ?? mall.rateWeekday : mall.rateWeekday;
+  return { day, cond, rate };
+}
+
+export type ParkingQuote = {
+  hours: number;
+  rate: number | null;
+  saving: number | null;
+  /** 建議唔好超過（慳到嘅一半） */
+  suggestMax: number | null;
+  dayLabel: string;
+  belowThreshold: boolean;
+  minThreshold: number;
+  cond: string | null;
+};
+
+/** 賣家：張收據可以換幾多個鐘、慳幾多 */
+export function quoteParkingReceipt(mall: AahMall, receiptAmount: number, ts: number): ParkingQuote {
+  const { day, cond, rate } = rulesFor(mall, ts);
+  const r = calcParkingHours(cond, receiptAmount);
+  const saving = rate != null ? Math.round(r.hours * rate) : null;
+  return {
+    hours: r.hours,
+    rate,
+    saving,
+    suggestMax: saving != null ? Math.floor(saving / 2) : null,
+    dayLabel: day.label,
+    belowThreshold: r.belowThreshold,
+    minThreshold: r.minThreshold,
+    cond,
+  };
+}
+
+/** 「我要」泊車：想要嘅鐘數值幾多錢 */
+export function quoteParkingWant(mall: AahMall, hours: number, ts: number) {
+  const { day, rate } = rulesFor(mall, ts);
+  const fee = rate != null ? Math.round(hours * rate) : null;
+  return { fee, rate, suggestMax: fee != null ? Math.floor(fee / 2) : null, dayLabel: day.label };
+}
+
+/**
+ * 買家：輸入幾點入停車場，計實際慳幾多。
+ * 停車場一般按「每小時或不足一小時」收費，所以向上取整。
+ */
+export function buyerParkingSaving(mall: AahMall, hoursOffered: number, entryTs: number, now: number) {
+  const { day, rate } = rulesFor(mall, now);
+  const parked = Math.max(1, Math.ceil((now - entryTs) / 3600000));
+  if (rate == null) return null;
+  const fee = parked * rate;
+  const saving = Math.min(hoursOffered, parked) * rate;
+  return { parked, fee, saving, dayLabel: day.label, rate };
+}
+
+/** 優惠券：建議唔好超過面值一半 */
+export function quoteOffer(faceValue: number) {
+  return { suggestMax: Math.floor(faceValue / 2) };
+}

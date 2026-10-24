@@ -17,6 +17,7 @@ import { Route as ChatsRouteImport } from './routes/chats'
 import { Route as DiningRouteImport } from './routes/dining'
 import { Route as GroupBuyRouteImport } from './routes/group-buy'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as MeRouteImport } from './routes/me'
 import { Route as MyListingsRouteImport } from './routes/my-listings'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as OffersRouteImport } from './routes/offers'
@@ -28,8 +29,12 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TransactionsRouteImport } from './routes/transactions'
+import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as ChatIdRouteImport } from './routes/chat.$id'
 import { Route as DisputeTransactionIdRouteImport } from './routes/dispute.$transactionId'
+import { Route as MatchMatchIdRouteImport } from './routes/match.$matchId'
+import { Route as PostPostIdRouteImport } from './routes/post.$postId'
+import { Route as PostNewRouteImport } from './routes/post.new'
 import { Route as ApiPublicAwardReferralDiscountRouteImport } from './routes/api/public/award-referral-discount'
 import { Route as ApiPublicNotifyPriceAlertsRouteImport } from './routes/api/public/notify-price-alerts'
 
@@ -71,6 +76,11 @@ const GroupBuyRoute = GroupBuyRouteImport.update({
 const HelpRoute = HelpRouteImport.update({
   id: '/help',
   path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeRoute = MeRouteImport.update({
+  id: '/me',
+  path: '/me',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MyListingsRoute = MyListingsRouteImport.update({
@@ -128,6 +138,11 @@ const TransactionsRoute = TransactionsRouteImport.update({
   path: '/transactions',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WelcomeRoute = WelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChatIdRoute = ChatIdRouteImport.update({
   id: '/chat/$id',
   path: '/chat/$id',
@@ -136,6 +151,21 @@ const ChatIdRoute = ChatIdRouteImport.update({
 const DisputeTransactionIdRoute = DisputeTransactionIdRouteImport.update({
   id: '/dispute/$transactionId',
   path: '/dispute/$transactionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MatchMatchIdRoute = MatchMatchIdRouteImport.update({
+  id: '/match/$matchId',
+  path: '/match/$matchId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PostPostIdRoute = PostPostIdRouteImport.update({
+  id: '/post/$postId',
+  path: '/post/$postId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PostNewRoute = PostNewRouteImport.update({
+  id: '/post/new',
+  path: '/post/new',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicAwardReferralDiscountRoute =
@@ -160,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/dining': typeof DiningRoute
   '/group-buy': typeof GroupBuyRoute
   '/help': typeof HelpRoute
+  '/me': typeof MeRoute
   '/my-listings': typeof MyListingsRoute
   '/notifications': typeof NotificationsRoute
   '/offers': typeof OffersRoute
@@ -171,8 +202,12 @@ export interface FileRoutesByFullPath {
   '/sell': typeof SellRoute
   '/terms': typeof TermsRoute
   '/transactions': typeof TransactionsRoute
+  '/welcome': typeof WelcomeRoute
   '/chat/$id': typeof ChatIdRoute
   '/dispute/$transactionId': typeof DisputeTransactionIdRoute
+  '/match/$matchId': typeof MatchMatchIdRoute
+  '/post/$postId': typeof PostPostIdRoute
+  '/post/new': typeof PostNewRoute
   '/api/public/award-referral-discount': typeof ApiPublicAwardReferralDiscountRoute
   '/api/public/notify-price-alerts': typeof ApiPublicNotifyPriceAlertsRoute
 }
@@ -185,6 +220,7 @@ export interface FileRoutesByTo {
   '/dining': typeof DiningRoute
   '/group-buy': typeof GroupBuyRoute
   '/help': typeof HelpRoute
+  '/me': typeof MeRoute
   '/my-listings': typeof MyListingsRoute
   '/notifications': typeof NotificationsRoute
   '/offers': typeof OffersRoute
@@ -196,8 +232,12 @@ export interface FileRoutesByTo {
   '/sell': typeof SellRoute
   '/terms': typeof TermsRoute
   '/transactions': typeof TransactionsRoute
+  '/welcome': typeof WelcomeRoute
   '/chat/$id': typeof ChatIdRoute
   '/dispute/$transactionId': typeof DisputeTransactionIdRoute
+  '/match/$matchId': typeof MatchMatchIdRoute
+  '/post/$postId': typeof PostPostIdRoute
+  '/post/new': typeof PostNewRoute
   '/api/public/award-referral-discount': typeof ApiPublicAwardReferralDiscountRoute
   '/api/public/notify-price-alerts': typeof ApiPublicNotifyPriceAlertsRoute
 }
@@ -211,6 +251,7 @@ export interface FileRoutesById {
   '/dining': typeof DiningRoute
   '/group-buy': typeof GroupBuyRoute
   '/help': typeof HelpRoute
+  '/me': typeof MeRoute
   '/my-listings': typeof MyListingsRoute
   '/notifications': typeof NotificationsRoute
   '/offers': typeof OffersRoute
@@ -222,8 +263,12 @@ export interface FileRoutesById {
   '/sell': typeof SellRoute
   '/terms': typeof TermsRoute
   '/transactions': typeof TransactionsRoute
+  '/welcome': typeof WelcomeRoute
   '/chat/$id': typeof ChatIdRoute
   '/dispute/$transactionId': typeof DisputeTransactionIdRoute
+  '/match/$matchId': typeof MatchMatchIdRoute
+  '/post/$postId': typeof PostPostIdRoute
+  '/post/new': typeof PostNewRoute
   '/api/public/award-referral-discount': typeof ApiPublicAwardReferralDiscountRoute
   '/api/public/notify-price-alerts': typeof ApiPublicNotifyPriceAlertsRoute
 }
@@ -238,6 +283,7 @@ export interface FileRouteTypes {
     | '/dining'
     | '/group-buy'
     | '/help'
+    | '/me'
     | '/my-listings'
     | '/notifications'
     | '/offers'
@@ -249,8 +295,12 @@ export interface FileRouteTypes {
     | '/sell'
     | '/terms'
     | '/transactions'
+    | '/welcome'
     | '/chat/$id'
     | '/dispute/$transactionId'
+    | '/match/$matchId'
+    | '/post/$postId'
+    | '/post/new'
     | '/api/public/award-referral-discount'
     | '/api/public/notify-price-alerts'
   fileRoutesByTo: FileRoutesByTo
@@ -263,6 +313,7 @@ export interface FileRouteTypes {
     | '/dining'
     | '/group-buy'
     | '/help'
+    | '/me'
     | '/my-listings'
     | '/notifications'
     | '/offers'
@@ -274,8 +325,12 @@ export interface FileRouteTypes {
     | '/sell'
     | '/terms'
     | '/transactions'
+    | '/welcome'
     | '/chat/$id'
     | '/dispute/$transactionId'
+    | '/match/$matchId'
+    | '/post/$postId'
+    | '/post/new'
     | '/api/public/award-referral-discount'
     | '/api/public/notify-price-alerts'
   id:
@@ -288,6 +343,7 @@ export interface FileRouteTypes {
     | '/dining'
     | '/group-buy'
     | '/help'
+    | '/me'
     | '/my-listings'
     | '/notifications'
     | '/offers'
@@ -299,8 +355,12 @@ export interface FileRouteTypes {
     | '/sell'
     | '/terms'
     | '/transactions'
+    | '/welcome'
     | '/chat/$id'
     | '/dispute/$transactionId'
+    | '/match/$matchId'
+    | '/post/$postId'
+    | '/post/new'
     | '/api/public/award-referral-discount'
     | '/api/public/notify-price-alerts'
   fileRoutesById: FileRoutesById
@@ -314,6 +374,7 @@ export interface RootRouteChildren {
   DiningRoute: typeof DiningRoute
   GroupBuyRoute: typeof GroupBuyRoute
   HelpRoute: typeof HelpRoute
+  MeRoute: typeof MeRoute
   MyListingsRoute: typeof MyListingsRoute
   NotificationsRoute: typeof NotificationsRoute
   OffersRoute: typeof OffersRoute
@@ -325,8 +386,12 @@ export interface RootRouteChildren {
   SellRoute: typeof SellRoute
   TermsRoute: typeof TermsRoute
   TransactionsRoute: typeof TransactionsRoute
+  WelcomeRoute: typeof WelcomeRoute
   ChatIdRoute: typeof ChatIdRoute
   DisputeTransactionIdRoute: typeof DisputeTransactionIdRoute
+  MatchMatchIdRoute: typeof MatchMatchIdRoute
+  PostPostIdRoute: typeof PostPostIdRoute
+  PostNewRoute: typeof PostNewRoute
   ApiPublicAwardReferralDiscountRoute: typeof ApiPublicAwardReferralDiscountRoute
   ApiPublicNotifyPriceAlertsRoute: typeof ApiPublicNotifyPriceAlertsRoute
 }
@@ -387,6 +452,13 @@ declare module '@tanstack/react-router' {
       path: '/help'
       fullPath: '/help'
       preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/me': {
+      id: '/me'
+      path: '/me'
+      fullPath: '/me'
+      preLoaderRoute: typeof MeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/my-listings': {
@@ -466,6 +538,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TransactionsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/chat/$id': {
       id: '/chat/$id'
       path: '/chat/$id'
@@ -478,6 +557,27 @@ declare module '@tanstack/react-router' {
       path: '/dispute/$transactionId'
       fullPath: '/dispute/$transactionId'
       preLoaderRoute: typeof DisputeTransactionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/match/$matchId': {
+      id: '/match/$matchId'
+      path: '/match/$matchId'
+      fullPath: '/match/$matchId'
+      preLoaderRoute: typeof MatchMatchIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/post/$postId': {
+      id: '/post/$postId'
+      path: '/post/$postId'
+      fullPath: '/post/$postId'
+      preLoaderRoute: typeof PostPostIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/post/new': {
+      id: '/post/new'
+      path: '/post/new'
+      fullPath: '/post/new'
+      preLoaderRoute: typeof PostNewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/award-referral-discount': {
@@ -506,6 +606,7 @@ const rootRouteChildren: RootRouteChildren = {
   DiningRoute: DiningRoute,
   GroupBuyRoute: GroupBuyRoute,
   HelpRoute: HelpRoute,
+  MeRoute: MeRoute,
   MyListingsRoute: MyListingsRoute,
   NotificationsRoute: NotificationsRoute,
   OffersRoute: OffersRoute,
@@ -517,8 +618,12 @@ const rootRouteChildren: RootRouteChildren = {
   SellRoute: SellRoute,
   TermsRoute: TermsRoute,
   TransactionsRoute: TransactionsRoute,
+  WelcomeRoute: WelcomeRoute,
   ChatIdRoute: ChatIdRoute,
   DisputeTransactionIdRoute: DisputeTransactionIdRoute,
+  MatchMatchIdRoute: MatchMatchIdRoute,
+  PostPostIdRoute: PostPostIdRoute,
+  PostNewRoute: PostNewRoute,
   ApiPublicAwardReferralDiscountRoute: ApiPublicAwardReferralDiscountRoute,
   ApiPublicNotifyPriceAlertsRoute: ApiPublicNotifyPriceAlertsRoute,
 }
