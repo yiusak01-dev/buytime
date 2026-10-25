@@ -19,7 +19,7 @@ self.addEventListener('push', (event) => {
       await self.registration.showNotification(title, {
         body: data.body || '',
         icon: '/icon-192.png',
-        badge: '/icon-192.png',
+        badge: '/badge-96.png',
         data: { url },
         tag: data.tag || undefined,
         renotify: !!data.tag,

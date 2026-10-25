@@ -12,6 +12,7 @@ import "@/i18n/config";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { AahRuntime } from "@/components/aah/AahRuntime";
+import { SplashScreen } from "@/components/aah/BrandMark";
 
 function NotFoundComponent() {
   return (
@@ -82,6 +83,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <Outlet />
       <AahRuntime />
+      <SplashScreen />
       <Toaster position="top-center" richColors />
     </QueryClientProvider>
   );
