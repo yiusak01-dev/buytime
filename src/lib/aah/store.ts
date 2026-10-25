@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useSyncExternalStore } from "react";
 import type { AahMall, Interest, Match, Message, Outfit, Post, User } from "./types";
 import { SCENARIOS } from "./scenarios";
@@ -461,6 +462,9 @@ const local = {
 
   /** 有人冇出現。accusedId 係我自己就停用一個月 */
   reportNoShow(matchId: string, accusedId: string) {
+    // 同雲端一樣：只罰確認咗見面嘅人
+    const target = state.matches.find((x) => x.id === matchId);
+    if (target && !target.confirmedBy.includes(accusedId)) throw new Error("accused not confirmed");
     patchMatch(matchId, (m) => ({ ...m, status: "noshow", endedAt: Date.now(), messages: [...m.messages, sysMsg(accusedId === state.user.id ? "對方報告你冇出現，帳戶停用一個月。可以喺 48 小時內申訴。" : "已記錄對方冇出現，對方帳戶會停用一個月。")] }));
     if (accusedId === state.user.id) {
       set({ ...state, user: { ...state.user, noShows: state.user.noShows + 1, bannedUntil: Date.now() + BAN_DAYS * DAY, points: Math.max(0, state.user.points - POINTS.noShowPenalty) } });
@@ -529,7 +533,11 @@ const local = {
   },
 
   demoPartnerReportsMe(matchId: string) {
-    local.reportNoShow(matchId, state.user.id);
+    try {
+      local.reportNoShow(matchId, state.user.id);
+    } catch {
+      toast("你未確認見面，對方報告都唔會罰你");
+    }
   },
 };
 

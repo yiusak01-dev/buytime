@@ -243,14 +243,18 @@ function MatchPage() {
               <div key={o.userId} className="flex items-center gap-2">
                 <div className="flex-1 text-sm font-semibold">{o.name}</div>
                 <button onClick={() => act(aah.arrive(m.id, { userId: o.userId }))} className="h-9 px-3 rounded-full bg-[#1a1a1a] text-white text-sm font-bold">到咗喇</button>
-                <button
-                  onClick={() => {
-                    void act(aah.reportNoShow(m.id, o.userId), `已記錄對方冇出現，對方帳戶會停用 ${BAN_DAYS} 日；佢可以申訴。`);
-                  }}
-                  className="h-9 px-3 rounded-full border border-border text-sm font-semibold"
-                >
-                  冇出現
-                </button>
+                {m.confirmedBy.includes(o.userId) ? (
+                  <button
+                    onClick={() => {
+                      void act(aah.reportNoShow(m.id, o.userId), `已記錄對方冇出現，對方帳戶會停用 ${BAN_DAYS} 日；佢可以申訴。`);
+                    }}
+                    className="h-9 px-3 rounded-full border border-border text-sm font-semibold"
+                  >
+                    冇出現
+                  </button>
+                ) : (
+                  <span className="text-[11px] text-muted-foreground max-w-[7rem] leading-tight">對方未確認見面，唔使等可以直接取消</span>
+                )}
               </div>
             ))}
           </div>

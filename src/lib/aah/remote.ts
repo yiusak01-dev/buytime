@@ -604,6 +604,7 @@ export function aahErrorText(e: unknown): string {
     [/too early/, "未到約定時間，唔可以報告冇出現"],
     [/reporter has not arrived/, "你要先撳「我到咗」"],
     [/accused arrived/, "對方已經撳咗「我到咗」"],
+    [/accused not confirmed/, "對方未確認見面，唔算冇出現；可以直接取消"],
     [/not enough points/, "積分唔夠"],
     [/account too new/, "帳戶要用夠 30 日先可以換禮券"],
     [/monthly quota/, "本月禮券已經換晒"],
