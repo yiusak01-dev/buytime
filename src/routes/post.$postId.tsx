@@ -525,7 +525,7 @@ function PinSheet({
             <button disabled={busy} onClick={() => doPin(false)} className="w-full h-12 rounded-2xl bg-[#1a1a1a] text-white font-black disabled:opacity-50">
               {pinIsFree(mode) ? "免費置頂 15 分鐘" : "$5 置頂 15 分鐘"}
             </button>
-            {pinIsFree(mode) && <p className="text-[11px] text-muted-foreground text-center">現階段置頂免費，唔使用積分。</p>}
+            {pinIsFree(mode) && <p className="text-[11px] text-muted-foreground text-center">現階段置頂免費，每人每日最多 3 次。</p>}
           </>
         )}
       </div>

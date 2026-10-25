@@ -1,6 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ChevronRight, Gift, KeyRound, LogOut, Pencil, Pin, ShieldAlert } from "lucide-react";
+import { ChevronRight, Gift, KeyRound, LogOut, Pencil, Pin, ShieldAlert, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { AppLayout } from "@/components/AppLayout";
@@ -32,6 +32,10 @@ function MePage() {
   const [nickOpen, setNickOpen] = useState(false);
   const [nickDraft, setNickDraft] = useState("");
   const [nickBusy, setNickBusy] = useState(false);
+  const [delOpen, setDelOpen] = useState(false);
+  const [delText, setDelText] = useState("");
+  const [delBusy, setDelBusy] = useState(false);
+  const navigate = useNavigate();
 
   const myMatches = useMemo(() => matches.filter((m) => m.participants.some((p) => p.userId === user.id)), [matches, user.id]);
   const activeMatches = myMatches.filter((m) => m.status === "active");
@@ -302,6 +306,16 @@ function MePage() {
               <LogOut className="w-4 h-4 text-muted-foreground" />
               <span className="flex-1 text-sm">登出</span>
             </button>
+            <button
+              onClick={() => {
+                setDelText("");
+                setDelOpen(true);
+              }}
+              className="w-full flex items-center gap-3 py-2.5 text-left text-destructive"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span className="flex-1 text-sm">刪除帳戶</span>
+            </button>
           </section>
         )}
 
@@ -314,6 +328,43 @@ function MePage() {
       </div>
 
       <RegisterSheet open={regOpen} onClose={() => setRegOpen(false)} onDone={() => setRegOpen(false)} />
+      <BottomSheet open={delOpen} onClose={() => !delBusy && setDelOpen(false)} title="刪除帳戶">
+        <div className="space-y-3 pb-2">
+          <div className="bg-red-50 text-red-900 rounded-2xl p-4 text-sm space-y-1.5">
+            <div className="font-bold">刪除之後冇得還原：</div>
+            <div>・你嘅 email、暱稱、推送裝置同位置紀錄會被清走</div>
+            <div>・仲開緊嘅 post 會收埋，積分（{user.points} 分）同禮券申請會作廢</div>
+            <div>・對方嘅配對紀錄會保留，但你個名同訊息會變做「已刪除」</div>
+            <div>・之後可以用同一個 email 重新註冊，但會係一個新帳戶</div>
+          </div>
+          {activeMatches.length > 0 && (
+            <div className="text-sm bg-amber-50 text-amber-900 rounded-xl px-3 py-2">你有進行中嘅配對，完成或者取消咗先可以刪除。</div>
+          )}
+          <input
+            value={delText}
+            onChange={(e) => setDelText(e.target.value)}
+            placeholder="輸入「刪除」確認"
+            className="w-full h-12 px-4 rounded-2xl border border-border bg-background outline-none text-base"
+          />
+          <button
+            disabled={delText.trim() !== "刪除" || delBusy || activeMatches.length > 0}
+            onClick={() => {
+              setDelBusy(true);
+              aah.deleteAccount().then(
+                () => {
+                  setDelOpen(false);
+                  toast.success("帳戶已經刪除", { description: "多謝你用過啱啱好" });
+                  navigate({ to: "/" });
+                },
+                (err) => toast.error(aahErrorText(err)),
+              ).finally(() => setDelBusy(false));
+            }}
+            className="w-full h-12 rounded-2xl bg-red-700 text-white font-bold disabled:opacity-40"
+          >
+            {delBusy ? "刪除緊…" : "永久刪除我嘅帳戶"}
+          </button>
+        </div>
+      </BottomSheet>
       <BottomSheet open={nickOpen} onClose={() => setNickOpen(false)} title="改暱稱">
         <form
           className="space-y-3 pb-2"

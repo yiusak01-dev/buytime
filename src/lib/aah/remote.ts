@@ -335,6 +335,25 @@ export function createRemote(host: Host) {
       await refresh();
     },
 
+    /** 刪除帳戶：伺服器清走個人資料，再軟刪除登入帳戶 */
+    async deleteAccount() {
+      await removeThisDevice().catch(() => {});
+      const { error } = await sb().functions.invoke("aah-delete-account", { body: {} });
+      if (error) {
+        let msg = error.message;
+        try {
+          const body = await (error as { context?: Response }).context?.json();
+          if (body?.error) msg = body.error;
+        } catch {
+          /* 讀唔到就用原本訊息 */
+        }
+        throw new Error(msg);
+      }
+      // 帳戶已經冇咗：清走呢部機嘅登入狀態
+      await sb().auth.signOut({ scope: "local" }).catch(() => {});
+      await refresh();
+    },
+
     async completeRegistration(phone: string | null, nickname: string) {
       const { data: sess } = await sb().auth.getSession();
       const id = sess?.session?.user?.id;
@@ -603,6 +622,9 @@ export function aahErrorText(e: unknown): string {
     [/pin slots full/, "置頂位已滿（最多 10 個），遲啲再試"],
     [/no pin credits/, "你冇置頂次數"],
     [/payment required/, "置頂要付款（未開放）"],
+    [/free pin daily limit/, "今日 3 次免費置頂用晒，聽日再嚟"],
+    [/active match/, "你有進行中嘅配對，完成或者取消咗先可以刪除帳戶"],
+    [/cleanup failed|delete failed/, "刪除唔到，請再試；仲係唔得請電郵 support@buytime.hk"],
     [/not at mall|gps required/, "GPS 未確認你喺商場，去到見面地點再撳"],
     [/too early/, "未到約定時間，唔可以報告冇出現"],
     [/reporter has not arrived/, "你要先撳「我到咗」"],

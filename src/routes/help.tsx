@@ -86,7 +86,7 @@ const SECTIONS: LegalSection[] = [
   },
   {
     title: "點樣刪除帳戶？",
-    body: <p>電郵 support@buytime.hk，註明你登記嘅 email，我哋會盡快處理。</p>,
+    body: <p>去「我的配對」→「帳戶」→「刪除帳戶」。有進行中嘅配對要先完成或者取消。</p>,
   },
   {
     title: "聯絡我哋",

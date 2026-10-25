@@ -686,6 +686,11 @@ export const aah = {
   async signOut() {
     if (isRemote()) await R().signOut();
   },
+  /** 刪除帳戶（示範模式只會重設示範資料） */
+  async deleteAccount() {
+    if (!isRemote()) return local.resetDemo();
+    await R().deleteAccount();
+  },
   /** 改暱稱（1–12 個字） */
   async changeNickname(nickname: string) {
     const n = nickname.trim().slice(0, 12);
