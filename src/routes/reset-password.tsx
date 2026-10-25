@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Lock } from "lucide-react";
 
 export const Route = createFileRoute("/reset-password")({
-  head: () => ({ meta: [{ title: "重設密碼 · 買時間" }] }),
+  head: () => ({ meta: [{ title: "重設密碼 · 啱啱好" }] }),
   component: ResetPasswordPage,
 });
 
@@ -27,12 +27,12 @@ function ResetPasswordPage() {
   }, []);
 
   async function handleReset() {
-    if (password.length < 8) {
-      toast.error("密碼至少需要 8 個字元");
+    if (password.length < 6) {
+      toast.error("密碼最少要 6 個字");
       return;
     }
     if (password !== confirm) {
-      toast.error("兩次輸入的密碼不一致");
+      toast.error("兩次輸入嘅密碼唔一樣");
       return;
     }
     setLoading(true);
@@ -42,22 +42,22 @@ function ResetPasswordPage() {
       toast.error("重設失敗", { description: error.message });
       return;
     }
-    toast.success("密碼已重設，請重新登入");
-    await supabase.auth.signOut();
-    navigate({ to: "/auth" });
+    // 撳 email 連結已經證明係本人：直接保持登入，返去啱啱好
+    toast.success("密碼已經改好");
+    navigate({ to: "/me" });
   }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <div className="gradient-primary text-white px-4 pt-10 pb-16 rounded-b-3xl">
+      <div className="bg-[#F5C518] text-[#1a1a1a] px-4 pt-10 pb-16 rounded-b-3xl">
         <h1 className="text-2xl font-bold">重設密碼</h1>
-        <p className="text-sm text-white/80 mt-1">設定新密碼以繼續使用</p>
+        <p className="text-sm text-[#5c4a00] mt-1">設定新密碼，之後用新密碼登入</p>
       </div>
       <div className="flex-1 px-4 -mt-10">
         <div className="bg-card rounded-2xl p-5 shadow-[var(--shadow-card)] space-y-4">
           {!ready ? (
             <p className="text-sm text-muted-foreground text-center py-6">
-              正在驗證重設連結...
+              驗證緊重設連結…
             </p>
           ) : (
             <>
@@ -70,7 +70,7 @@ function ResetPasswordPage() {
                     autoComplete="new-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="至少 8 個字元"
+                    placeholder="最少 6 個字"
                     className="flex-1 bg-transparent text-sm outline-none"
                   />
                 </div>
@@ -92,7 +92,7 @@ function ResetPasswordPage() {
               <button
                 onClick={handleReset}
                 disabled={loading}
-                className="w-full gradient-primary text-white font-semibold rounded-xl py-3 text-sm disabled:opacity-60"
+                className="w-full bg-[#1a1a1a] text-white font-semibold rounded-xl py-3 text-sm disabled:opacity-60"
               >
                 {loading ? "處理中..." : "確認重設"}
               </button>
