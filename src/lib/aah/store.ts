@@ -616,16 +616,27 @@ export const aah = {
     void R().updateProfile(patch).catch((e) => console.warn("[aah] updateProfile", e));
   },
 
-  /** 註冊第一步：雲端用 Supabase 電話驗證；示範版任何驗證碼都得 */
-  async startPhoneAuth(phone: string): Promise<"otp" | "session" | "anon" | "demo"> {
-    if (!isRemote()) return "demo";
-    return R().startPhoneAuth(phone);
+  /** Email 註冊（示範模式唔會真係建立帳戶） */
+  async signUpEmail(email: string, password: string, nickname: string, phone?: string): Promise<"done" | "confirm"> {
+    if (!isRemote()) {
+      local.register(phone || email, nickname);
+      patchUserLocal({ email });
+      return "done";
+    }
+    return R().signUpEmail(email, password, nickname, phone);
   },
-  async verifyOtp(phone: string, code: string) {
-    if (isRemote()) await R().verifyOtp(phone, code);
+  async signInEmail(email: string, password: string): Promise<"done" | "need_profile"> {
+    if (!isRemote()) return state.user.registered ? "done" : "need_profile";
+    return R().signInEmail(email, password);
   },
-  async completeRegistration(phone: string, nickname: string) {
-    if (!isRemote()) return local.register(phone, nickname);
+  async resetPassword(email: string) {
+    if (isRemote()) await R().resetPassword(email);
+  },
+  async signOut() {
+    if (isRemote()) await R().signOut();
+  },
+  async completeRegistration(phone: string | null, nickname: string) {
+    if (!isRemote()) return local.register(phone ?? "", nickname);
     await R().completeRegistration(phone, nickname);
   },
 

@@ -103,6 +103,10 @@ export type User = {
   id: string;
   registered: boolean;
   phone?: string;
+  /** 雲端模式：登入用嘅 email */
+  email?: string;
+  /** 雲端模式：已經登入（未必已建立 profile） */
+  signedIn?: boolean;
   nickname?: string;
   registeredAt?: number;
   points: number;

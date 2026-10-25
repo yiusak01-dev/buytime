@@ -51,7 +51,7 @@ function MePage() {
           <div className="flex items-center justify-between bg-white/60 rounded-2xl px-4 py-3">
             <div>
               <div className="font-black text-lg">{user.nickname}</div>
-              <div className="text-xs opacity-70">{user.phone?.replace(/(\+852)(\d{4})(\d{4})/, "$1 $2 ••••")}</div>
+              <div className="text-xs opacity-70">{user.email ?? user.phone?.replace(/(\+852)(\d{4})(\d{4})/, "$1 $2 ••••")}</div>
             </div>
             <div className="text-right">
               <div className="text-sm font-bold">{lv.badge} {lv.label}</div>
@@ -61,8 +61,8 @@ function MePage() {
         ) : (
           <button onClick={() => setRegOpen(true)} className="w-full flex items-center justify-between bg-white/60 rounded-2xl px-4 py-3 text-left">
             <div>
-              <div className="font-black">未註冊</div>
-              <div className="text-xs opacity-70">用香港手機號碼註冊，30 秒搞掂</div>
+              <div className="font-black">{user.signedIn ? "未完成註冊" : "未註冊"}</div>
+              <div className="text-xs opacity-70">{user.signedIn ? "改個暱稱就可以開始用" : "用 email 註冊或者登入"}</div>
             </div>
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -251,6 +251,15 @@ function MePage() {
             </button>
           )}
         </section>
+        )}
+
+        {mode === "remote" && user.signedIn && (
+          <button
+            onClick={() => aah.signOut().then(() => toast("已登出"), (e) => toast.error(aahErrorText(e)))}
+            className="w-full h-11 rounded-2xl border border-border text-sm font-semibold"
+          >
+            登出
+          </button>
         )}
 
         <div className="flex justify-center gap-4 text-xs text-muted-foreground">

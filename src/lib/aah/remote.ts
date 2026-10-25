@@ -62,8 +62,18 @@ export function createRemote(host: Host) {
     const base = host.baseUser();
 
     // 用戶
-    let user: User = { ...base, ...prefsToUser(prefs), id: uid ?? base.id, registered: false };
+    const email: string | undefined = sess?.session?.user?.email ?? undefined;
+    let user: User = { ...base, ...prefsToUser(prefs), id: uid ?? base.id, registered: false, email, signedIn: !!uid };
     if (uid) {
+      // email 確認完返嚟登入：用註冊時填嘅暱稱自動建立 profile
+      const pending = readPending();
+      if (pending) {
+        const { data: exists } = await sb().from("aah_profiles").select("id").eq("id", uid).maybeSingle();
+        if (!exists) {
+          const { error } = await sb().from("aah_profiles").insert({ id: uid, nickname: pending.nickname, phone: pending.phone || null });
+          if (!error) clearPending();
+        } else clearPending();
+      }
       const [{ data: prof }, { data: appeal }, { data: vouchers }] = await Promise.all([
         sb().from("aah_profiles").select("*").eq("id", uid).maybeSingle(),
         sb().from("aah_appeals").select("text, status, created_at").eq("user_id", uid).order("created_at", { ascending: false }).limit(1),
@@ -226,23 +236,44 @@ export function createRemote(host: Host) {
       await sb().rpc("aah_touch_presence", { p_mall: mallId });
     },
 
-    /** 開始電話驗證：有短訊服務就發驗證碼，冇就用匿名登入（電話未驗證） */
-    async startPhoneAuth(phone: string): Promise<"otp" | "session" | "anon"> {
-      const { data: sess } = await sb().auth.getSession();
-      if (sess?.session) return "session";
-      const { error } = await sb().auth.signInWithOtp({ phone });
-      if (!error) return "otp";
-      const anon = await sb().auth.signInAnonymously();
-      if (!anon.error) return "anon";
-      throw new Error("register unavailable");
+    /** Email 註冊。Supabase 開咗 email 確認，就要先撳 email 連結再登入 */
+    async signUpEmail(email: string, password: string, nickname: string, phone?: string): Promise<"done" | "confirm"> {
+      const { data, error } = await sb().auth.signUp({
+        email,
+        password,
+        options: { data: { name: nickname }, emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined },
+      });
+      if (error) throw error;
+      // 已經註冊過嘅 email，Supabase 會回傳冇 identities 嘅 user
+      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) throw new Error("User already registered");
+      if (data.session) {
+        await this.completeRegistration(phone ?? null, nickname);
+        return "done";
+      }
+      savePending({ nickname, phone: phone ?? null });
+      return "confirm";
     },
 
-    async verifyOtp(phone: string, token: string) {
-      const { error } = await sb().auth.verifyOtp({ phone, token, type: "sms" });
+    async signInEmail(email: string, password: string): Promise<"done" | "need_profile"> {
+      const { error } = await sb().auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      await refresh();
+      return host.get().user.registered ? "done" : "need_profile";
+    },
+
+    async resetPassword(email: string) {
+      const { error } = await sb().auth.resetPasswordForEmail(email, {
+        redirectTo: typeof window !== "undefined" ? `${window.location.origin}/reset-password` : undefined,
+      });
       if (error) throw error;
     },
 
-    async completeRegistration(phone: string, nickname: string) {
+    async signOut() {
+      await sb().auth.signOut();
+      await refresh();
+    },
+
+    async completeRegistration(phone: string | null, nickname: string) {
       const { data: sess } = await sb().auth.getSession();
       const id = sess?.session?.user?.id;
       if (!id) throw new Error("not signed in");
@@ -251,7 +282,7 @@ export function createRemote(host: Host) {
         const { error } = await sb().from("aah_profiles").update({ nickname }).eq("id", id);
         if (error) throw error;
       } else {
-        const { error } = await sb().from("aah_profiles").insert({ id, phone, nickname });
+        const { error } = await sb().from("aah_profiles").insert({ id, phone: phone || null, nickname });
         if (error) throw error;
       }
       await refresh();
@@ -403,6 +434,30 @@ export function createRemote(host: Host) {
 
 export type Remote = ReturnType<typeof createRemote>;
 
+const PENDING_KEY = "aah:pendingProfile";
+function savePending(p: { nickname: string; phone: string | null }) {
+  try {
+    window.localStorage.setItem(PENDING_KEY, JSON.stringify(p));
+  } catch {
+    /* 寫唔到就登入後再問暱稱 */
+  }
+}
+function readPending(): { nickname: string; phone: string | null } | null {
+  try {
+    const raw = typeof window !== "undefined" ? window.localStorage.getItem(PENDING_KEY) : null;
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+function clearPending() {
+  try {
+    window.localStorage.removeItem(PENDING_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 function prefsToUser(p: LocalPrefs): Partial<User> {
   return { onboarded: p.onboarded, testMallId: p.testMallId, arrivalShown: p.arrivalShown, outfitToday: p.outfitToday };
 }
@@ -500,7 +555,13 @@ export function aahErrorText(e: unknown): string {
     [/already appealed/, "你已經申訴過"],
     [/no open no-show report/, "搵唔到可以申訴嘅紀錄"],
     [/match not active/, "配對已經結束"],
-    [/register unavailable/, "註冊暫時用唔到：要喺 Supabase 開啟電話驗證或者匿名登入"],
+    [/Invalid login credentials/i, "Email 或者密碼唔啱"],
+    [/User already registered|already been registered/i, "呢個 email 已經註冊咗，請直接登入"],
+    [/Email not confirmed/i, "請先去 email 撳確認連結，再返嚟登入"],
+    [/Password should be at least|weak.?password/i, "密碼最少要 6 個字"],
+    [/rate limit|over_email_send_rate_limit|For security purposes/i, "發送得太密，請等一陣再試"],
+    [/valid email|invalid.*email|email.*invalid/i, "Email 格式唔啱"],
+    [/not signed in/, "請先登入"],
     [/duplicate key.*phone|aah_profiles_phone_key/, "呢個電話號碼已經註冊咗"],
     [/Token has expired|invalid.*otp|otp.*invalid/i, "驗證碼唔啱或者過咗期"],
   ];

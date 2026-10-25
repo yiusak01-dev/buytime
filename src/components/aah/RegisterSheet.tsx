@@ -1,29 +1,40 @@
-import { useState } from "react";
-import { Loader2 } from "lucide-react";
-import { aah, aahErrorText } from "@/lib/aah/store";
+import { useEffect, useState } from "react";
+import { Loader2, MailCheck } from "lucide-react";
+import { toast } from "sonner";
+import { aah, aahErrorText, useAahMode, useAahState } from "@/lib/aah/store";
 import { BottomSheet, DemoBadge } from "./ui";
+import { cn } from "@/lib/utils";
+
+type Step = "signup" | "login" | "checkEmail" | "profile";
 
 /**
- * 30 秒註冊：香港手機號碼 → 驗證碼 → 暱稱。
- * 雲端模式用 Supabase 電話驗證；Supabase 未設定短訊服務時，會用匿名登入（電話暫時未驗證）。
- * 示範模式唔會發短訊，任何 6 位數字都得。
+ * 用 email 註冊／登入。
+ * Supabase 開咗 email 確認：註冊後要先去 email 撳連結，返嚟登入時會自動用註冊時填嘅暱稱建立 profile。
+ * 電話號碼暫時可以唔填（之後接短訊驗證先再要求）。
  */
 export function RegisterSheet({ open, onClose, onDone, reason }: { open: boolean; onClose: () => void; onDone: () => void; reason?: string }) {
-  const [step, setStep] = useState<"phone" | "otp" | "name">("phone");
+  const mode = useAahMode();
+  const { user } = useAahState();
+  const [step, setStep] = useState<Step>("signup");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [nickname, setNickname] = useState("");
   const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
-  const [name, setName] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
-  const [authMode, setAuthMode] = useState<"otp" | "session" | "anon" | "demo">("demo");
 
-  const phoneOk = /^[4-9]\d{7}$/.test(phone);
-  const full = `+852${phone}`;
+  // 已經登入但未建立 profile（例如用舊帳戶登入）：直接問暱稱
+  useEffect(() => {
+    if (open && user.signedIn && !user.registered) setStep("profile");
+  }, [open, user.signedIn, user.registered]);
+
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+  const phoneOk = phone === "" || /^[4-9]\d{7}$/.test(phone);
+  const fullPhone = phone ? `+852${phone}` : undefined;
 
   function close() {
-    setStep("phone");
-    setOtp("");
     setErr("");
+    if (step === "checkEmail") setStep("login");
     onClose();
   }
 
@@ -39,108 +50,138 @@ export function RegisterSheet({ open, onClose, onDone, reason }: { open: boolean
     }
   }
 
+  const input = "w-full h-12 border border-border rounded-2xl px-3 bg-background outline-none";
+  const primary = "w-full h-12 rounded-2xl font-bold disabled:opacity-40 inline-flex items-center justify-center gap-2";
+
+  const title = step === "login" ? "登入" : step === "checkEmail" ? "去 email 確認" : step === "profile" ? "改個暱稱" : "註冊";
+
   return (
-    <BottomSheet open={open} onClose={close} title="用手機號碼註冊">
+    <BottomSheet open={open} onClose={close} title={title}>
       <div className="space-y-4 pb-2">
-        {reason && <p className="text-sm text-muted-foreground">{reason}</p>}
+        {reason && step !== "checkEmail" && <p className="text-sm text-muted-foreground">{reason}</p>}
 
-        {step === "phone" && (
-          <>
-            <label className="block">
-              <span className="text-sm font-bold">香港手機號碼</span>
-              <div className="mt-2 flex items-center gap-2 border border-border rounded-2xl px-3 h-12 bg-background">
-                <span className="text-sm font-semibold text-muted-foreground">+852</span>
-                <input
-                  inputMode="numeric"
-                  autoFocus
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 8))}
-                  placeholder="9123 4567"
-                  className="flex-1 bg-transparent outline-none text-base tracking-wider"
-                />
-              </div>
-            </label>
-            <p className="text-[11px] text-muted-foreground">一個號碼一個帳戶。對方唔會見到你個電話號碼。</p>
-            {err && <p className="text-xs text-destructive">{err}</p>}
-            <button
-              disabled={!phoneOk || busy}
-              onClick={() =>
-                run(async () => {
-                  const m = await aah.startPhoneAuth(full);
-                  setAuthMode(m);
-                  setStep(m === "otp" || m === "demo" ? "otp" : "name");
-                })
-              }
-              className="w-full h-12 rounded-2xl bg-[#1a1a1a] text-white font-bold disabled:opacity-40 inline-flex items-center justify-center gap-2"
-            >
-              {busy && <Loader2 className="w-4 h-4 animate-spin" />}發送驗證碼
-            </button>
-          </>
+        {(step === "signup" || step === "login") && (
+          <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-accent">
+            {(["signup", "login"] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => {
+                  setStep(s);
+                  setErr("");
+                }}
+                className={cn("h-10 rounded-xl text-sm font-bold", step === s ? "bg-card shadow-sm" : "text-muted-foreground")}
+              >
+                {s === "signup" ? "新用戶註冊" : "已有帳戶登入"}
+              </button>
+            ))}
+          </div>
         )}
 
-        {step === "otp" && (
+        {step === "signup" && (
           <>
-            <div className="text-sm">驗證碼已發送到 +852 {phone.slice(0, 4)} {phone.slice(4)}</div>
-            <input
-              inputMode="numeric"
-              autoFocus
-              autoComplete="one-time-code"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              placeholder="6 位數字"
-              className="w-full h-12 border border-border rounded-2xl px-3 bg-background text-center text-xl tracking-[0.5em] outline-none"
-            />
-            {authMode === "demo" && (
-              <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                <DemoBadge /> 示範版唔會真係發短訊，輸入任何 6 位數字就得。
-              </p>
-            )}
-            {err && <p className="text-xs text-destructive">{err}</p>}
-            <button
-              disabled={otp.length !== 6 || busy}
-              onClick={() =>
-                run(async () => {
-                  await aah.verifyOtp(full, otp);
-                  setStep("name");
-                })
-              }
-              className="w-full h-12 rounded-2xl bg-[#1a1a1a] text-white font-bold disabled:opacity-40 inline-flex items-center justify-center gap-2"
-            >
-              {busy && <Loader2 className="w-4 h-4 animate-spin" />}確認
-            </button>
-            <button onClick={() => setStep("phone")} className="w-full text-xs text-muted-foreground underline">改電話號碼</button>
-          </>
-        )}
-
-        {step === "name" && (
-          <>
-            {authMode === "anon" && (
-              <p className="text-[11px] text-amber-800 bg-amber-50 rounded-xl px-3 py-2">
-                短訊驗證未開通，你嘅電話號碼暫時未驗證。開通之後會再請你驗證一次。
-              </p>
-            )}
-            <label className="block">
-              <span className="text-sm font-bold">改個暱稱</span>
+            <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className={input} />
+            <input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="密碼（最少 6 個字）" className={input} />
+            <input value={nickname} onChange={(e) => setNickname(e.target.value.slice(0, 12))} placeholder="暱稱，例如 阿明" className={input} />
+            <div className="flex items-center gap-2 border border-border rounded-2xl px-3 h-12 bg-background">
+              <span className="text-sm font-semibold text-muted-foreground">+852</span>
               <input
-                autoFocus
-                value={name}
-                onChange={(e) => setName(e.target.value.slice(0, 12))}
-                placeholder="例如 阿明"
-                className="mt-2 w-full h-12 border border-border rounded-2xl px-3 bg-background outline-none"
+                inputMode="numeric"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                placeholder="手機號碼（可以唔填）"
+                className="flex-1 bg-transparent outline-none"
               />
-            </label>
+            </div>
+            <p className="text-[11px] text-muted-foreground">對方只會見到你嘅暱稱，唔會見到 email 同電話。</p>
+            {mode === "local" && (
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                <DemoBadge /> 示範版唔會真係建立帳戶。
+              </p>
+            )}
             {err && <p className="text-xs text-destructive">{err}</p>}
             <button
-              disabled={!name.trim() || busy}
+              disabled={!emailOk || password.length < 6 || !nickname.trim() || !phoneOk || busy}
               onClick={() =>
                 run(async () => {
-                  await aah.completeRegistration(full, name.trim());
-                  setStep("phone");
-                  setOtp("");
+                  const r = await aah.signUpEmail(email.trim(), password, nickname.trim(), fullPhone);
+                  if (r === "confirm") setStep("checkEmail");
+                  else onDone();
+                })
+              }
+              className={cn(primary, "bg-[#F5C518] text-[#1a1a1a]")}
+            >
+              {busy && <Loader2 className="w-4 h-4 animate-spin" />}註冊
+            </button>
+          </>
+        )}
+
+        {step === "login" && (
+          <>
+            <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className={input} />
+            <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="密碼" className={input} />
+            {err && <p className="text-xs text-destructive">{err}</p>}
+            <button
+              disabled={!emailOk || !password || busy}
+              onClick={() =>
+                run(async () => {
+                  const r = await aah.signInEmail(email.trim(), password);
+                  if (r === "need_profile") setStep("profile");
+                  else onDone();
+                })
+              }
+              className={cn(primary, "bg-[#1a1a1a] text-white")}
+            >
+              {busy && <Loader2 className="w-4 h-4 animate-spin" />}登入
+            </button>
+            {mode === "remote" && (
+              <button
+                disabled={!emailOk || busy}
+                onClick={() =>
+                  run(async () => {
+                    await aah.resetPassword(email.trim());
+                    toast.success("已經寄出重設密碼嘅 email");
+                  })
+                }
+                className="w-full text-xs text-muted-foreground underline disabled:opacity-40"
+              >
+                唔記得密碼？（先填 email）
+              </button>
+            )}
+          </>
+        )}
+
+        {step === "checkEmail" && (
+          <div className="space-y-4 text-center">
+            <MailCheck className="w-12 h-12 mx-auto text-[#2E9E6A]" />
+            <div className="font-bold">確認連結已經寄去 {email}</div>
+            <p className="text-sm text-muted-foreground">撳 email 入面嘅連結確認，然後返嚟呢度登入。登入之後會自動用「{nickname}」做暱稱。</p>
+            <p className="text-[11px] text-muted-foreground">搵唔到就睇吓垃圾郵件。</p>
+            <button
+              onClick={() => {
+                setStep("login");
+                setErr("");
+              }}
+              className={cn(primary, "bg-[#1a1a1a] text-white")}
+            >
+              已經確認，去登入
+            </button>
+          </div>
+        )}
+
+        {step === "profile" && (
+          <>
+            <p className="text-sm text-muted-foreground">{user.email ? `${user.email} 已經登入。` : ""}改個暱稱就可以開始用。</p>
+            <input autoFocus value={nickname} onChange={(e) => setNickname(e.target.value.slice(0, 12))} placeholder="暱稱，例如 阿明" className={input} />
+            {err && <p className="text-xs text-destructive">{err}</p>}
+            <button
+              disabled={!nickname.trim() || busy}
+              onClick={() =>
+                run(async () => {
+                  await aah.completeRegistration(fullPhone ?? null, nickname.trim());
                   onDone();
                 })
               }
-              className="w-full h-12 rounded-2xl bg-[#F5C518] text-[#1a1a1a] font-bold disabled:opacity-40 inline-flex items-center justify-center gap-2"
+              className={cn(primary, "bg-[#F5C518] text-[#1a1a1a]")}
             >
               {busy && <Loader2 className="w-4 h-4 animate-spin" />}完成，繼續
             </button>
