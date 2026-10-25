@@ -11,6 +11,7 @@ import {
   aah,
   aahErrorText,
   getSettings,
+  pinIsFree,
   useAahMode,
   useAahState,
   isBanned,
@@ -341,7 +342,7 @@ function MyPostView({ post }: { post: Post }) {
               </div>
             </div>
             {mode === "remote" ? (
-              <div className="text-[11px] opacity-70">而家喺 {post.mallName}、有訂閱呢類着數嘅用戶。推送通知未接駁，佢哋開 app 就會見到。</div>
+              <div className="text-[11px] opacity-70">而家喺 {post.mallName}、有訂閱呢類着數嘅用戶。佢哋開 app 就會見到；置頂可以即刻推送通知俾佢哋。</div>
             ) : (
               <div className="text-[11px] opacity-70 flex items-center gap-1.5"><DemoBadge /> 示範數字；正式版顯示真實推送人數。</div>
             )}
@@ -374,7 +375,7 @@ function MyPostView({ post }: { post: Post }) {
           <div className="bg-[#FFF6D6] border border-[#F5C518] rounded-2xl p-4 space-y-2">
             <div className="font-bold">15 分鐘都未有人理</div>
             <div className="text-sm">置頂 15 分鐘，同時推送俾而家喺{s.pushNearby ? "呢度同附近商場" : ` ${post.mallName} `}嘅人？</div>
-            <button onClick={() => setPinOpen(true)} className="h-11 px-4 rounded-2xl bg-[#1a1a1a] text-white font-bold">$5 置頂 15 分鐘</button>
+            <button onClick={() => setPinOpen(true)} className="h-11 px-4 rounded-2xl bg-[#1a1a1a] text-white font-bold">{pinIsFree(mode) ? "免費置頂 15 分鐘" : "$5 置頂 15 分鐘"}</button>
           </div>
         )}
 
@@ -513,17 +514,16 @@ function PinSheet({
           <div className="text-sm bg-card rounded-xl p-3">置頂位已滿（最多 {MAX_PINNED_PER_MALL} 個），約 {Math.max(1, Math.ceil((freeAt - now) / 60000))} 分鐘後有位。</div>
         ) : (
           <>
-            {pinCredits > 0 && (
+            {/* 免費期間唔使用積分次數，留返俾日後用 */}
+            {!pinIsFree(mode) && pinCredits > 0 && (
               <button onClick={() => doPin(true)} className="w-full h-12 rounded-2xl bg-[#F5C518] text-[#1a1a1a] font-black">
                 用 1 次積分置頂（你有 {pinCredits} 次）
               </button>
             )}
             <button disabled={busy} onClick={() => doPin(false)} className="w-full h-12 rounded-2xl bg-[#1a1a1a] text-white font-black disabled:opacity-50">
-              $5 置頂 15 分鐘
+              {pinIsFree(mode) ? "免費置頂 15 分鐘" : "$5 置頂 15 分鐘"}
             </button>
-            <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
-              <DemoBadge /> {mode === "remote" && getSettings().freePinTrial ? "試用期置頂唔收錢。" : "示範版唔會真係收錢。"}正式版用 Google Play／App Store 付款。
-            </p>
+            {pinIsFree(mode) && <p className="text-[11px] text-muted-foreground text-center">現階段置頂免費，唔使用積分。</p>}
           </>
         )}
       </div>

@@ -1,67 +1,143 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ChevronLeft } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { createFileRoute } from "@tanstack/react-router";
+import { LegalPage, Bullets, type LegalSection } from "@/components/aah/LegalPage";
 
 export const Route = createFileRoute("/terms")({
   head: () => ({
     meta: [
-      { title: "服務條款 · 買時間" },
-      { name: "description", content: "買時間服務條款 v1.0" },
-      { property: "og:title", content: "服務條款 · 買時間" },
-      { property: "og:description", content: "買時間服務條款 v1.0" },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
+      { title: "服務條款 · 啱啱好" },
+      { name: "description", content: "啱啱好 BuyTime 服務條款" },
+      { property: "og:title", content: "服務條款 · 啱啱好" },
     ],
   }),
   component: TermsPage,
 });
 
+const SECTIONS: LegalSection[] = [
+  {
+    title: "1. 服務性質",
+    body: (
+      <>
+        <p>啱啱好（BuyTime，下稱「本平台」）讓身處同一商場的用戶，即時配對泊車收據、食飯候位、即時優惠及夾單等資源。</p>
+        <p>本平台只提供資訊配對及溝通工具，並非任何交收的一方，亦不代任何用戶出售、購買或保證任何物品或服務。</p>
+      </>
+    ),
+  },
+  {
+    title: "2. 費用",
+    body: (
+      <p>
+        現階段使用本平台完全免費，包括發佈 post、配對、傾偈及置頂。如日後推出收費功能，我們會事先在 App 內清楚列明價錢，由你自行決定是否使用。
+      </p>
+    ),
+  },
+  {
+    title: "3. 帳戶",
+    body: (
+      <Bullets
+        items={[
+          "你須年滿 18 歲，或已得到家長／監護人同意，方可使用本平台。",
+          "你須提供真實的電郵地址，並妥善保管密碼。每人只可使用一個帳戶。",
+          "以你帳戶進行的所有活動，均由你負責。",
+        ]}
+      />
+    ),
+  },
+  {
+    title: "4. 交收及付款",
+    body: (
+      <Bullets
+        items={[
+          "用戶之間自行約定見面地點及時間，並自行以現金、PayMe、八達通等方式直接付款。本平台不經手、不保管任何款項。",
+          "建議見面後先付款，不要預先轉帳；收款一方應以自己手機的收款通知為準。",
+          "本平台不保證任何收據、候位、優惠或物品的真偽、有效性或可用性，亦不保證對方會出現。",
+        ]}
+      />
+    ),
+  },
+  {
+    title: "5. 遵守商場及商戶規則",
+    body: (
+      <p>
+        你須自行確保轉讓泊車收據、候位、優惠券或其他資源，符合有關商場或商戶的條款。如商場或商戶不容許轉讓，請勿發佈。因違反商場或商戶規則而引致的後果，由有關用戶自行承擔。
+      </p>
+    ),
+  },
+  {
+    title: "6. 禁止行為",
+    body: (
+      <>
+        <p>使用本平台時，你不得：</p>
+        <Bullets
+          items={[
+            "發佈虛假、誤導、違法、侵權或冒犯性的內容；",
+            "出售違禁品、受管制物品，或任何商場、商戶不容許轉讓的物品；",
+            "騷擾、威嚇、欺騙或歧視其他用戶；",
+            "以多個帳戶、虛假配對或其他方法賺取積分；",
+            "干擾本平台運作，或以自動化程式大量存取本平台。",
+          ]}
+        />
+        <p>為保障安全，請勿在對話中留下電話號碼、地址等個人資料。</p>
+      </>
+    ),
+  },
+  {
+    title: "7. 見面守則及罰則",
+    body: (
+      <Bullets
+        items={[
+          "雙方確認見面後，如一方沒有出現，經對方報告及系統核實，冇出現的一方會被扣分及停用帳戶 30 日。",
+          "被停用的用戶可在 48 小時內於 App 內提出申訴，由人手審核。",
+          "在約定時間前取消不會受罰；對方已到場後才取消，會被扣分並補償已到場的一方；30 日內兩次在對方到場後取消，帳戶會被停用。",
+        ]}
+      />
+    ),
+  },
+  {
+    title: "8. 積分及禮券",
+    body: (
+      <Bullets
+        items={[
+          "完成交收可獲積分，積分可換置頂次數或禮券。積分不可兌換現金，亦不可轉讓。",
+          "禮券數量有限，須經人手審核；本平台可調整積分規則及禮券安排，並會在 App 內公布。",
+          "如發現濫用（例如刷分），本平台可撤回有關積分或停用帳戶。",
+        ]}
+      />
+    ),
+  },
+  {
+    title: "9. 舉報及執行",
+    body: (
+      <p>
+        你可在配對畫面舉報或封鎖其他用戶。我們會審核舉報，並可按情況移除內容、扣減積分、停用或終止違規帳戶。
+      </p>
+    ),
+  },
+  {
+    title: "10. 責任限制",
+    body: (
+      <p>
+        在法律容許的範圍內，本平台不就用戶之間的交收、糾紛、財物損失、人身傷害，或因商場、商戶更改或取消優惠而引致的任何直接或間接損失承擔責任。本平台會盡力維持服務穩定，但不保證服務不會中斷或沒有錯誤。
+      </p>
+    ),
+  },
+  {
+    title: "11. 停止使用",
+    body: (
+      <p>
+        你可隨時停止使用本平台，並電郵 support@buytime.hk 要求刪除帳戶。如你違反本條款，我們可暫停或終止你的帳戶。
+      </p>
+    ),
+  },
+  {
+    title: "12. 修改條款",
+    body: <p>我們可能不時修改本條款。重大修改會在 App 內通知；修改生效後繼續使用本平台，即代表你接受修改後的條款。</p>,
+  },
+  {
+    title: "13. 適用法律",
+    body: <p>本條款受香港特別行政區法律管轄。</p>,
+  },
+];
+
 function TermsPage() {
-  const navigate = useNavigate();
-  const { t } = useTranslation();
-
-  return (
-    <div className="app-shell pb-16">
-      <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md px-4 pt-4 pb-3 border-b border-border/60 flex items-center gap-2">
-        <button
-          onClick={() => navigate({ to: "/profile" })}
-          className="w-9 h-9 -ml-2 grid place-items-center rounded-full hover:bg-accent"
-          aria-label={t("common.back")}
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-xl font-bold leading-tight">{t("terms.title")}</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">{t("terms.version")}</p>
-        </div>
-      </header>
-
-      <main className="px-4 py-5 space-y-4">
-        {(["s1", "s2"] as const).map((key) => (
-          <section key={key} className="bg-card rounded-2xl p-4 shadow-[var(--shadow-card)]">
-            <h2 className="text-sm font-bold text-foreground mb-2">{t(`terms.${key}.title`)}</h2>
-            <div className="text-sm text-muted-foreground leading-relaxed">{t(`terms.${key}.body`)}</div>
-          </section>
-        ))}
-
-        <section className="bg-card rounded-2xl p-4 shadow-[var(--shadow-card)]">
-          <h2 className="text-sm font-bold text-foreground mb-2">{t("terms.s3.title")}</h2>
-          <div className="text-sm text-muted-foreground leading-relaxed space-y-2">
-            <p>{t("terms.s3.p1")}</p>
-            <p>{t("terms.s3.p2")}</p>
-            <p>{t("terms.s3.p3")}</p>
-          </div>
-        </section>
-
-        {(["s4", "s5", "s6", "s7", "s8"] as const).map((key) => (
-          <section key={key} className="bg-card rounded-2xl p-4 shadow-[var(--shadow-card)]">
-            <h2 className="text-sm font-bold text-foreground mb-2">{t(`terms.${key}.title`)}</h2>
-            <div className="text-sm text-muted-foreground leading-relaxed">{t(`terms.${key}.body`)}</div>
-          </section>
-        ))}
-
-        <p className="text-center text-[11px] text-muted-foreground pt-2">{t("terms.footer")}</p>
-      </main>
-    </div>
-  );
+  return <LegalPage title="服務條款" version="版本 2.0 · 生效日期：2026 年 10 月" intro="使用啱啱好之前，請細閱以下條款。使用本平台即代表你同意這些條款。" sections={SECTIONS} />;
 }

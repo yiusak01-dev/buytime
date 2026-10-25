@@ -624,6 +624,8 @@ export function aahErrorText(e: unknown): string {
     [/not signed in/, "請先登入"],
     [/duplicate key.*phone|aah_profiles_phone_key/, "呢個電話號碼已經註冊咗"],
     [/Token has expired|invalid.*otp|otp.*invalid/i, "驗證碼唔啱或者過咗期"],
+    [/nickname required|aah_profiles_nickname_check/, "暱稱要 1 至 12 個字"],
+    [/Failed to fetch|NetworkError|network/i, "網絡唔穩定，請再試"],
   ];
   for (const [re, text] of map) if (re.test(msg)) return text;
   return msg || "出咗啲問題，請再試";

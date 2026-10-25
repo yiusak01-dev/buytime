@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2, MailCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -112,6 +113,12 @@ export function RegisterSheet({ open, onClose, onDone, reason }: { open: boolean
             >
               {busy && <Loader2 className="w-4 h-4 animate-spin" />}註冊
             </button>
+            <p className="text-[11px] text-muted-foreground text-center">
+              撳「註冊」即表示你同意
+              <Link to="/terms" className="underline mx-0.5">服務條款</Link>
+              及
+              <Link to="/privacy" className="underline mx-0.5">私隱政策</Link>
+            </p>
           </>
         )}
 

@@ -36,8 +36,6 @@ import { Route as DisputeTransactionIdRouteImport } from './routes/dispute.$tran
 import { Route as MatchMatchIdRouteImport } from './routes/match.$matchId'
 import { Route as PostPostIdRouteImport } from './routes/post.$postId'
 import { Route as PostNewRouteImport } from './routes/post.new'
-import { Route as ApiPublicAwardReferralDiscountRouteImport } from './routes/api/public/award-referral-discount'
-import { Route as ApiPublicNotifyPriceAlertsRouteImport } from './routes/api/public/notify-price-alerts'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -174,18 +172,6 @@ const PostNewRoute = PostNewRouteImport.update({
   path: '/post/new',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicAwardReferralDiscountRoute =
-  ApiPublicAwardReferralDiscountRouteImport.update({
-    id: '/api/public/award-referral-discount',
-    path: '/api/public/award-referral-discount',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicNotifyPriceAlertsRoute =
-  ApiPublicNotifyPriceAlertsRouteImport.update({
-    id: '/api/public/notify-price-alerts',
-    path: '/api/public/notify-price-alerts',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -215,8 +201,6 @@ export interface FileRoutesByFullPath {
   '/match/$matchId': typeof MatchMatchIdRoute
   '/post/$postId': typeof PostPostIdRoute
   '/post/new': typeof PostNewRoute
-  '/api/public/award-referral-discount': typeof ApiPublicAwardReferralDiscountRoute
-  '/api/public/notify-price-alerts': typeof ApiPublicNotifyPriceAlertsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -246,8 +230,6 @@ export interface FileRoutesByTo {
   '/match/$matchId': typeof MatchMatchIdRoute
   '/post/$postId': typeof PostPostIdRoute
   '/post/new': typeof PostNewRoute
-  '/api/public/award-referral-discount': typeof ApiPublicAwardReferralDiscountRoute
-  '/api/public/notify-price-alerts': typeof ApiPublicNotifyPriceAlertsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -278,8 +260,6 @@ export interface FileRoutesById {
   '/match/$matchId': typeof MatchMatchIdRoute
   '/post/$postId': typeof PostPostIdRoute
   '/post/new': typeof PostNewRoute
-  '/api/public/award-referral-discount': typeof ApiPublicAwardReferralDiscountRoute
-  '/api/public/notify-price-alerts': typeof ApiPublicNotifyPriceAlertsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -311,8 +291,6 @@ export interface FileRouteTypes {
     | '/match/$matchId'
     | '/post/$postId'
     | '/post/new'
-    | '/api/public/award-referral-discount'
-    | '/api/public/notify-price-alerts'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -342,8 +320,6 @@ export interface FileRouteTypes {
     | '/match/$matchId'
     | '/post/$postId'
     | '/post/new'
-    | '/api/public/award-referral-discount'
-    | '/api/public/notify-price-alerts'
   id:
     | '__root__'
     | '/'
@@ -373,8 +349,6 @@ export interface FileRouteTypes {
     | '/match/$matchId'
     | '/post/$postId'
     | '/post/new'
-    | '/api/public/award-referral-discount'
-    | '/api/public/notify-price-alerts'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -405,8 +379,6 @@ export interface RootRouteChildren {
   MatchMatchIdRoute: typeof MatchMatchIdRoute
   PostPostIdRoute: typeof PostPostIdRoute
   PostNewRoute: typeof PostNewRoute
-  ApiPublicAwardReferralDiscountRoute: typeof ApiPublicAwardReferralDiscountRoute
-  ApiPublicNotifyPriceAlertsRoute: typeof ApiPublicNotifyPriceAlertsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -600,20 +572,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PostNewRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/award-referral-discount': {
-      id: '/api/public/award-referral-discount'
-      path: '/api/public/award-referral-discount'
-      fullPath: '/api/public/award-referral-discount'
-      preLoaderRoute: typeof ApiPublicAwardReferralDiscountRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/notify-price-alerts': {
-      id: '/api/public/notify-price-alerts'
-      path: '/api/public/notify-price-alerts'
-      fullPath: '/api/public/notify-price-alerts'
-      preLoaderRoute: typeof ApiPublicNotifyPriceAlertsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -645,8 +603,6 @@ const rootRouteChildren: RootRouteChildren = {
   MatchMatchIdRoute: MatchMatchIdRoute,
   PostPostIdRoute: PostPostIdRoute,
   PostNewRoute: PostNewRoute,
-  ApiPublicAwardReferralDiscountRoute: ApiPublicAwardReferralDiscountRoute,
-  ApiPublicNotifyPriceAlertsRoute: ApiPublicNotifyPriceAlertsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

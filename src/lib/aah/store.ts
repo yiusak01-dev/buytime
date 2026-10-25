@@ -628,6 +628,10 @@ export function getMode() {
 export function getSettings() {
   return settings;
 }
+/** 置頂而家係咪免費（示範模式、或者雲端開咗免費試用） */
+export function pinIsFree(m: AahMode = mode) {
+  return m !== "remote" || settings.freePinTrial;
+}
 export function useAahMode() {
   return useSyncExternalStore(
     (fn) => {
@@ -677,6 +681,14 @@ export const aah = {
   },
   async signOut() {
     if (isRemote()) await R().signOut();
+  },
+  /** 改暱稱（1–12 個字） */
+  async changeNickname(nickname: string) {
+    const n = nickname.trim().slice(0, 12);
+    if (!n) throw new Error("nickname required");
+    if (!isRemote()) return local.updateUser({ nickname: n });
+    await R().updateProfile({ nickname: n });
+    patchUserLocal({ nickname: n });
   },
   async completeRegistration(phone: string | null, nickname: string) {
     if (!isRemote()) return local.register(phone ?? "", nickname);

@@ -1,55 +1,108 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ChevronLeft } from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { LegalPage, Bullets, type LegalSection } from "@/components/aah/LegalPage";
 
 export const Route = createFileRoute("/privacy")({
   head: () => ({
     meta: [
-      { title: "私隱政策 · 買時間" },
-      { name: "description", content: "買時間私隱政策 Beta 1.0" },
+      { title: "私隱政策 · 啱啱好" },
+      { name: "description", content: "啱啱好 BuyTime 私隱政策" },
     ],
   }),
   component: PrivacyPage,
 });
 
-const SECTIONS: { title: string; body: React.ReactNode }[] = [
-  { title: "1. 收集的資料", body: "本平台收集以下資料：登記時提供的電郵地址及用戶名稱、上架收據的商場、金額及有效期資料、交易紀錄（買賣雙方配對資料）。" },
-  { title: "2. 使用目的", body: "所收集資料僅用於：提供配對服務、聯絡用戶處理交易事宜、改善平台服務。" },
-  { title: "3. 資料保密", body: "本平台不會將你的個人資料出售、出租或披露予第三方，除非法律要求。" },
-  { title: "4. 資料儲存", body: "用戶資料儲存於安全的雲端伺服器（Supabase），受業界標準加密保護。" },
-  { title: "5. 查閱及更正", body: "你有權查閱及更正本人資料。如需查閱，請電郵至 support@buytime.hk。" },
-  { title: "6. Cookie", body: "本平台使用必要的 Cookie 維持登入狀態，不作任何追蹤或廣告用途。" },
-  { title: "7. 聯絡我們", body: "如對私隱政策有任何疑問，請電郵：support@buytime.hk" },
+const SECTIONS: LegalSection[] = [
+  {
+    title: "1. 我們收集的資料",
+    body: (
+      <Bullets
+        items={[
+          <><b>帳戶資料：</b>電郵地址、暱稱、密碼（經加密處理，我們看不到），以及你選擇提供的手機號碼。</>,
+          <><b>位置：</b>App 會用你裝置的定位判斷你身處哪個商場。我們只記錄你最近身處的商場及時間，不會儲存你的 GPS 座標。按「我到咗」時，座標只用作即時核實你是否在商場範圍內，核實後不會保存。</>,
+          <><b>你發佈的內容：</b>post 內容（商場、店舖、價錢、收款方式、離開時間等）、對話訊息、見面打扮描述及評價。</>,
+          <><b>使用紀錄：</b>配對、取消、到場、積分、舉報、申訴及禮券申請紀錄。</>,
+          <><b>通知：</b>如你開啟推送通知，我們會儲存你裝置的推送識別碼及瀏覽器類型。</>,
+          <><b>技術資料：</b>伺服器會記錄 IP 位址等資料，作保安及排除故障之用。</>,
+        ]}
+      />
+    ),
+  },
+  {
+    title: "2. 使用目的",
+    body: (
+      <Bullets
+        items={[
+          "提供配對服務，顯示你身處商場及附近的 post；",
+          "發送配對、訊息及附近着數等通知（你可隨時在「我的配對」關閉）；",
+          "處理冇出現、舉報及申訴，防止濫用及欺詐；",
+          "計算積分及處理禮券申請；",
+          "回覆你的查詢，以及維持系統安全和改善服務。",
+        ]}
+      />
+    ),
+  },
+  {
+    title: "3. 其他用戶看到甚麼",
+    body: (
+      <>
+        <p>其他用戶可看到你的暱稱、等級、完成次數、你發佈的 post、見面打扮，以及你身處哪個商場。配對對方可看到你們之間的對話訊息。</p>
+        <p>其他用戶不會看到你的電郵地址、手機號碼，亦不會看到你的確實位置。</p>
+      </>
+    ),
+  },
+  {
+    title: "4. 服務供應商",
+    body: (
+      <>
+        <p>我們使用以下服務供應商運作本平台，他們只會按我們的指示處理資料：</p>
+        <Bullets
+          items={[
+            "Supabase：資料庫及登入系統，伺服器位於澳洲（悉尼）；",
+            "Vercel：網站寄存；",
+            "Resend：發送確認及重設密碼電郵；",
+            "Apple、Google 及瀏覽器推送服務：傳送推送通知；",
+            "Cloudflare：處理寄往 support@buytime.hk 的電郵。",
+          ]}
+        />
+        <p>因此你的資料可能會轉移至香港以外的地方儲存及處理。</p>
+      </>
+    ),
+  },
+  {
+    title: "5. 我們不會",
+    body: <p>我們不會出售或出租你的個人資料，亦不會用作第三方廣告。除非法律要求，否則不會向第三方披露。</p>,
+  },
+  {
+    title: "6. 保留期限",
+    body: (
+      <>
+        <p>帳戶存在期間，我們會保留你的資料。你要求刪除帳戶後，我們會刪除你的電郵、暱稱、手機號碼、推送識別碼及位置紀錄。</p>
+        <p>與其他用戶共同的配對紀錄會以匿名方式保留，讓對方的紀錄保持完整；舉報及停用紀錄會在防止濫用所需的期間內保留。</p>
+      </>
+    ),
+  },
+  {
+    title: "7. 你的權利",
+    body: (
+      <p>
+        根據《個人資料（私隱）條例》（香港法例第 486 章），你有權查閱及更正你的個人資料，亦可要求刪除帳戶。請電郵 support@buytime.hk，我們會盡快處理。
+      </p>
+    ),
+  },
+  {
+    title: "8. 本機儲存",
+    body: <p>App 會在你的裝置儲存登入狀態及偏好設定（例如通知選擇），不作任何追蹤或廣告用途。</p>,
+  },
+  {
+    title: "9. 未成年人士",
+    body: <p>本平台不適合 18 歲以下人士在未經家長／監護人同意下使用。</p>,
+  },
+  {
+    title: "10. 修改政策",
+    body: <p>我們可能不時更新本政策，重大修改會在 App 內通知。</p>,
+  },
 ];
 
 function PrivacyPage() {
-  const navigate = useNavigate();
-  return (
-    <div className="app-shell pb-16">
-      <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md px-4 pt-4 pb-3 border-b border-border/60 flex items-center gap-2">
-        <button
-          onClick={() => navigate({ to: "/profile" })}
-          className="w-9 h-9 -ml-2 grid place-items-center rounded-full hover:bg-accent"
-          aria-label="返回"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-xl font-bold leading-tight">私隱政策</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Beta 1.0 · 生效日期：2026年7月</p>
-        </div>
-      </header>
-
-      <main className="px-4 py-5 space-y-4">
-        {SECTIONS.map((s) => (
-          <section key={s.title} className="bg-card rounded-2xl p-4 shadow-[var(--shadow-card)]">
-            <h2 className="text-sm font-bold text-foreground mb-2">{s.title}</h2>
-            <div className="text-sm text-muted-foreground leading-relaxed">{s.body}</div>
-          </section>
-        ))}
-        <p className="text-center text-[11px] text-muted-foreground pt-2">
-          依據《個人資料（私隱）條例》（香港法例第486章）
-        </p>
-      </main>
-    </div>
-  );
+  return <LegalPage title="私隱政策" version="版本 2.0 · 生效日期：2026 年 10 月" intro="我們重視你的私隱。以下說明啱啱好收集甚麼資料、點樣使用，以及你有甚麼權利。" sections={SECTIONS} />;
 }

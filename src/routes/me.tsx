@@ -1,14 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ChevronRight, Gift, Pin, ShieldAlert } from "lucide-react";
+import { ChevronRight, Gift, KeyRound, LogOut, Pencil, Pin, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { AppLayout } from "@/components/AppLayout";
-import { Chip, DemoBadge, ScenarioTag } from "@/components/aah/ui";
+import { BottomSheet, Chip, DemoBadge, ScenarioTag } from "@/components/aah/ui";
 import { RegisterSheet } from "@/components/aah/RegisterSheet";
 import { MallPicker } from "@/components/aah/MallPicker";
 import { PushSettingRow } from "@/components/aah/PushPrompt";
-import { aah, aahErrorText, getSettings, useAahMode, useAahState, isBanned, DAY, BAN_DAYS } from "@/lib/aah/store";
+import { aah, aahErrorText, getSettings, pinIsFree, useAahMode, useAahState, isBanned, DAY, BAN_DAYS } from "@/lib/aah/store";
 import { POINTS, levelOf } from "@/lib/aah/points";
 import { useAahMalls } from "@/lib/aah/malls";
 import { useCurrentMall, useNow, fmtClock, fmtAgo } from "@/lib/aah/geo";
@@ -29,6 +29,9 @@ function MePage() {
   const [regOpen, setRegOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [appealText, setAppealText] = useState("");
+  const [nickOpen, setNickOpen] = useState(false);
+  const [nickDraft, setNickDraft] = useState("");
+  const [nickBusy, setNickBusy] = useState(false);
 
   const myMatches = useMemo(() => matches.filter((m) => m.participants.some((p) => p.userId === user.id)), [matches, user.id]);
   const activeMatches = myMatches.filter((m) => m.status === "active");
@@ -162,22 +165,29 @@ function MePage() {
           <div className="text-xs text-muted-foreground">
             完成交收儲分：有嘢俾人 {POINTS.giver} 分、接收 {POINTS.taker} 分、夾單每人 {POINTS.groupbuy} 分。同一對人一星期內唔重複計分，每日最多 {POINTS.dailyCap} 分。
           </div>
-          <button
-            onClick={() => aah.redeemPin().then(() => toast.success("換咗 1 次置頂"), (e) => toast.error(aahErrorText(e)))}
-            className="w-full rounded-2xl border border-border flex items-center gap-3 px-4 py-3 text-left"
-          >
-            <Pin className="w-5 h-5 shrink-0" />
-            <span className="flex-1 min-w-0">
-              <span className="block font-semibold text-sm">{POINTS.pinCost} 分換 1 次置頂</span>
-              <span className="block text-xs text-muted-foreground">你有 {user.pinCredits} 次</span>
-            </span>
-          </button>
+          {pinIsFree(mode) ? (
+            <div className="w-full rounded-2xl bg-accent/60 flex items-center gap-3 px-4 py-3">
+              <Pin className="w-5 h-5 shrink-0" />
+              <span className="text-sm">現階段置頂免費，唔使用分換，積分留返換禮券。</span>
+            </div>
+          ) : (
+            <button
+              onClick={() => aah.redeemPin().then(() => toast.success("換咗 1 次置頂"), (e) => toast.error(aahErrorText(e)))}
+              className="w-full rounded-2xl border border-border flex items-center gap-3 px-4 py-3 text-left"
+            >
+              <Pin className="w-5 h-5 shrink-0" />
+              <span className="flex-1 min-w-0">
+                <span className="block font-semibold text-sm">{POINTS.pinCost} 分換 1 次置頂</span>
+                <span className="block text-xs text-muted-foreground">你有 {user.pinCredits} 次</span>
+              </span>
+            </button>
+          )}
           <button
             onClick={() => {
               if (!user.registered) return setRegOpen(true);
               if (accountDays < POINTS.voucherMinAccountDays) return toast.error(`帳戶要用夠 ${POINTS.voucherMinAccountDays} 日先可以換禮券`, { description: `你已經用咗 ${accountDays} 日` });
               aah.requestVoucher().then(
-                () => toast.success("已提交換領申請", { description: "人手審核後會用短訊通知你" }),
+                () => toast.success("已提交換領申請", { description: "人手審核後，會將電子禮券寄去你登記嘅 email" }),
                 (e) => toast.error(aahErrorText(e)),
               );
             }}
@@ -260,12 +270,39 @@ function MePage() {
         )}
 
         {mode === "remote" && user.signedIn && (
-          <button
-            onClick={() => aah.signOut().then(() => toast("已登出"), (e) => toast.error(aahErrorText(e)))}
-            className="w-full h-11 rounded-2xl border border-border text-sm font-semibold"
-          >
-            登出
-          </button>
+          <section className="bg-card rounded-2xl p-4 space-y-1">
+            <div className="font-bold pb-1">帳戶</div>
+            {user.registered && (
+              <button onClick={() => { setNickDraft(user.nickname ?? ""); setNickOpen(true); }} className="w-full flex items-center gap-3 py-2.5 text-left">
+                <Pencil className="w-4 h-4 text-muted-foreground" />
+                <span className="flex-1 text-sm">暱稱</span>
+                <span className="text-sm text-muted-foreground">{user.nickname}</span>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </button>
+            )}
+            {user.email && (
+              <button
+                onClick={() =>
+                  aah.resetPassword(user.email!).then(
+                    () => toast.success("已寄出重設密碼 email", { description: `去 ${user.email} 撳「重設密碼」就可以改` }),
+                    (e) => toast.error(aahErrorText(e)),
+                  )
+                }
+                className="w-full flex items-center gap-3 py-2.5 text-left"
+              >
+                <KeyRound className="w-4 h-4 text-muted-foreground" />
+                <span className="flex-1 text-sm">改密碼</span>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </button>
+            )}
+            <button
+              onClick={() => aah.signOut().then(() => toast("已登出"), (e) => toast.error(aahErrorText(e)))}
+              className="w-full flex items-center gap-3 py-2.5 text-left"
+            >
+              <LogOut className="w-4 h-4 text-muted-foreground" />
+              <span className="flex-1 text-sm">登出</span>
+            </button>
+          </section>
         )}
 
         <div className="flex justify-center gap-4 text-xs text-muted-foreground">
@@ -276,6 +313,34 @@ function MePage() {
       </div>
 
       <RegisterSheet open={regOpen} onClose={() => setRegOpen(false)} onDone={() => setRegOpen(false)} />
+      <BottomSheet open={nickOpen} onClose={() => setNickOpen(false)} title="改暱稱">
+        <form
+          className="space-y-3 pb-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!nickDraft.trim()) return;
+            setNickBusy(true);
+            aah.changeNickname(nickDraft).then(
+              () => {
+                toast.success("已改暱稱");
+                setNickOpen(false);
+              },
+              (err) => toast.error(aahErrorText(err)),
+            ).finally(() => setNickBusy(false));
+          }}
+        >
+          <input
+            value={nickDraft}
+            onChange={(e) => setNickDraft(e.target.value.slice(0, 12))}
+            placeholder="暱稱，例如 阿明"
+            className="w-full h-12 px-4 rounded-2xl border border-border bg-background outline-none text-base"
+          />
+          <div className="text-xs text-muted-foreground">最多 12 個字。對方配對時會見到呢個名；已經發佈嘅 post 會保留舊名。</div>
+          <button disabled={nickBusy || !nickDraft.trim()} className="w-full h-12 rounded-2xl bg-[#1a1a1a] text-white font-bold disabled:opacity-40">
+            {nickBusy ? "儲存緊…" : "儲存"}
+          </button>
+        </form>
+      </BottomSheet>
       <MallPicker
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}

@@ -4,38 +4,31 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 
 import "@/i18n/config";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
-import { mockStore } from "@/lib/mock-store";
 import { AahRuntime } from "@/components/aah/AahRuntime";
 
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
-        <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Go home
-          </Link>
-        </div>
+      <div className="max-w-md text-center space-y-3">
+        <div className="text-5xl">🤔</div>
+        <h1 className="text-xl font-bold text-foreground">搵唔到呢一頁</h1>
+        <p className="text-sm text-muted-foreground">條連結可能已經過咗期，或者打錯咗。</p>
+        <Link to="/" className="inline-flex h-11 items-center justify-center rounded-2xl bg-[#1a1a1a] px-6 text-sm font-bold text-white">
+          返去首頁
+        </Link>
       </div>
     </div>
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
@@ -44,28 +37,22 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
+      <div className="max-w-md text-center space-y-3">
+        <div className="text-5xl">😵</div>
+        <h1 className="text-xl font-bold text-foreground">呢一頁載入唔到</h1>
+        <p className="text-sm text-muted-foreground">可能係網絡唔穩定。試吓再載入，或者返去首頁。</p>
+        <div className="flex flex-wrap justify-center gap-2 pt-1">
           <button
             onClick={() => {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex h-11 items-center justify-center rounded-2xl bg-[#1a1a1a] px-6 text-sm font-bold text-white"
           >
-            Try again
+            再試一次
           </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            Go home
+          <a href="/" className="inline-flex h-11 items-center justify-center rounded-2xl border border-border bg-card px-6 text-sm font-semibold">
+            返去首頁
           </a>
         </div>
       </div>
@@ -89,48 +76,6 @@ function RootComponent() {
     if (!q.get("token_hash") || path === "/confirm" || path === "/reset-password") return;
     const target = q.get("type") === "recovery" ? "/reset-password" : "/confirm";
     window.location.replace(`${target}${window.location.search}`);
-  }, []);
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      const { supabase } = await import("@/integrations/supabase/client");
-      const { syncUserToOwn } = await import("@/lib/own-db");
-      const { captureReferralFromUrl, recordPendingReferral, ensureReferralCode } =
-        await import("@/lib/referrals");
-
-      captureReferralFromUrl();
-
-      function applyRealUser(user: import("@supabase/supabase-js").User) {
-        void (async () => {
-          await syncUserToOwn(user);
-          await ensureReferralCode(user.id);
-          await recordPendingReferral(user);
-        })();
-        const displayName =
-          (user.user_metadata?.name as string | undefined) ||
-          user.email?.split("@")[0] ||
-          "用戶";
-        mockStore.setUser({ name: displayName, initial: displayName.charAt(0).toUpperCase() });
-      }
-
-      const { data, error } = await supabase.auth.getUser();
-      if (error) {
-        await supabase.auth.signOut().catch(() => {});
-      } else if (mounted && data.user) {
-        applyRealUser(data.user);
-      }
-
-      supabase.auth.onAuthStateChange((event, session) => {
-        if ((event === "SIGNED_IN" || event === "USER_UPDATED") && session?.user) {
-          applyRealUser(session.user);
-        }
-        if (event === "SIGNED_OUT") {
-          mockStore.setUser({ name: "用戶", initial: "U" });
-        }
-      });
-    })();
-    return () => { mounted = false; };
   }, []);
 
   return (
