@@ -26,7 +26,7 @@ const CONTACT_RE = /(\d[\s-]?){8,}|whats\s*app|\bwts\b|\bwa\b|telegram|\btg\b|si
 function MatchPage() {
   const { matchId } = Route.useParams();
   const navigate = useNavigate();
-  const { matches, user } = useAahState();
+  const { matches, user, posts } = useAahState();
   const { malls } = useAahMalls();
   const current = useCurrentMall(malls);
   const now = useNow(5000);
@@ -40,6 +40,7 @@ function MatchPage() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const lastSent = useRef<{ text: string; at: number } | null>(null);
 
   // 今日已經揀過衫就自動用返
   useEffect(() => {
@@ -81,8 +82,17 @@ function MatchPage() {
       toast.error("為咗安全，請喺 app 內溝通", { description: "唔好交換電話號碼或者其他通訊 app" });
       return;
     }
+    // 防連撳：同一句 5 秒內唔重複發送
+    const now2 = Date.now();
+    if (lastSent.current && lastSent.current.text === t && now2 - lastSent.current.at < 5000) return;
+    lastSent.current = { text: t, at: now2 };
     void act(aah.sendMessage(m!.id, t));
   }
+
+  // 臨時取消：對方已經到咗，自己未到
+  const lateIfCancel = !iArrived && others.some((o) => m.arrived[o.userId]);
+  const cancelledByOther = m.status === "cancelled" && !!m.cancelledBy && m.cancelledBy !== user.id;
+  const alternatives = posts.filter((p) => p.mallId === m.mallId && p.scenario === m.scenario && p.status === "open" && p.leaveAt > now && p.authorId !== user.id && p.id !== m.postId);
 
   async function act(p: Promise<unknown>, ok?: string) {
     try {
@@ -139,7 +149,27 @@ function MatchPage() {
         {m.status === "completed" && (
           <div className="bg-[#E3F5EC] text-[#1d6b47] rounded-2xl p-4 flex items-center gap-2 font-bold"><CheckCircle2 className="w-5 h-5" /> 已完成</div>
         )}
-        {m.status === "cancelled" && <div className="bg-card rounded-2xl p-4 font-bold">配對已取消</div>}
+        {m.status === "cancelled" && (
+          <div className="bg-card rounded-2xl p-4 space-y-3">
+            <div className="font-bold">{cancelledByOther ? "對方取消咗配對" : "配對已取消"}</div>
+            {cancelledByOther && m.lateCancel && iArrived && (
+              <div className="text-sm text-muted-foreground">你已經到咗，對方先取消。已經記錄咗對方一次臨時取消，亦補償咗你 20 分。</div>
+            )}
+            {m.cancelledBy === user.id && m.lateCancel && (
+              <div className="text-sm text-amber-800">對方已經到咗先取消，記咗一次臨時取消。</div>
+            )}
+            {cancelledByOther && (
+              <Link
+                to="/"
+                search={{ cat: m.scenario }}
+                className="flex items-center justify-between rounded-xl bg-[#FFF6D6] px-4 py-3 text-sm font-bold"
+              >
+                <span>{alternatives.length > 0 ? `${m.mallName}仲有 ${alternatives.length} 個${SCENARIOS[m.scenario].label}着數` : `睇吓${m.mallName}其他着數`}</span>
+                <span>→</span>
+              </Link>
+            )}
+          </div>
+        )}
         {m.status === "noshow" && <div className="bg-red-50 text-red-800 rounded-2xl p-4 font-bold">有人冇出現，配對已結束</div>}
 
         {/* 見面地點時間 */}
@@ -339,15 +369,31 @@ function MatchPage() {
 
       <BottomSheet open={cancelOpen} onClose={() => setCancelOpen(false)} title="取消配對">
         <div className="space-y-2 pb-2">
-          <p className="text-sm text-muted-foreground">{pastMeet ? "已經過咗約定時間。" : "約定時間之前取消，唔會被罰。"}</p>
+          {lateIfCancel ? (
+            <div className="bg-red-50 text-red-900 rounded-2xl p-4 text-sm space-y-1.5">
+              <div className="font-black flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" />對方已經到咗等緊你</div>
+              <div>而家取消會記一次「臨時取消」，扣 30 分，並且補償對方 20 分。</div>
+              {(user.lateCancels30d ?? 0) >= 1 ? (
+                <div className="font-bold">你 30 日內已經有 {user.lateCancels30d} 次臨時取消，今次取消帳戶會停用一個月。</div>
+              ) : (
+                <div>30 日內第二次臨時取消，帳戶會停用一個月。</div>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">對方未到，而家取消唔會被罰。</p>
+          )}
           {["唔好意思，唔要喇", "我要走喇"].map((t) => (
             <button
               key={t}
               onClick={() => {
-                void act(aah.cancelMatch(m.id, t));
+                const late = lateIfCancel;
                 setCancelOpen(false);
+                void aah.cancelMatch(m.id, t).then(
+                  () => (late ? toast("已取消，記咗一次臨時取消", { description: "扣 30 分" }) : toast("已取消配對")),
+                  (e) => toast.error(aahErrorText(e)),
+                );
               }}
-              className="w-full h-12 rounded-2xl border border-border font-semibold"
+              className={lateIfCancel ? "w-full h-12 rounded-2xl border border-red-300 text-red-700 font-semibold" : "w-full h-12 rounded-2xl border border-border font-semibold"}
             >
               {t}
             </button>

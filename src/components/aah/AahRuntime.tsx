@@ -130,6 +130,25 @@ export function AahRuntime() {
     }
   }, [now, geo.status, current.mall?.id, current.test, posts, user.id]);
 
+  // 對方取消咗配對：即刻話你知，同埋俾你睇附近其他着數
+  const prevStatus = useRef<Map<string, string> | null>(null);
+  useEffect(() => {
+    const first = prevStatus.current == null;
+    const map = prevStatus.current ?? new Map<string, string>();
+    for (const m of matches) {
+      const before = map.get(m.id);
+      map.set(m.id, m.status);
+      if (first || before !== "active" || m.status !== "cancelled") continue;
+      if (!m.participants.some((p) => p.userId === user.id) || !m.cancelledBy || m.cancelledBy === user.id) continue;
+      toast("對方取消咗配對", {
+        description: m.lateCancel && m.arrived[user.id] ? "你已經到咗，已記錄對方臨時取消，並補償你 20 分" : `${m.shop}・${m.mallName}`,
+        action: { label: "睇附近着數", onClick: () => navigate({ to: "/", search: { cat: m.scenario } }) },
+        duration: 12000,
+      });
+    }
+    prevStatus.current = map;
+  }, [matches, user.id, navigate]);
+
   // 完成之後：離開商場（或者完成 10 分鐘後）喺通知入面撳 👍 👎，可以唔答
   useEffect(() => {
     for (const m of matches) {

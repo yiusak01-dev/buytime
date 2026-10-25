@@ -74,10 +74,16 @@ export function createRemote(host: Host) {
           if (!error) clearPending();
         } else clearPending();
       }
-      const [{ data: prof }, { data: appeal }, { data: vouchers }] = await Promise.all([
+      const [{ data: prof }, { data: appeal }, { data: vouchers }, { count: lateCount }] = await Promise.all([
         sb().from("aah_profiles").select("*").eq("id", uid).maybeSingle(),
         sb().from("aah_appeals").select("text, status, created_at").eq("user_id", uid).order("created_at", { ascending: false }).limit(1),
         sb().from("aah_voucher_requests").select("status, created_at").eq("user_id", uid).eq("status", "pending"),
+        sb()
+          .from("aah_point_ledger")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", uid)
+          .eq("reason", "late_cancel")
+          .gt("created_at", new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()),
       ]);
       if (prof) {
         user = {
@@ -98,6 +104,7 @@ export function createRemote(host: Host) {
           pinCredits: prof.pin_credits,
           appeal: appeal?.[0] ? { text: appeal[0].text, at: Date.parse(appeal[0].created_at), status: appeal[0].status } : undefined,
           voucherRequests: (vouchers ?? []).map((v: any) => ({ at: Date.parse(v.created_at), status: "pending" as const })),
+          lateCancels30d: lateCount ?? 0,
         };
       }
     }
@@ -525,6 +532,8 @@ function rowToMatch(m: any, parts: any[], msgs: any[], uid: string, prefs: Local
     createdAt: Date.parse(m.created_at),
     endedAt: ts(m.ended_at),
     rated: mine?.rating ?? undefined,
+    cancelledBy: m.cancelled_by ?? undefined,
+    lateCancel: !!m.late_cancel,
     ratePromptShown: flags.ratePromptShown,
     askedArrival: flags.askedArrival,
   };

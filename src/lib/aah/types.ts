@@ -97,6 +97,10 @@ export type Match = {
   ratePromptShown?: boolean;
   /** 已經問過「對方到咗未？」 */
   askedArrival?: boolean;
+  /** 邊個取消（雲端模式由資料庫記錄） */
+  cancelledBy?: string;
+  /** 對方已經到咗先取消 */
+  lateCancel?: boolean;
 };
 
 export type User = {
@@ -129,6 +133,10 @@ export type User = {
   /** 計分紀錄：防同一對人重複儲分 */
   pointLog: { at: number; partnerId: string; pts: number }[];
   voucherRequests: { at: number; status: "pending" }[];
+  /** 30 日內臨時取消次數 */
+  lateCancels30d?: number;
+  /** 示範模式：臨時取消時間紀錄 */
+  lateCancelLog?: number[];
 };
 
 export type AahMall = {

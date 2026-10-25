@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Eye, Send, Pin, Minus, Plus, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
@@ -111,6 +111,7 @@ function PostDetailView({ post }: { post: Post }) {
   const [entry, setEntry] = useState("");
 
   const mine = post.interests.find((i) => i.userId === user.id);
+  const lastSent = useRef<{ text: string; at: number } | null>(null);
 
   // 對方揀咗你 → 去配對畫面
   useEffect(() => {
@@ -132,6 +133,10 @@ function PostDetailView({ post }: { post: Post }) {
   const open = post.status === "open" && post.leaveAt > now;
 
   function send(text: string, off?: number) {
+    // 防連撳：同一句 5 秒內唔重複發送
+    const t0 = Date.now();
+    if (lastSent.current && lastSent.current.text === text && t0 - lastSent.current.at < 5000) return;
+    lastSent.current = { text, at: t0 };
     const me = aah.get().user;
     if (isBanned(me)) return;
     if (!me.registered) {

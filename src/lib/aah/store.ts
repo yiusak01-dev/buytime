@@ -413,15 +413,40 @@ const local = {
   cancelMatch(matchId: string, reason: string) {
     const m = state.matches.find((x) => x.id === matchId);
     if (!m) return;
-    patchMatch(matchId, (x) => ({ ...x, status: "cancelled", endedAt: Date.now(), messages: [...x.messages, { id: uid("msg"), from: state.user.id, text: reason, at: Date.now() }, sysMsg("配對已取消。約定時間之前取消唔會被罰。")] }));
-    // 個 post 未過期就重新開放
-    patchPost(m.postId, (p) =>
-      p.leaveAt > Date.now() && p.authorId !== state.user.id
-        ? { ...p, status: "open", matchId: undefined, interests: p.interests.filter((i) => i.userId !== state.user.id) }
-        : p.authorId === state.user.id && p.leaveAt > Date.now()
-          ? { ...p, status: "open", matchId: undefined, interests: p.interests.map((i) => (i.status === "accepted" ? { ...i, status: "declined" } : i)) }
-          : p,
-    );
+    const me = state.user.id;
+    const now = Date.now();
+    // 臨時取消：對方已經到咗，自己未到
+    const late = !m.arrived[me] && m.participants.some((p) => p.userId !== me && m.arrived[p.userId]);
+    const msgs = [{ id: uid("msg"), from: me, text: reason, at: now }];
+    if (late) {
+      const log = [...(state.user.lateCancelLog ?? []), now].filter((t) => now - t < 30 * DAY);
+      const ded = Math.min(30, state.user.points);
+      const banned = log.length >= 2;
+      msgs.push(sysMsg(`${displayName(state.user)} 喺對方到咗之後取消，記一次臨時取消。已經到咗嘅人補償 20 分。`));
+      if (banned) msgs.push(sysMsg(`${displayName(state.user)} 30 日內第二次臨時取消，帳戶停用一個月。`));
+      set({
+        ...state,
+        user: {
+          ...state.user,
+          points: state.user.points - ded,
+          lateCancelLog: log,
+          lateCancels30d: log.length,
+          ...(banned ? { bannedUntil: now + BAN_DAYS * DAY, noShows: state.user.noShows + 1 } : {}),
+        },
+      });
+    } else {
+      msgs.push(sysMsg("配對已取消。對方未到之前取消唔會被罰。"));
+    }
+    patchMatch(matchId, (x) => ({ ...x, status: "cancelled", endedAt: now, cancelledBy: me, lateCancel: late, messages: [...x.messages, ...msgs] }));
+    const iAmAuthor = m.authorId === me;
+    patchPost(m.postId, (p) => {
+      // 出 post 嘅人臨時取消：post 唔再重新開放
+      if (late && iAmAuthor) return { ...p, status: "cancelled", matchId: undefined, pinnedUntil: undefined };
+      if (p.leaveAt <= now) return p;
+      return iAmAuthor
+        ? { ...p, status: "open", matchId: undefined, interests: p.interests.map((i) => (i.status === "accepted" ? { ...i, status: "declined" as const } : i)) }
+        : { ...p, status: "open", matchId: undefined, interests: p.interests.filter((i) => i.userId !== me) };
+    });
   },
 
   /** 有人冇出現。accusedId 係我自己就停用一個月 */
