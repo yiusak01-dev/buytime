@@ -1,0 +1,17 @@
+<!-- Supabase → Authentication → Emails → Confirm signup。主旨：確認你嘅啱啱好帳戶 -->
+<!-- 連結帶去 /confirm，用家撳掣先驗證（防止 email 系統預先撳咗一次性連結） -->
+<div style="margin:0;padding:24px 12px;background:#f6f6f4;font-family:-apple-system,BlinkMacSystemFont,'PingFang HK','Microsoft JhengHei',sans-serif;color:#1a1a1a">
+  <div style="max-width:440px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden">
+    <div style="background:#F5C518;padding:20px 24px">
+      <div style="font-size:20px;font-weight:700">啱啱好 BuyTime</div>
+      <div style="font-size:13px;color:#5c4a00;margin-top:2px">啱時間・啱地方・啱啱好</div>
+    </div>
+    <div style="padding:24px">
+      <div style="font-size:17px;font-weight:700;margin-bottom:10px">歡迎加入啱啱好！</div>
+      <p style="font-size:14px;line-height:1.6;color:#444;margin:0 0 20px">撳下面個掣，確認 {{ .Email }} 係你嘅 email。去到確認頁再撳多一下「確認我嘅 email」，就會自動登入。</p>
+      <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email" style="display:block;background:#1a1a1a;color:#ffffff;text-decoration:none;text-align:center;font-weight:600;font-size:15px;padding:14px 0;border-radius:12px">確認 email</a>
+      <p style="font-size:12px;line-height:1.6;color:#888;margin:20px 0 0">連結只可以用一次，而且有時限。如果你冇申請過啱啱好帳戶，唔使理呢封 email。</p>
+    </div>
+    <div style="border-top:1px solid #eee;padding:14px 24px;font-size:12px;color:#999">有問題？電郵 <a href="mailto:support@buytime.hk" style="color:#999">support@buytime.hk</a></div>
+  </div>
+</div>
