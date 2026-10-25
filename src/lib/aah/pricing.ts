@@ -37,11 +37,26 @@ export function dayInfo(ts: number): DayInfo {
   return { weekend: false, label: WEEKDAY_ZH[dow] };
 }
 
+/** 統一唔同寫法：「$200/1hr」→「$200=1hr」（「@$5/hr」呢類優惠價唔會被改） */
+export function normalizeCond(cond: string | null | undefined): string | null {
+  if (!cond) return null;
+  return cond.replace(/\$\s*(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)\s*hr/gi, "$$$1=$2hr");
+}
+
+/** 領展等商場：「全部@$5/hr」即係換到嘅鐘數按每小時 $5 收，唔係免費 */
+export function discountedRate(cond: string | null | undefined): number | null {
+  const m = cond ? /@\s*\$\s*(\d+(?:\.\d+)?)\s*\/\s*hr/i.exec(cond) : null;
+  return m ? Number(m[1]) : null;
+}
+
 function rulesFor(mall: AahMall, ts: number) {
   const day = dayInfo(ts);
-  const cond = day.weekend ? mall.condWeekend ?? mall.condWeekday : mall.condWeekday;
+  const raw = day.weekend ? mall.condWeekend ?? mall.condWeekday : mall.condWeekday;
   const rate = day.weekend ? mall.rateWeekend ?? mall.rateWeekday : mall.rateWeekday;
-  return { day, cond, rate };
+  const disc = discountedRate(raw);
+  // 每個鐘慳到嘅錢：免費就係成個時租；優惠價就係時租減優惠價
+  const perHour = rate == null ? null : disc != null ? Math.max(0, rate - disc) : rate;
+  return { day, cond: normalizeCond(raw), rate, perHour };
 }
 
 export type ParkingQuote = {
@@ -58,9 +73,9 @@ export type ParkingQuote = {
 
 /** 賣家：張收據可以換幾多個鐘、慳幾多 */
 export function quoteParkingReceipt(mall: AahMall, receiptAmount: number, ts: number): ParkingQuote {
-  const { day, cond, rate } = rulesFor(mall, ts);
+  const { day, cond, rate, perHour } = rulesFor(mall, ts);
   const r = calcParkingHours(cond, receiptAmount);
-  const saving = rate != null ? Math.round(r.hours * rate) : null;
+  const saving = perHour != null ? Math.round(r.hours * perHour) : null;
   return {
     hours: r.hours,
     rate,
@@ -75,8 +90,8 @@ export function quoteParkingReceipt(mall: AahMall, receiptAmount: number, ts: nu
 
 /** 「我要」泊車：想要嘅鐘數值幾多錢 */
 export function quoteParkingWant(mall: AahMall, hours: number, ts: number) {
-  const { day, rate } = rulesFor(mall, ts);
-  const fee = rate != null ? Math.round(hours * rate) : null;
+  const { day, rate, perHour } = rulesFor(mall, ts);
+  const fee = perHour != null ? Math.round(hours * perHour) : null;
   return { fee, rate, suggestMax: fee != null ? Math.floor(fee / 2) : null, dayLabel: day.label };
 }
 
@@ -85,11 +100,11 @@ export function quoteParkingWant(mall: AahMall, hours: number, ts: number) {
  * 停車場一般按「每小時或不足一小時」收費，所以向上取整。
  */
 export function buyerParkingSaving(mall: AahMall, hoursOffered: number, entryTs: number, now: number) {
-  const { day, rate } = rulesFor(mall, now);
+  const { day, rate, perHour } = rulesFor(mall, now);
   const parked = Math.max(1, Math.ceil((now - entryTs) / 3600000));
-  if (rate == null) return null;
+  if (rate == null || perHour == null) return null;
   const fee = parked * rate;
-  const saving = Math.min(hoursOffered, parked) * rate;
+  const saving = Math.min(hoursOffered, parked) * perHour;
   return { parked, fee, saving, dayLabel: day.label, rate };
 }
 
