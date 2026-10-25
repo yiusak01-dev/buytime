@@ -12,6 +12,7 @@ import {
   aahErrorText,
   getSettings,
   pinIsFree,
+  testLocationAllowed,
   useAahMode,
   useAahState,
   isBanned,
@@ -134,7 +135,8 @@ function PostDetailView({ post }: { post: Post }) {
 
   // 要喺同一個商場；$5 置頂推到嚟嘅附近商場 post 都接得（泊車除外）
   const inRange = useMemo(() => {
-    if (!current.mall) return false;
+    // 正式上線（唔准測試位置）：一定要 GPS 確認喺商場先接得
+    if (!current.mall || (current.test && !testLocationAllowed())) return false;
     if (current.mall.id === post.mallId) return true;
     if (!s.pushNearby || !mall) return false;
     return nearbyMalls(malls, mall).some((m) => m.id === current.mall!.id);
@@ -237,7 +239,7 @@ function PostDetailView({ post }: { post: Post }) {
               你嘅帳戶停用緊，暫時唔可以接 post。<Link to="/me" className="underline font-semibold">申訴</Link>
             </div>
           ) : !inRange ? (
-            <div className="text-center text-sm bg-card rounded-2xl p-4">要喺 {post.mallName}{s.pushNearby ? " 或者附近商場" : ""} 先可以接呢個 post</div>
+            <div className="text-center text-sm bg-card rounded-2xl p-4">要喺 {post.mallName}{s.pushNearby ? " 或者附近商場" : ""} 先可以接呢個 post{current.test && !testLocationAllowed() ? "（GPS 確認咗你喺度就得）" : ""}</div>
           ) : mine?.status === "declined" ? (
             <div className="text-center text-sm bg-card rounded-2xl p-4">唔好意思，對方已經俾咗人</div>
           ) : (

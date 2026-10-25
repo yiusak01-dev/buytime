@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import { BottomSheet } from "./ui";
 import { useGeo } from "@/lib/aah/geo";
 import { nearestMalls } from "@/lib/aah/malls";
+import { testLocationAllowed } from "@/lib/aah/store";
 import type { AahMall } from "@/lib/aah/types";
 
 export function MallPicker({
@@ -33,13 +34,16 @@ export function MallPicker({
     return s ? base.filter((m) => m.name.toLowerCase().includes(s) || m.district.toLowerCase().includes(s)) : base;
   }, [malls, geo.status, geo.lat, geo.lng, q]);
 
+  const testing = testLocationAllowed();
   return (
-    <BottomSheet open={open} onClose={onClose} title="揀測試位置">
+    <BottomSheet open={open} onClose={onClose} title={testing ? "揀測試位置" : "睇其他商場"}>
       <div className="space-y-3 pb-2">
         <p className="text-xs text-muted-foreground">
           {currentVerified
             ? "GPS 已經確認你喺商場，會優先用真實位置。"
-            : "正式版只會用 GPS 真實位置。示範期間可以揀一個商場扮自己喺嗰度，試吓成個流程。"}
+            : testing
+              ? "試用期間可以揀一個商場扮自己喺嗰度，試吓成個流程。"
+              : "揀一個商場睇吓而家有咩着數。要出 post 或者接，就要去到商場，等 GPS 確認。"}
         </p>
         <div className="flex items-center gap-2 border border-border rounded-2xl px-3 h-11">
           <Search className="w-4 h-4 text-muted-foreground" />
@@ -60,7 +64,7 @@ export function MallPicker({
         </div>
         {hasTest && (
           <button onClick={onClear} className="w-full h-11 rounded-2xl border border-border text-sm font-semibold">
-            取消測試位置
+            {testing ? "取消測試位置" : "返去用 GPS 位置"}
           </button>
         )}
       </div>

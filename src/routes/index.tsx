@@ -6,7 +6,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { PostCard } from "@/components/aah/PostCard";
 import { Chip, DemoBadge } from "@/components/aah/ui";
 import { MallPicker } from "@/components/aah/MallPicker";
-import { aah, useAahMode, useAahState, MAX_PINNED_PER_MALL } from "@/lib/aah/store";
+import { aah, testLocationAllowed, useAahMode, useAahState, MAX_PINNED_PER_MALL } from "@/lib/aah/store";
 import { useAahMalls, nearbyMalls, distanceM } from "@/lib/aah/malls";
 import { useCurrentMall, useGeo, useNow } from "@/lib/aah/geo";
 import { SCENARIOS, SCENARIO_LIST } from "@/lib/aah/scenarios";
@@ -102,14 +102,14 @@ function Home() {
               <>
                 <div className="text-[15px] font-bold truncate">你而家喺 {mall.name}</div>
                 <div className="text-[11px] text-muted-foreground">
-                  {current.verified ? "GPS 已確認" : "測試位置（唔喺商場都可以試用）"}
+                  {current.verified ? "GPS 已確認" : testLocationAllowed() ? "測試位置（唔喺商場都可以試用）" : "淨係睇緊：去到商場先可以出 post 同接"}
                 </div>
               </>
             ) : (
               <>
                 <div className="text-[15px] font-bold">你唔喺任何商場</div>
                 <div className="text-[11px] text-muted-foreground">
-                  {geo.status === "denied" ? "冇開定位：可以睇，但要開定位先可以出 post" : "揀一個商場試吓"}
+                  {geo.status === "denied" ? "冇開定位：可以睇，但要開定位先可以出 post" : testLocationAllowed() ? "揀一個商場試吓" : "揀一個商場睇吓有咩着數"}
                 </div>
               </>
             )}
@@ -154,9 +154,13 @@ function Home() {
           <div className="bg-card rounded-2xl p-6 text-center space-y-3">
             <div className="text-4xl">📍</div>
             <div className="font-bold">去到商場就會見到身邊嘅着數</div>
-            <p className="text-sm text-muted-foreground">而家未喺任何商場範圍。可以揀一個商場做測試位置，試吓成個流程。</p>
+            <p className="text-sm text-muted-foreground">
+              {testLocationAllowed()
+                ? "而家未喺任何商場範圍。可以揀一個商場做測試位置，試吓成個流程。"
+                : "而家未喺任何商場範圍。可以先揀一個商場睇吓有咩着數，去到先可以出 post 同接。"}
+            </p>
             <button onClick={() => setPickerOpen(true)} className="h-11 px-5 rounded-2xl bg-[#1a1a1a] text-white font-bold">
-              揀商場
+              {testLocationAllowed() ? "揀商場" : "睇其他商場"}
             </button>
           </div>
         ) : empty ? (

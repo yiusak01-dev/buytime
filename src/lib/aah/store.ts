@@ -628,6 +628,10 @@ export function getMode() {
 export function getSettings() {
   return settings;
 }
+/** 可唔可以用測試位置扮自己喺商場（示範模式、或者雲端開咗試用） */
+export function testLocationAllowed(m: AahMode = mode) {
+  return m !== "remote" || settings.allowTestLocation;
+}
 /** 置頂而家係咪免費（示範模式、或者雲端開咗免費試用） */
 export function pinIsFree(m: AahMode = mode) {
   return m !== "remote" || settings.freePinTrial;
