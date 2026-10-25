@@ -7,8 +7,8 @@ const OUT = require('path').resolve(__dirname, '../../public');
 const style = process.argv[2] || 'A';
 const icon = (s, st = style) => {
   if (st === 'A') return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="${s}" height="${s}"><rect width="1024" height="1024" fill="${C.dark}"/><rect x="192" y="192" width="640" height="640" rx="150" fill="#fff"/><g transform="translate(262 300) scale(1.42)">${mark()}</g></svg>`;
-  if (st === 'B') return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="${s}" height="${s}"><rect width="1024" height="1024" fill="#FFE04A"/><g transform="translate(212 270) scale(1.75)">${mark({ yellow: '#E9A800' })}</g></svg>`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="${s}" height="${s}"><rect width="1024" height="1024" fill="${C.cream}"/><g transform="translate(212 270) scale(1.75)">${mark()}</g></svg>`;
+  if (st === 'B') return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="${s}" height="${s}"><rect width="1024" height="1024" fill="#FFE04A"/><g transform="translate(182 250) scale(1.75)">${mark({ yellow: '#E9A800' })}</g></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="${s}" height="${s}"><rect width="1024" height="1024" fill="${C.cream}"/><g transform="translate(182 250) scale(1.75)">${mark()}</g></svg>`;
 };
 // 細 favicon：標誌放大、米白底，細尺寸都睇得清
 const favicon = (s) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="${s}" height="${s}"><rect width="1024" height="1024" rx="200" fill="${C.cream}"/><g transform="translate(140 220) scale(2.1)">${mark()}</g></svg>`;
