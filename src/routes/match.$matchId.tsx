@@ -6,7 +6,8 @@ import { AppLayout } from "@/components/AppLayout";
 import { Avatar, describeOutfit } from "@/components/aah/Avatar";
 import { OutfitEditor } from "@/components/aah/OutfitEditor";
 import { BottomSheet, Chip, DemoBadge, ScenarioTag } from "@/components/aah/ui";
-import { aah, useAahState, todayKey, CHAT_CLOSE_AFTER_MIN, BAN_DAYS } from "@/lib/aah/store";
+import { aah, aahErrorText, useAahMode, useAahState, todayKey, CHAT_CLOSE_AFTER_MIN, BAN_DAYS } from "@/lib/aah/store";
+import { geoStore } from "@/lib/aah/geo";
 import { useAahMalls } from "@/lib/aah/malls";
 import { useCurrentMall, useNow, fmtClock } from "@/lib/aah/geo";
 import { SCENARIOS, payLabel } from "@/lib/aah/scenarios";
@@ -43,7 +44,7 @@ function MatchPage() {
   // 今日已經揀過衫就自動用返
   useEffect(() => {
     if (!m || m.status !== "active") return;
-    if (!m.outfits[user.id] && user.outfitToday?.date === todayKey()) aah.setOutfitToday(user.outfitToday.outfit, m.id);
+    if (!m.outfits[user.id] && user.outfitToday?.date === todayKey()) void aah.setOutfitToday(user.outfitToday.outfit, m.id).catch(() => {});
   }, [m?.id, m?.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -51,6 +52,7 @@ function MatchPage() {
   }, [m?.messages.length]);
 
   const others = useMemo(() => (m ? m.participants.filter((p) => p.userId !== user.id) : []), [m, user.id]);
+  const mode = useAahMode();
 
   if (!m || !m.participants.some((p) => p.userId === user.id)) {
     return (
@@ -79,18 +81,31 @@ function MatchPage() {
       toast.error("為咗安全，請喺 app 內溝通", { description: "唔好交換電話號碼或者其他通訊 app" });
       return;
     }
-    aah.sendMessage(m!.id, t);
+    void act(aah.sendMessage(m!.id, t));
   }
 
-  function arrive() {
+  async function act(p: Promise<unknown>, ok?: string) {
+    try {
+      await p;
+      if (ok) toast.success(ok);
+    } catch (e) {
+      toast.error(aahErrorText(e));
+    }
+  }
+
+  async function arrive() {
     if (!inMall) {
       toast.error(`GPS 未確認你喺 ${m!.mallName}`, { description: "去到見面地點再撳" });
       return;
     }
-    aah.arrive(m!.id);
-    const after = aah.get().matches.find((x) => x.id === m!.id);
-    if (after?.status === "completed") toast.success("見到面喇！已完成");
-    else toast("已通知對方你到咗", { description: "舉起電話對一對公仔" });
+    const g = geoStore.get();
+    try {
+      const r = await aah.arrive(m!.id, { coords: g.lat != null && g.lng != null ? { lat: g.lat, lng: g.lng } : undefined });
+      if (r === "completed") toast.success("見到面喇！已完成");
+      else toast("已通知對方你到咗", { description: "舉起電話對一對公仔" });
+    } catch (e) {
+      toast.error(aahErrorText(e));
+    }
   }
 
   const presets = [`喺${m.meetPlace}等`, "5 分鐘到", "10 分鐘到", "等我 2 分鐘", "搵唔到你"];
@@ -192,11 +207,10 @@ function MatchPage() {
             {missing.map((o) => (
               <div key={o.userId} className="flex items-center gap-2">
                 <div className="flex-1 text-sm font-semibold">{o.name}</div>
-                <button onClick={() => aah.arrive(m.id, o.userId)} className="h-9 px-3 rounded-full bg-[#1a1a1a] text-white text-sm font-bold">到咗喇</button>
+                <button onClick={() => act(aah.arrive(m.id, { userId: o.userId }))} className="h-9 px-3 rounded-full bg-[#1a1a1a] text-white text-sm font-bold">到咗喇</button>
                 <button
                   onClick={() => {
-                    aah.reportNoShow(m.id, o.userId);
-                    toast("已記錄對方冇出現", { description: `對方帳戶會停用 ${BAN_DAYS} 日；佢可以申訴。` });
+                    void act(aah.reportNoShow(m.id, o.userId), `已記錄對方冇出現，對方帳戶會停用 ${BAN_DAYS} 日；佢可以申訴。`);
                   }}
                   className="h-9 px-3 rounded-full border border-border text-sm font-semibold"
                 >
@@ -227,7 +241,7 @@ function MatchPage() {
           <div ref={bottomRef} />
         </div>
 
-        {active && (
+        {active && mode === "local" && (
           <details className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 text-sm">
             <summary className="font-semibold text-amber-900">示範控制</summary>
             <div className="pt-3 space-y-2">
@@ -301,9 +315,8 @@ function MatchPage() {
           </div>
           <button
             onClick={() => {
-              aah.confirmMeet(m.id);
               setWarnOpen(false);
-              toast.success("已確認見面");
+              void act(aah.confirmMeet(m.id), "已確認見面");
             }}
             className="w-full h-12 rounded-2xl bg-[#1a1a1a] text-white font-bold"
           >
@@ -318,7 +331,7 @@ function MatchPage() {
         <OutfitEditor
           initial={m.outfits[user.id] ?? user.outfitToday?.outfit}
           onSave={(o) => {
-            aah.setOutfitToday(o, m.id);
+            void act(aah.setOutfitToday(o, m.id));
             setOutfitOpen(false);
           }}
         />
@@ -331,7 +344,7 @@ function MatchPage() {
             <button
               key={t}
               onClick={() => {
-                aah.cancelMatch(m.id, t);
+                void act(aah.cancelMatch(m.id, t));
                 setCancelOpen(false);
               }}
               className="w-full h-12 rounded-2xl border border-border font-semibold"
@@ -349,15 +362,16 @@ function MatchPage() {
               key={t}
               onClick={() => {
                 setReportOpen(false);
-                aah.cancelMatch(m.id, "（已舉報並封鎖）");
-                toast.success("已收到舉報，並封鎖咗對方", { description: "我哋會人手跟進" });
+                const accused = others[0]?.userId;
+                const kind = ({ 對方要求預先轉數: "prepay", 對方騷擾我: "harass", "收據／飛／券係假嘅": "fake", 其他: "other" } as Record<string, string>)[t] ?? "other";
+                if (accused) void act(aah.report(m.id, accused, kind, t), "已收到舉報，我哋會人手跟進");
               }}
               className="w-full h-12 rounded-2xl border border-border font-semibold text-left px-4"
             >
               {t}
             </button>
           ))}
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1.5"><DemoBadge />示範版只會取消配對；正式版會送去人手審核。</p>
+          {mode === "local" && <p className="text-[11px] text-muted-foreground flex items-center gap-1.5"><DemoBadge />示範版只會取消配對；正式版會送去人手審核。</p>}
         </div>
       </BottomSheet>
     </AppLayout>
@@ -393,7 +407,7 @@ function ChangeMeetSheet({ open, onClose, match }: { open: boolean; onClose: () 
         </div>
         <button
           onClick={() => {
-            aah.changeMeet(match.id, place, Date.now() + mins * MIN);
+            aah.changeMeet(match.id, place, Date.now() + mins * MIN).catch((e) => toast.error(aahErrorText(e)));
             onClose();
           }}
           className="w-full h-12 rounded-2xl bg-[#1a1a1a] text-white font-bold"

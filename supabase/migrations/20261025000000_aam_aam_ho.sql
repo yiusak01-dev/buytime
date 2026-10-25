@@ -1,5 +1,5 @@
--- 啱啱好：即時配對資料表（草稿，正式執行前請喺 staging 測試）
--- 用法：Supabase Dashboard → SQL Editor → 貼上執行
+-- 啱啱好：即時配對資料表（已喺 2026-10-25 執行到正式資料庫）
+-- 執行次序：本檔 → 20261025010000 → 20261025020000 → 20261025030000
 -- 設計原則：
 --   * 用戶只可以改自己嘅暱稱同設定；積分、停用、配對狀態只可以經 security definer function 改
 --   * 平台唔經手用戶之間嘅錢，所以冇任何付款資料表；只有置頂（$5）嘅購買紀錄
@@ -321,6 +321,7 @@ declare
   m aah_matches%rowtype;
   me_arrived timestamptz;
   them_arrived timestamptz;
+  v_ded int;
 begin
   select * into m from aah_matches where id = p_match for update;
   if m.status <> 'active' or now() < m.meet_at then raise exception 'too early'; end if;
@@ -331,9 +332,11 @@ begin
 
   insert into aah_reports (match_id, reporter_id, accused_id, kind) values (p_match, auth.uid(), p_accused, 'noshow');
   update aah_matches set status = 'noshow', ended_at = now() where id = p_match;
-  update aah_profiles set no_shows = no_shows + 1, banned_until = now() + interval '30 days', points = greatest(0, points - 50)
+  -- 最多扣 50 分（唔夠就扣到 0），紀錄實際扣咗幾多，申訴成功時還返
+  select least(50, points) into v_ded from aah_profiles where id = p_accused;
+  update aah_profiles set no_shows = no_shows + 1, banned_until = now() + interval '30 days', points = points - v_ded
     where id = p_accused;
-  insert into aah_point_ledger (user_id, match_id, pts, reason) values (p_accused, p_match, -50, 'noshow');
+  insert into aah_point_ledger (user_id, match_id, pts, reason) values (p_accused, p_match, -v_ded, 'noshow');
 end $$;
 
 grant execute on function public.aah_accept_interest(uuid, int) to authenticated;

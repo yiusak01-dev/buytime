@@ -3,10 +3,13 @@ import type { AahMall, Interest, Match, Message, Outfit, Post, User } from "./ty
 import { SCENARIOS } from "./scenarios";
 import { quoteParkingReceipt } from "./pricing";
 import { POINTS, canEarnPoints } from "./points";
+import { createRemote, detectRemote, type LocalPrefs, type Remote, type RemoteSettings } from "./remote";
 
 /**
- * 示範版本：所有 post、配對、傾偈都存喺呢部電話（localStorage）。
- * 正式版會換成 Supabase（見 supabase/migrations 嘅 SQL），介面保持一樣。
+ * 兩個模式：
+ *  - 雲端（remote）：Supabase 嘅 aah_* 資料表已經開咗，post 同配對大家都睇到
+ *  - 示範（local）：資料表未開，所有嘢存喺呢部電話（localStorage），有示範 post
+ * 開 app 時自動偵測。畫面只用 `aah` 嘅 async action，唔使理係邊個模式。
  */
 
 const KEY = "aah:v1";
@@ -69,7 +72,7 @@ let state: State = load();
 let listeners: Array<() => void> = [];
 
 function persist() {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || mode === "remote") return;
   try {
     window.localStorage.setItem(KEY, JSON.stringify(state));
   } catch {
@@ -131,7 +134,7 @@ function demoPerson(id: string) {
 
 /* ---------------- Actions ---------------- */
 
-export const aah = {
+const local = {
   get: () => state,
   subscribe(fn: () => void) {
     listeners.push(fn);
@@ -230,7 +233,7 @@ export const aah = {
     }
     const fresh = state.posts.find((x) => x.id === postId)!;
     if (fresh.autoAccept && !existing) {
-      return aah.acceptInterest(postId, me.id);
+      return local.acceptInterest(postId, me.id);
     }
     // 示範：其他用戶嘅 post，賣家一陣就會覆
     if (fresh.demo && !existing) {
@@ -243,7 +246,7 @@ export const aah = {
             i.userId === me.id ? { ...i, messages: [...i.messages, { from: x.authorId, text: offer != null ? `OK，$${offer} 得` : SCENARIOS[x.scenario].id === "groupbuy" ? "好呀，一齊夾" : "仲喺度，嚟啦", at: Date.now() }] } : i,
           ),
         }));
-        aah.acceptInterest(postId, me.id, offer);
+        local.acceptInterest(postId, me.id, offer);
       }, 1800);
     }
     return undefined;
@@ -378,7 +381,7 @@ export const aah = {
       messages: [...m.messages, { id: uid("msg"), from: userId, text: "我到咗", at: Date.now() }, ...(userId === state.user.id ? [] : [sysMsg(`${name} 已經到咗`)])],
     }));
     const m = state.matches.find((x) => x.id === matchId)!;
-    if (m.participants.every((p) => m.arrived[p.userId])) aah.completeMatch(matchId);
+    if (m.participants.every((p) => m.arrived[p.userId])) local.completeMatch(matchId);
   },
 
   completeMatch(matchId: string) {
@@ -481,19 +484,276 @@ export const aah = {
       status: "pending",
     };
     patchPost(postId, (x) => ({ ...x, interests: [...x.interests, it], viewCount: x.viewCount + 1 }));
-    if (p.autoAccept) aah.acceptInterest(postId, person.id);
+    if (p.autoAccept) local.acceptInterest(postId, person.id);
   },
 
   demoPartnerArrives(matchId: string) {
     const m = state.matches.find((x) => x.id === matchId);
     if (!m) return;
-    for (const p of m.participants) if (p.userId !== state.user.id && !m.arrived[p.userId]) aah.arrive(matchId, p.userId);
+    for (const p of m.participants) if (p.userId !== state.user.id && !m.arrived[p.userId]) local.arrive(matchId, p.userId);
   },
 
   demoPartnerReportsMe(matchId: string) {
-    aah.reportNoShow(matchId, state.user.id);
+    local.reportNoShow(matchId, state.user.id);
   },
 };
+
+
+/* ================= 模式切換 ================= */
+
+export type AahMode = "detecting" | "local" | "remote";
+let mode: AahMode = "detecting";
+let settings: RemoteSettings = { allowTestLocation: true, enforceGps: false, freePinTrial: true };
+let remote: Remote | null = null;
+let modeListeners: Array<() => void> = [];
+const PREFS_KEY = "aah:prefs";
+const baseUser: User = { ...freshUser(), id: state.user.id };
+
+function loadPrefs(): LocalPrefs {
+  const fromState: LocalPrefs = {
+    onboarded: state.user.onboarded,
+    testMallId: state.user.testMallId ?? null,
+    arrivalShown: state.user.arrivalShown ?? {},
+    outfitToday: state.user.outfitToday,
+    matchFlags: {},
+  };
+  if (typeof window === "undefined") return fromState;
+  try {
+    const raw = window.localStorage.getItem(PREFS_KEY);
+    if (raw) return { ...fromState, ...JSON.parse(raw) };
+  } catch {
+    /* 用返預設 */
+  }
+  return fromState;
+}
+let prefs: LocalPrefs = loadPrefs();
+
+function savePrefs(patch: Partial<LocalPrefs>) {
+  prefs = { ...prefs, ...patch };
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+    } catch {
+      /* 寫唔到照用記憶體 */
+    }
+  }
+}
+
+function setMode(m: AahMode) {
+  mode = m;
+  modeListeners.forEach((l) => l());
+}
+
+async function init() {
+  const s = await detectRemote();
+  if (!s) {
+    setMode("local");
+    return;
+  }
+  settings = s;
+  prefs = loadPrefs();
+  remote = createRemote({
+    get: () => state,
+    set: (next) => {
+      state = next;
+      listeners.forEach((l) => l());
+    },
+    prefs: () => prefs,
+    baseUser: () => baseUser,
+  });
+  // 先清走示範資料，再由雲端載入
+  state = { user: { ...baseUser, ...prefsUser(), registered: false }, posts: [], matches: [] };
+  setMode("remote");
+  listeners.forEach((l) => l());
+  await remote.start();
+}
+
+function prefsUser(): Partial<User> {
+  return { onboarded: prefs.onboarded, testMallId: prefs.testMallId, arrivalShown: prefs.arrivalShown, outfitToday: prefs.outfitToday };
+}
+
+function patchUserLocal(patch: Partial<User>) {
+  state = { ...state, user: { ...state.user, ...patch } };
+  listeners.forEach((l) => l());
+}
+
+if (typeof window !== "undefined") setTimeout(() => void init(), 0);
+
+export function getMode() {
+  return mode;
+}
+export function getSettings() {
+  return settings;
+}
+export function useAahMode() {
+  return useSyncExternalStore(
+    (fn) => {
+      modeListeners.push(fn);
+      return () => {
+        modeListeners = modeListeners.filter((l) => l !== fn);
+      };
+    },
+    () => mode,
+    () => mode,
+  );
+}
+
+const PREF_KEYS = ["onboarded", "testMallId", "arrivalShown", "outfitToday"] as const;
+const R = () => remote!;
+const isRemote = () => mode === "remote" && !!remote;
+
+/** 畫面用嘅 action（兩個模式一樣） */
+export const aah = {
+  get: () => state,
+  subscribe: (fn: () => void) => local.subscribe(fn),
+
+  updateUser(patch: Partial<User>) {
+    if (!isRemote()) return local.updateUser(patch);
+    const prefPatch: Partial<LocalPrefs> = {};
+    for (const k of PREF_KEYS) if (k in patch) (prefPatch as any)[k] = (patch as any)[k];
+    if (Object.keys(prefPatch).length) savePrefs(prefPatch);
+    patchUserLocal(patch);
+    void R().updateProfile(patch).catch((e) => console.warn("[aah] updateProfile", e));
+  },
+
+  /** 註冊第一步：雲端用 Supabase 電話驗證；示範版任何驗證碼都得 */
+  async startPhoneAuth(phone: string): Promise<"otp" | "session" | "anon" | "demo"> {
+    if (!isRemote()) return "demo";
+    return R().startPhoneAuth(phone);
+  },
+  async verifyOtp(phone: string, code: string) {
+    if (isRemote()) await R().verifyOtp(phone, code);
+  },
+  async completeRegistration(phone: string, nickname: string) {
+    if (!isRemote()) return local.register(phone, nickname);
+    await R().completeRegistration(phone, nickname);
+  },
+
+  resetDemo() {
+    if (!isRemote()) return local.resetDemo();
+    savePrefs({ arrivalShown: {}, matchFlags: {}, outfitToday: undefined });
+    patchUserLocal({ arrivalShown: {}, outfitToday: undefined });
+  },
+
+  ensureDemoPosts(mall: AahMall) {
+    if (!isRemote() && mode === "local") local.ensureDemoPosts(mall);
+  },
+  setFeedMalls(ids: string[]) {
+    if (isRemote()) R().setFeedMalls(ids);
+  },
+  touchPresence(mallId: string) {
+    if (isRemote()) void R().touchPresence(mallId).catch(() => {});
+  },
+
+  async createPost(input: Parameters<typeof local.createPost>[0]): Promise<Post> {
+    return isRemote() ? R().createPost(input) : local.createPost(input);
+  },
+  viewPost(id: string) {
+    if (isRemote()) void R().viewPost(id).catch(() => {});
+    else local.viewPost(id);
+  },
+  async cancelPost(id: string) {
+    return isRemote() ? R().cancelPost(id) : local.cancelPost(id);
+  },
+  async extendPost(id: string, minutes: number) {
+    return isRemote() ? R().extendPost(id, minutes) : local.extendPost(id, minutes);
+  },
+  async expirePost(id: string) {
+    return isRemote() ? R().expirePost(id) : local.expirePost(id);
+  },
+  async pinPost(id: string, opts: { useCredit: boolean; extraPushed: number }) {
+    return isRemote() ? R().pinPost(id, opts.useCredit) : local.pinPost(id, opts);
+  },
+
+  async expressInterest(postId: string, text: string, offer?: number): Promise<string | undefined> {
+    return isRemote() ? R().expressInterest(postId, text, offer) : local.expressInterest(postId, text, offer);
+  },
+  async acceptInterest(postId: string, userId: string, price?: number): Promise<string | undefined> {
+    return isRemote() ? R().acceptInterest(postId, userId, price) : local.acceptInterest(postId, userId, price);
+  },
+  async declineInterest(postId: string, userId: string) {
+    return isRemote() ? R().declineInterest(postId, userId) : local.declineInterest(postId, userId);
+  },
+
+  async confirmMeet(matchId: string) {
+    return isRemote() ? R().confirmMeet(matchId) : local.confirmMeet(matchId);
+  },
+  async changeMeet(matchId: string, place: string, at: number) {
+    return isRemote() ? R().changeMeet(matchId, place, at) : local.changeMeet(matchId, place, at);
+  },
+  async sendMessage(matchId: string, text: string) {
+    return isRemote() ? R().sendMessage(matchId, text) : local.sendMessage(matchId, text);
+  },
+  async setOutfitToday(outfit: Outfit, matchId?: string) {
+    if (!isRemote()) return local.setOutfitToday(outfit, matchId);
+    const outfitToday = { date: todayKey(), outfit };
+    savePrefs({ outfitToday });
+    patchUserLocal({ outfitToday });
+    if (matchId) await R().setOutfit(matchId, outfit);
+  },
+
+  /** 我到咗（或者確認對方到咗）。回傳 completed = 全部人到齊、已完成 */
+  async arrive(matchId: string, opts: { userId?: string; coords?: { lat: number; lng: number } } = {}): Promise<"completed" | "waiting"> {
+    const me = state.user.id;
+    if (isRemote()) {
+      return opts.userId && opts.userId !== me ? R().confirmPartnerMet(matchId, opts.userId) : R().arrive(matchId, opts.coords);
+    }
+    local.arrive(matchId, opts.userId ?? me);
+    return state.matches.find((m) => m.id === matchId)?.status === "completed" ? "completed" : "waiting";
+  },
+  async cancelMatch(matchId: string, reason: string) {
+    return isRemote() ? R().cancelMatch(matchId, reason) : local.cancelMatch(matchId, reason);
+  },
+  async reportNoShow(matchId: string, accusedId: string) {
+    return isRemote() ? R().reportNoShow(matchId, accusedId) : local.reportNoShow(matchId, accusedId);
+  },
+  async report(matchId: string, accusedId: string, kind: string, note: string) {
+    if (isRemote()) {
+      await R().report(matchId, accusedId, kind, note);
+      await R().cancelMatch(matchId, "（已舉報並封鎖）").catch(() => {});
+      return;
+    }
+    local.cancelMatch(matchId, "（已舉報並封鎖）");
+  },
+  async rateMatch(matchId: string, rating: "up" | "down") {
+    return isRemote() ? R().rateMatch(matchId, rating) : local.rateMatch(matchId, rating);
+  },
+  markRatePrompt(matchId: string) {
+    if (!isRemote()) return local.markRatePrompt(matchId);
+    savePrefs({ matchFlags: { ...prefs.matchFlags, [matchId]: { ...prefs.matchFlags[matchId], ratePromptShown: true } } });
+    state = { ...state, matches: state.matches.map((m) => (m.id === matchId ? { ...m, ratePromptShown: true } : m)) };
+    listeners.forEach((l) => l());
+  },
+  markAskedArrival(matchId: string) {
+    if (!isRemote()) return local.markAskedArrival(matchId);
+    savePrefs({ matchFlags: { ...prefs.matchFlags, [matchId]: { ...prefs.matchFlags[matchId], askedArrival: true } } });
+  },
+
+  async submitAppeal(text: string) {
+    return isRemote() ? R().submitAppeal(text) : local.submitAppeal(text);
+  },
+  async redeemPin() {
+    if (isRemote()) return R().redeemPin();
+    if (!local.redeemPin()) throw new Error("not enough points");
+  },
+  async requestVoucher() {
+    if (isRemote()) return R().requestVoucher();
+    if (!local.requestVoucher()) throw new Error("not enough points");
+  },
+  markArrivalShown(mallId: string) {
+    if (!isRemote()) return local.markArrivalShown(mallId);
+    const arrivalShown = { ...prefs.arrivalShown, [`${mallId}|${todayKey()}`]: true as const };
+    savePrefs({ arrivalShown });
+    patchUserLocal({ arrivalShown });
+  },
+
+  // 示範控制（只喺示範模式）
+  demoSomeoneInterested: (postId: string) => local.demoSomeoneInterested(postId),
+  demoPartnerArrives: (matchId: string) => local.demoPartnerArrives(matchId),
+  demoPartnerReportsMe: (matchId: string) => local.demoPartnerReportsMe(matchId),
+};
+
+export { aahErrorText } from "./remote";
 
 /** 回傳成個 state（參照穩定）；要篩選就喺 component 用 useMemo */
 export function useAahState() {

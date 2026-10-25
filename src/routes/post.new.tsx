@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { AppLayout } from "@/components/AppLayout";
 import { Chip, Section, DemoBadge } from "@/components/aah/ui";
 import { RegisterSheet } from "@/components/aah/RegisterSheet";
-import { aah, useAahState, isBanned, dailyDiningCount, DINING_POSTS_PER_DAY } from "@/lib/aah/store";
+import { aah, aahErrorText, getSettings, useAahState, isBanned, dailyDiningCount, DINING_POSTS_PER_DAY } from "@/lib/aah/store";
 import { useAahMalls, demoAudience } from "@/lib/aah/malls";
 import { useCurrentMall, fmtClock, useNow } from "@/lib/aah/geo";
 import { SCENARIOS, SCENARIO_LIST, GROUPBUY_DEALS, PAY_METHODS, DIRECTION_LABEL } from "@/lib/aah/scenarios";
@@ -42,6 +42,7 @@ function NewPost() {
   const [autoAccept, setAutoAccept] = useState(false);
   const [needCount, setNeedCount] = useState(1);
   const [regOpen, setRegOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [ocrBusy, setOcrBusy] = useState(false);
   const [ocrNote, setOcrNote] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -107,8 +108,8 @@ function NewPost() {
     return null;
   }, [s, shop, fields, direction, priceNum, pay, leaveAt]);
 
-  function submit() {
-    if (!s || !scenario || missing || !leaveAt) return;
+  async function submit() {
+    if (!s || !scenario || missing || !leaveAt || submitting) return;
     const me = aah.get().user;
     if (isBanned(me)) {
       toast.error("你嘅帳戶停用緊，暫時唔可以出 post", { description: "可以喺「我的配對」申訴" });
@@ -118,7 +119,7 @@ function NewPost() {
       setRegOpen(true);
       return;
     }
-    if (!mall) {
+    if (!mall || (!current.verified && !getSettings().allowTestLocation)) {
       toast.error("要喺商場先可以出 post", { description: "GPS 搵唔到你喺任何商場範圍" });
       return;
     }
@@ -135,7 +136,9 @@ function NewPost() {
     }
     if (scenario === "parking" && direction === "have" && suggestion?.hours) f.hours = suggestion.hours;
 
-    const post = aah.createPost({
+    setSubmitting(true);
+    try {
+    const post = await aah.createPost({
       scenario,
       direction,
       mallId: mall.id,
@@ -152,6 +155,11 @@ function NewPost() {
     });
     toast.success("已經發佈！");
     navigate({ to: "/post/$postId", params: { postId: post.id }, replace: true });
+    } catch (e) {
+      toast.error(aahErrorText(e));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function onPhoto(file: File | undefined) {
@@ -394,10 +402,10 @@ function NewPost() {
           <div className="max-w-lg mx-auto px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 bg-gradient-to-t from-background via-background to-transparent">
             <button
               onClick={submit}
-              disabled={!!missing}
+              disabled={!!missing || submitting}
               className="w-full h-14 rounded-2xl bg-[#F5C518] text-[#1a1a1a] font-black text-base shadow-lg disabled:opacity-50"
             >
-              {missing ? `仲要${missing}` : `發佈${s ? `・${s.label}${direction !== "join" ? DIRECTION_LABEL[direction] : ""}` : ""}`}
+              {submitting ? "發佈緊…" : missing ? `仲要${missing}` : `發佈${s ? `・${s.label}${direction !== "join" ? DIRECTION_LABEL[direction] : ""}` : ""}`}
             </button>
           </div>
         </div>
@@ -409,7 +417,7 @@ function NewPost() {
         reason="出 post 要先註冊，註冊完會自動幫你發佈。"
         onDone={() => {
           setRegOpen(false);
-          setTimeout(submit, 0);
+          setTimeout(() => void submit(), 0);
         }}
       />
     </AppLayout>

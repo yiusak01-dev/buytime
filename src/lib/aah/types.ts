@@ -10,6 +10,8 @@ export type PayMethod = "cash" | "payme" | "fps" | "octopus" | "alipay" | "wecha
 export type PostStatus = "open" | "matched" | "expired" | "cancelled";
 
 export type Interest = {
+  /** 雲端模式嘅 interest id */
+  id?: string;
   userId: string;
   name: string;
   at: number;

@@ -6,7 +6,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { PostCard } from "@/components/aah/PostCard";
 import { Chip, DemoBadge } from "@/components/aah/ui";
 import { MallPicker } from "@/components/aah/MallPicker";
-import { aah, useAahState, MAX_PINNED_PER_MALL } from "@/lib/aah/store";
+import { aah, useAahMode, useAahState, MAX_PINNED_PER_MALL } from "@/lib/aah/store";
 import { useAahMalls, nearbyMalls, distanceM } from "@/lib/aah/malls";
 import { useCurrentMall, useGeo, useNow } from "@/lib/aah/geo";
 import { SCENARIOS, SCENARIO_LIST } from "@/lib/aah/scenarios";
@@ -46,9 +46,10 @@ function Home() {
 
   const mall = current.mall;
 
+  const mode = useAahMode();
   useEffect(() => {
     if (mall) aah.ensureDemoPosts(mall);
-  }, [mall?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mall?.id, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const mallById = useMemo(() => new Map(malls.map((m) => [m.id, m])), [malls]);
 
@@ -117,10 +118,18 @@ function Home() {
       </header>
 
       <div className="px-4 pt-4 space-y-4">
-        <div className="flex items-center gap-2 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-          <DemoBadge />
-          <span>示範模式：post 同配對只存喺呢部電話，其他人睇唔到。{isSample ? "商場資料係示範數字。" : ""}</span>
-        </div>
+        {mode === "local" && (
+          <div className="flex items-center gap-2 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+            <DemoBadge />
+            <span>示範模式：post 同配對只存喺呢部電話，其他人睇唔到。{isSample ? "商場資料係示範數字。" : ""}</span>
+          </div>
+        )}
+        {mode === "remote" && isSample && (
+          <div className="flex items-center gap-2 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+            <DemoBadge />
+            <span>讀唔到商場資料，暫時用緊示範商場。</span>
+          </div>
+        )}
 
         {mall && (
           <div className="flex items-end justify-between">

@@ -8,7 +8,7 @@ create or replace function public.aah_is_admin() returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (
     select 1 from public.user_roles
-    where user_id = auth.uid() and role::text in ('admin', 'super_admin')
+    where user_id::text = auth.uid()::text and role::text in ('admin', 'super_admin')
   );
 $$;
 
@@ -40,8 +40,7 @@ create policy aah_admin_read_appeals on public.aah_appeals for select using (pub
 create policy aah_admin_read_vouchers on public.aah_voucher_requests for select using (public.aah_is_admin());
 
 -- 申訴改為經 function 提交（檢查 48 小時期限），唔俾直接寫
-drop policy if exists aah_appeals_own on public.aah_appeals;
-create policy aah_appeals_select_own on public.aah_appeals for select using (user_id = auth.uid());
+alter policy aah_appeals_own on public.aah_appeals using (user_id = auth.uid()) with check (false);
 
 create or replace function public.aah_submit_appeal(p_text text)
 returns uuid language plpgsql security definer set search_path = public as $$
@@ -60,11 +59,12 @@ begin
 end $$;
 
 -- ============ 處理申訴 ============
--- 撤銷：解除停用、冇出現次數減一、還返扣咗嘅 50 分；維持：舉報成立
+-- 撤銷：解除停用、冇出現次數減一、還返實際扣咗嘅分；維持：舉報成立
 create or replace function public.aah_admin_decide_appeal(p_appeal uuid, p_approve boolean, p_note text default null)
 returns void language plpgsql security definer set search_path = public as $$
 declare
   a aah_appeals%rowtype;
+  v_restore int;
 begin
   if not public.aah_is_admin() then raise exception 'not admin'; end if;
   select * into a from aah_appeals where id = p_appeal for update;
@@ -73,8 +73,11 @@ begin
   if p_approve then
     update aah_appeals set status = 'approved' where id = a.id;
     update aah_reports set status = 'dismissed' where id = a.report_id;
-    update aah_profiles set banned_until = null, no_shows = greatest(0, no_shows - 1), points = points + 50 where id = a.user_id;
-    insert into aah_point_ledger (user_id, pts, reason) values (a.user_id, 50, 'appeal_restore');
+    select coalesce(-l.pts, 0) into v_restore from aah_point_ledger l join aah_reports r on r.match_id = l.match_id
+      where r.id = a.report_id and l.user_id = a.user_id and l.reason = 'noshow' order by l.created_at desc limit 1;
+    v_restore := coalesce(v_restore, 0);
+    update aah_profiles set banned_until = null, no_shows = greatest(0, no_shows - 1), points = points + v_restore where id = a.user_id;
+    insert into aah_point_ledger (user_id, pts, reason) values (a.user_id, v_restore, 'appeal_restore');
   else
     update aah_appeals set status = 'rejected' where id = a.id;
     update aah_reports set status = 'upheld' where id = a.report_id;

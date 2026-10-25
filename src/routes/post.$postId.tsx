@@ -8,6 +8,9 @@ import { RegisterSheet } from "@/components/aah/RegisterSheet";
 import { postSaving, priceLabel } from "@/components/aah/PostCard";
 import {
   aah,
+  aahErrorText,
+  getSettings,
+  useAahMode,
   useAahState,
   isBanned,
   pinnedCountInMall,
@@ -136,7 +139,19 @@ function PostDetailView({ post }: { post: Post }) {
       setRegOpen(true);
       return;
     }
-    aah.expressInterest(post.id, text, off);
+    void doExpress(text, off);
+  }
+
+  async function doExpress(text: string, off?: number) {
+    try {
+      const matchId = await aah.expressInterest(post.id, text, off);
+      if (matchId) {
+        toast.success("配對成功！");
+        navigate({ to: "/match/$matchId", params: { matchId } });
+      }
+    } catch (e) {
+      toast.error(aahErrorText(e));
+    }
   }
 
   const parkingCalc = useMemo(() => {
@@ -235,7 +250,7 @@ function PostDetailView({ post }: { post: Post }) {
         reason="接 post 同傾偈要先註冊。"
         onDone={() => {
           setRegOpen(false);
-          if (pending) aah.expressInterest(post.id, pending.text, pending.offer);
+          if (pending) void doExpress(pending.text, pending.offer);
           setPending(null);
         }}
       />
@@ -263,6 +278,25 @@ function MyPostView({ post }: { post: Post }) {
   }, [post.status, post.matchId, navigate]);
 
   const joined = post.scenario === "groupbuy" && post.matchId ? post.interests.filter((i) => i.status === "accepted").length : 0;
+  const mode = useAahMode();
+
+  async function act(p: Promise<unknown>, ok?: string) {
+    try {
+      await p;
+      if (ok) toast(ok);
+    } catch (e) {
+      toast.error(aahErrorText(e));
+    }
+  }
+
+  async function accept(userId: string, price?: number) {
+    try {
+      const matchId = await aah.acceptInterest(post.id, userId, price);
+      if (matchId && post.scenario !== "groupbuy") navigate({ to: "/match/$matchId", params: { matchId } });
+    } catch (e) {
+      toast.error(aahErrorText(e));
+    }
+  }
 
   return (
     <AppLayout hideNav>
@@ -277,7 +311,7 @@ function MyPostView({ post }: { post: Post }) {
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div className="bg-white/10 rounded-xl p-3">
-                <div className="flex items-center gap-1 opacity-70 text-xs"><Send className="w-3.5 h-3.5" />已推送</div>
+                <div className="flex items-center gap-1 opacity-70 text-xs"><Send className="w-3.5 h-3.5" />{mode === "remote" ? "附近用戶" : "已推送"}</div>
                 <div className="text-xl font-black">{post.pushedCount} 人</div>
               </div>
               <div className="bg-white/10 rounded-xl p-3">
@@ -285,7 +319,11 @@ function MyPostView({ post }: { post: Post }) {
                 <div className="text-xl font-black">{post.viewCount} 人</div>
               </div>
             </div>
-            <div className="text-[11px] opacity-70 flex items-center gap-1.5"><DemoBadge /> 示範數字；正式版顯示真實推送人數。</div>
+            {mode === "remote" ? (
+              <div className="text-[11px] opacity-70">而家喺 {post.mallName}、有訂閱呢類着數嘅用戶。推送通知未接駁，佢哋開 app 就會見到。</div>
+            ) : (
+              <div className="text-[11px] opacity-70 flex items-center gap-1.5"><DemoBadge /> 示範數字；正式版顯示真實推送人數。</div>
+            )}
             {pinned && <div className="text-xs bg-[#F5C518] text-[#1a1a1a] rounded-lg px-2 py-1 font-bold inline-block">置頂中・仲有 {Math.max(1, Math.round(((post.pinnedUntil ?? 0) - now) / 60000))} 分鐘</div>}
             {post.scenario === "groupbuy" && <div className="text-sm">已經有 {joined} 人加入，仲要 {Math.max(0, (post.needCount ?? 1) - joined)} 人</div>}
             {post.scenario === "groupbuy" && post.matchId && (
@@ -299,8 +337,8 @@ function MyPostView({ post }: { post: Post }) {
             <div className="font-black text-lg">{post.status === "expired" ? "已經過咗預計時間" : post.status === "cancelled" ? "已經取消" : "已經配對"}</div>
             {post.status === "expired" && (
               <div className="flex gap-2">
-                <button onClick={() => aah.extendPost(post.id, 15)} className="flex-1 h-11 rounded-2xl bg-[#1a1a1a] text-white font-bold">延長 15 分鐘</button>
-                <button onClick={() => aah.extendPost(post.id, 30)} className="flex-1 h-11 rounded-2xl border border-border font-bold">延長 30 分鐘</button>
+                <button onClick={() => act(aah.extendPost(post.id, 15))} className="flex-1 h-11 rounded-2xl bg-[#1a1a1a] text-white font-bold">延長 15 分鐘</button>
+                <button onClick={() => act(aah.extendPost(post.id, 30))} className="flex-1 h-11 rounded-2xl border border-border font-bold">延長 30 分鐘</button>
               </div>
             )}
             {post.matchId && (
@@ -314,7 +352,7 @@ function MyPostView({ post }: { post: Post }) {
         {showPinPrompt && (
           <div className="bg-[#FFF6D6] border border-[#F5C518] rounded-2xl p-4 space-y-2">
             <div className="font-bold">15 分鐘都未有人理</div>
-            <div className="text-sm">置頂 15 分鐘，同時推送俾{s.pushNearby ? "附近商場嘅人" : `${post.mallName} 所有人`}？</div>
+            <div className="text-sm">置頂 15 分鐘{mode === "remote" ? (s.pushNearby ? "，同時喺附近商場嘅 feed 顯示" : "") : `，同時推送俾${s.pushNearby ? "附近商場嘅人" : `${post.mallName} 所有人`}`}？</div>
             <button onClick={() => setPinOpen(true)} className="h-11 px-4 rounded-2xl bg-[#1a1a1a] text-white font-bold">$5 置頂 15 分鐘</button>
           </div>
         )}
@@ -343,15 +381,15 @@ function MyPostView({ post }: { post: Post }) {
                     ))}
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <button onClick={() => aah.acceptInterest(post.id, it.userId, post.price ?? undefined)} className="h-10 px-3 rounded-full bg-[#1a1a1a] text-white text-sm font-bold">
+                    <button onClick={() => accept(it.userId, post.price ?? undefined)} className="h-10 px-3 rounded-full bg-[#1a1a1a] text-white text-sm font-bold">
                       {post.scenario === "groupbuy" ? "好呀，一齊夾" : "仲喺度，嚟啦"}
                     </button>
                     {it.offer != null && it.offer !== post.price && (
-                      <button onClick={() => aah.acceptInterest(post.id, it.userId, it.offer)} className="h-10 px-3 rounded-full bg-[#F5C518] text-[#1a1a1a] text-sm font-bold">
+                      <button onClick={() => accept(it.userId, it.offer)} className="h-10 px-3 rounded-full bg-[#F5C518] text-[#1a1a1a] text-sm font-bold">
                         OK，${it.offer} 得
                       </button>
                     )}
-                    <button onClick={() => aah.declineInterest(post.id, it.userId)} className="h-10 px-3 rounded-full border border-border text-sm font-semibold">
+                    <button onClick={() => act(aah.declineInterest(post.id, it.userId))} className="h-10 px-3 rounded-full border border-border text-sm font-semibold">
                       唔好意思，已經俾咗人
                     </button>
                   </div>
@@ -366,15 +404,15 @@ function MyPostView({ post }: { post: Post }) {
             <button onClick={() => setPinOpen(true)} className="w-full h-12 rounded-2xl border border-border bg-card font-bold inline-flex items-center justify-center gap-2">
               <Pin className="w-4 h-4" /> {pinned ? "再置頂 15 分鐘" : "置頂 15 分鐘"}
             </button>
-            <button onClick={() => { aah.cancelPost(post.id); toast("已取消 post"); }} className="w-full h-11 rounded-2xl text-sm text-destructive font-semibold">
+            <button onClick={() => act(aah.cancelPost(post.id), "已取消 post")} className="w-full h-11 rounded-2xl text-sm text-destructive font-semibold">
               取消呢個 post
             </button>
-            <details className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 text-sm">
+            {mode === "local" && <details className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 text-sm">
               <summary className="font-semibold text-amber-900">示範控制</summary>
               <div className="pt-3 space-y-2">
                 <button onClick={() => aah.demoSomeoneInterested(post.id)} className="w-full h-10 rounded-xl bg-white border border-amber-300 font-semibold">模擬有人有興趣</button>
               </div>
-            </details>
+            </details>}
           </div>
         )}
       </div>
@@ -416,10 +454,23 @@ function PinSheet({
   const effective = Math.min(PIN_MINUTES, leftMin);
   const extra = s.pushNearby ? nearbyAudience : Math.round(mallAudience * 0.5);
 
-  function doPin(useCredit: boolean) {
-    aah.pinPost(post.id, { useCredit, extraPushed: extra });
-    toast.success(`已置頂 ${effective} 分鐘`, { description: s.pushNearby && nearbyNames.length ? `同時推送俾 ${nearbyNames.slice(0, 3).join("、")}` : `同時推送俾 ${mallName} 所有人` });
-    onClose();
+  const mode = useAahMode();
+  const [busy, setBusy] = useState(false);
+  async function doPin(useCredit: boolean) {
+    setBusy(true);
+    try {
+      await aah.pinPost(post.id, { useCredit, extraPushed: extra });
+      toast.success(`已置頂 ${effective} 分鐘`, {
+        description: mode === "remote"
+          ? s.pushNearby && nearbyNames.length ? `同時喺 ${nearbyNames.slice(0, 3).join("、")} 嘅 feed 顯示` : undefined
+          : s.pushNearby && nearbyNames.length ? `同時推送俾 ${nearbyNames.slice(0, 3).join("、")}` : `同時推送俾 ${mallName} 所有人`,
+      });
+      onClose();
+    } catch (e) {
+      toast.error(aahErrorText(e));
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -428,7 +479,11 @@ function PinSheet({
         <ul className="text-sm space-y-2">
           <li>📌 喺 feed 最頂顯示 15 分鐘，加「急」字標籤</li>
           <li>
-            📣 {s.pushNearby
+            📣 {mode === "remote" ? (s.pushNearby
+              ? nearbyNames.length
+                ? `同時喺附近商場（${nearbyNames.slice(0, 3).join("、")}）嘅 feed 顯示`
+                : "附近冇其他商場，只喺本商場顯示"
+              : "泊車收據只喺本商場用得，所以只喺本商場顯示") : s.pushNearby
               ? nearbyNames.length
                 ? `同時推送俾 ${mallName} 同附近商場（${nearbyNames.slice(0, 3).join("、")}）`
                 : `同時推送俾 ${mallName} 所有人（附近冇其他商場）`
@@ -446,11 +501,11 @@ function PinSheet({
                 用 1 次積分置頂（你有 {pinCredits} 次）
               </button>
             )}
-            <button onClick={() => doPin(false)} className="w-full h-12 rounded-2xl bg-[#1a1a1a] text-white font-black">
+            <button disabled={busy} onClick={() => doPin(false)} className="w-full h-12 rounded-2xl bg-[#1a1a1a] text-white font-black disabled:opacity-50">
               $5 置頂 15 分鐘
             </button>
             <p className="text-[11px] text-muted-foreground flex items-start gap-1.5">
-              <DemoBadge /> 示範版唔會真係收錢。正式版用 Google Play／App Store 付款。
+              <DemoBadge /> {mode === "remote" && getSettings().freePinTrial ? "試用期置頂唔收錢。" : "示範版唔會真係收錢。"}正式版用 Google Play／App Store 付款。
             </p>
           </>
         )}

@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { aah, useAahState, LEAVE_GRACE_MIN, PIN_PROMPT_AFTER_MIN } from "@/lib/aah/store";
-import { useAahMalls } from "@/lib/aah/malls";
+import { aah, useAahMode, useAahState, LEAVE_GRACE_MIN, PIN_PROMPT_AFTER_MIN } from "@/lib/aah/store";
+import { useAahMalls, nearbyMalls } from "@/lib/aah/malls";
 import { useAutoStartGeo, useCurrentMall, useGeo, useNow } from "@/lib/aah/geo";
 
 const MIN = 60000;
@@ -21,7 +21,18 @@ export function AahRuntime() {
   const current = useCurrentMall(malls);
   const now = useNow(15000);
 
+  const mode = useAahMode();
   const toasted = useRef<Set<string>>(new Set());
+
+  // 雲端模式：feed 讀本商場同附近商場；記錄「附近用戶」人數（唔儲存確實位置）
+  useEffect(() => {
+    const m = current.mall;
+    if (!m) return;
+    aah.setFeedMalls([m.id, ...nearbyMalls(malls, m).map((x) => x.id)]);
+  }, [current.mall?.id, malls, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (current.mall && user.registered) aah.touchPresence(current.mall.id);
+  }, [current.mall?.id, user.registered, now, mode]); // eslint-disable-line react-hooks/exhaustive-deps
   const leftSince = useRef<number | null>(null);
   const leaveWarned = useRef(false);
 
@@ -42,20 +53,20 @@ export function AahRuntime() {
       action: { label: "睇吓", onClick: () => navigate({ to: "/" }) },
       duration: 8000,
     });
-  }, [current.mall?.id, user.onboarded, user.notifyOpportunities]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [current.mall?.id, user.onboarded, user.notifyOpportunities, posts, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 自己嘅 post：過咗預計離開時間 → 過期，問要唔要延長
   useEffect(() => {
     for (const p of posts) {
       if (p.authorId !== user.id || p.status !== "open") continue;
       if (p.leaveAt <= now) {
-        aah.expirePost(p.id);
+        void aah.expirePost(p.id).catch(() => {});
         const k = `exp:${p.id}:${p.leaveAt}`;
         if (!toasted.current.has(k)) {
           toasted.current.add(k);
           toast("你仲喺度？要唔要延長？", {
             description: `${p.shop} 個 post 已經過咗預計離開時間`,
-            action: { label: "延長 15 分鐘", onClick: () => aah.extendPost(p.id, 15) },
+            action: { label: "延長 15 分鐘", onClick: () => void aah.extendPost(p.id, 15).catch(() => {}) },
             duration: 15000,
           });
         }
@@ -112,7 +123,7 @@ export function AahRuntime() {
       });
     }
     if (away >= (LEAVE_GRACE_MIN + 2) * MIN) {
-      for (const p of mine) if (p.mallId !== current.mall?.id) aah.cancelPost(p.id);
+      for (const p of mine) if (p.mallId !== current.mall?.id) void aah.cancelPost(p.id).catch(() => {});
       toast("已自動取消你嘅 post", { description: "因為你已經離開咗商場" });
       leftSince.current = null;
       leaveWarned.current = false;
@@ -130,8 +141,8 @@ export function AahRuntime() {
       if (!left && !later) continue;
       aah.markRatePrompt(m.id);
       toast(`啱啱喺 ${m.mallName} ${m.scenario === "groupbuy" ? "夾單" : "交收"}順唔順利？`, {
-        action: { label: "👍", onClick: () => aah.rateMatch(m.id, "up") },
-        cancel: { label: "👎", onClick: () => aah.rateMatch(m.id, "down") },
+        action: { label: "👍", onClick: () => void aah.rateMatch(m.id, "up").catch(() => {}) },
+        cancel: { label: "👎", onClick: () => void aah.rateMatch(m.id, "down").catch(() => {}) },
         duration: 20000,
       });
     }

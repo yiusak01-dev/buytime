@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { aah } from "@/lib/aah/store";
+import { Loader2 } from "lucide-react";
+import { aah, aahErrorText } from "@/lib/aah/store";
 import { BottomSheet, DemoBadge } from "./ui";
 
 /**
  * 30 秒註冊：香港手機號碼 → 驗證碼 → 暱稱。
- * 示範版唔會真係發短訊；正式版接 Supabase 電話驗證（需要設定短訊供應商）。
+ * 雲端模式用 Supabase 電話驗證；Supabase 未設定短訊服務時，會用匿名登入（電話暫時未驗證）。
+ * 示範模式唔會發短訊，任何 6 位數字都得。
  */
 export function RegisterSheet({ open, onClose, onDone, reason }: { open: boolean; onClose: () => void; onDone: () => void; reason?: string }) {
   const [step, setStep] = useState<"phone" | "otp" | "name">("phone");
@@ -12,14 +14,29 @@ export function RegisterSheet({ open, onClose, onDone, reason }: { open: boolean
   const [otp, setOtp] = useState("");
   const [name, setName] = useState("");
   const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [authMode, setAuthMode] = useState<"otp" | "session" | "anon" | "demo">("demo");
 
   const phoneOk = /^[4-9]\d{7}$/.test(phone);
+  const full = `+852${phone}`;
 
   function close() {
     setStep("phone");
     setOtp("");
     setErr("");
     onClose();
+  }
+
+  async function run(fn: () => Promise<void>) {
+    setBusy(true);
+    setErr("");
+    try {
+      await fn();
+    } catch (e) {
+      setErr(aahErrorText(e));
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -46,11 +63,17 @@ export function RegisterSheet({ open, onClose, onDone, reason }: { open: boolean
             <p className="text-[11px] text-muted-foreground">一個號碼一個帳戶。對方唔會見到你個電話號碼。</p>
             {err && <p className="text-xs text-destructive">{err}</p>}
             <button
-              disabled={!phoneOk}
-              onClick={() => (phoneOk ? setStep("otp") : setErr("請輸入 8 位香港手機號碼"))}
-              className="w-full h-12 rounded-2xl bg-[#1a1a1a] text-white font-bold disabled:opacity-40"
+              disabled={!phoneOk || busy}
+              onClick={() =>
+                run(async () => {
+                  const m = await aah.startPhoneAuth(full);
+                  setAuthMode(m);
+                  setStep(m === "otp" || m === "demo" ? "otp" : "name");
+                })
+              }
+              className="w-full h-12 rounded-2xl bg-[#1a1a1a] text-white font-bold disabled:opacity-40 inline-flex items-center justify-center gap-2"
             >
-              發送驗證碼
+              {busy && <Loader2 className="w-4 h-4 animate-spin" />}發送驗證碼
             </button>
           </>
         )}
@@ -61,26 +84,41 @@ export function RegisterSheet({ open, onClose, onDone, reason }: { open: boolean
             <input
               inputMode="numeric"
               autoFocus
+              autoComplete="one-time-code"
               value={otp}
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
               placeholder="6 位數字"
               className="w-full h-12 border border-border rounded-2xl px-3 bg-background text-center text-xl tracking-[0.5em] outline-none"
             />
-            <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-              <DemoBadge /> 示範版唔會真係發短訊，輸入任何 6 位數字就得。
-            </p>
+            {authMode === "demo" && (
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                <DemoBadge /> 示範版唔會真係發短訊，輸入任何 6 位數字就得。
+              </p>
+            )}
+            {err && <p className="text-xs text-destructive">{err}</p>}
             <button
-              disabled={otp.length !== 6}
-              onClick={() => setStep("name")}
-              className="w-full h-12 rounded-2xl bg-[#1a1a1a] text-white font-bold disabled:opacity-40"
+              disabled={otp.length !== 6 || busy}
+              onClick={() =>
+                run(async () => {
+                  await aah.verifyOtp(full, otp);
+                  setStep("name");
+                })
+              }
+              className="w-full h-12 rounded-2xl bg-[#1a1a1a] text-white font-bold disabled:opacity-40 inline-flex items-center justify-center gap-2"
             >
-              確認
+              {busy && <Loader2 className="w-4 h-4 animate-spin" />}確認
             </button>
+            <button onClick={() => setStep("phone")} className="w-full text-xs text-muted-foreground underline">改電話號碼</button>
           </>
         )}
 
         {step === "name" && (
           <>
+            {authMode === "anon" && (
+              <p className="text-[11px] text-amber-800 bg-amber-50 rounded-xl px-3 py-2">
+                短訊驗證未開通，你嘅電話號碼暫時未驗證。開通之後會再請你驗證一次。
+              </p>
+            )}
             <label className="block">
               <span className="text-sm font-bold">改個暱稱</span>
               <input
@@ -91,17 +129,20 @@ export function RegisterSheet({ open, onClose, onDone, reason }: { open: boolean
                 className="mt-2 w-full h-12 border border-border rounded-2xl px-3 bg-background outline-none"
               />
             </label>
+            {err && <p className="text-xs text-destructive">{err}</p>}
             <button
-              disabled={!name.trim()}
-              onClick={() => {
-                aah.register(`+852${phone}`, name.trim());
-                setStep("phone");
-                setOtp("");
-                onDone();
-              }}
-              className="w-full h-12 rounded-2xl bg-[#F5C518] text-[#1a1a1a] font-bold disabled:opacity-40"
+              disabled={!name.trim() || busy}
+              onClick={() =>
+                run(async () => {
+                  await aah.completeRegistration(full, name.trim());
+                  setStep("phone");
+                  setOtp("");
+                  onDone();
+                })
+              }
+              className="w-full h-12 rounded-2xl bg-[#F5C518] text-[#1a1a1a] font-bold disabled:opacity-40 inline-flex items-center justify-center gap-2"
             >
-              完成，繼續
+              {busy && <Loader2 className="w-4 h-4 animate-spin" />}完成，繼續
             </button>
           </>
         )}

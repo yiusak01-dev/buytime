@@ -7,7 +7,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Chip, DemoBadge, ScenarioTag } from "@/components/aah/ui";
 import { RegisterSheet } from "@/components/aah/RegisterSheet";
 import { MallPicker } from "@/components/aah/MallPicker";
-import { aah, useAahState, isBanned, DAY, BAN_DAYS } from "@/lib/aah/store";
+import { aah, aahErrorText, getSettings, useAahMode, useAahState, isBanned, DAY, BAN_DAYS } from "@/lib/aah/store";
 import { POINTS, levelOf } from "@/lib/aah/points";
 import { useAahMalls } from "@/lib/aah/malls";
 import { useCurrentMall, useNow, fmtClock, fmtAgo } from "@/lib/aah/geo";
@@ -41,6 +41,7 @@ function MePage() {
   const canAppeal = banned && now - banStart < 2 * DAY && !user.appeal;
   const accountDays = user.registeredAt ? Math.floor((now - user.registeredAt) / DAY) : 0;
   const voucherPending = user.voucherRequests.filter((v) => v.status === "pending").length;
+  const mode = useAahMode();
 
   return (
     <AppLayout>
@@ -89,10 +90,12 @@ function MePage() {
                 />
                 <button
                   disabled={appealText.trim().length < 5}
-                  onClick={() => {
-                    aah.submitAppeal(appealText.trim());
-                    toast.success("已提交申訴");
-                  }}
+                  onClick={() =>
+                    aah.submitAppeal(appealText.trim()).then(
+                      () => toast.success("已提交申訴"),
+                      (e) => toast.error(aahErrorText(e)),
+                    )
+                  }
                   className="w-full h-11 rounded-2xl bg-red-700 text-white font-bold disabled:opacity-40"
                 >
                   提交申訴
@@ -155,7 +158,7 @@ function MePage() {
             完成交收儲分：有嘢俾人 {POINTS.giver} 分、接收 {POINTS.taker} 分、夾單每人 {POINTS.groupbuy} 分。同一對人一星期內唔重複計分，每日最多 {POINTS.dailyCap} 分。
           </div>
           <button
-            onClick={() => (aah.redeemPin() ? toast.success("換咗 1 次置頂") : toast.error(`要 ${POINTS.pinCost} 分先換到`))}
+            onClick={() => aah.redeemPin().then(() => toast.success("換咗 1 次置頂"), (e) => toast.error(aahErrorText(e)))}
             className="w-full rounded-2xl border border-border flex items-center gap-3 px-4 py-3 text-left"
           >
             <Pin className="w-5 h-5 shrink-0" />
@@ -168,8 +171,10 @@ function MePage() {
             onClick={() => {
               if (!user.registered) return setRegOpen(true);
               if (accountDays < POINTS.voucherMinAccountDays) return toast.error(`帳戶要用夠 ${POINTS.voucherMinAccountDays} 日先可以換禮券`, { description: `你已經用咗 ${accountDays} 日` });
-              if (aah.requestVoucher()) toast.success("已提交換領申請", { description: "人手審核後會用短訊通知你" });
-              else toast.error(`要 ${POINTS.voucherCost} 分先換到`);
+              aah.requestVoucher().then(
+                () => toast.success("已提交換領申請", { description: "人手審核後會用短訊通知你" }),
+                (e) => toast.error(aahErrorText(e)),
+              );
             }}
             className="w-full rounded-2xl border border-border flex items-center gap-3 px-4 py-3 text-left"
           >
@@ -228,21 +233,25 @@ function MePage() {
           </label>
         </section>
 
+        {(mode === "local" || getSettings().allowTestLocation) && (
         <section className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3 text-sm">
-          <div className="font-bold text-amber-900 flex items-center gap-1.5"><DemoBadge />示範設定</div>
+          <div className="font-bold text-amber-900 flex items-center gap-1.5"><DemoBadge />{mode === "local" ? "示範設定" : "試用設定"}</div>
           <button onClick={() => setPickerOpen(true)} className="w-full h-11 rounded-xl bg-white border border-amber-300 font-semibold">
             測試位置：{current.test ? current.mall?.name : current.verified ? `GPS（${current.mall?.name}）` : "未揀"}
           </button>
-          <button
-            onClick={() => {
-              aah.resetDemo();
-              toast("已重設示範資料");
-            }}
-            className="w-full h-11 rounded-xl bg-white border border-amber-300 font-semibold"
-          >
-            重設示範資料
-          </button>
+          {mode === "local" && (
+            <button
+              onClick={() => {
+                aah.resetDemo();
+                toast("已重設示範資料");
+              }}
+              className="w-full h-11 rounded-xl bg-white border border-amber-300 font-semibold"
+            >
+              重設示範資料
+            </button>
+          )}
         </section>
+        )}
 
         <div className="flex justify-center gap-4 text-xs text-muted-foreground">
           <Link to="/terms" className="underline">使用條款</Link>

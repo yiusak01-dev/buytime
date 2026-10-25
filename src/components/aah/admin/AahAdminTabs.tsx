@@ -253,7 +253,7 @@ export function AahAppealsTab() {
     const { error: e } = await sb().rpc("aah_admin_decide_appeal", { p_appeal: appealId, p_approve: approve, p_note: note || null });
     setBusy(null);
     if (e) return void toast.error(friendlyError(e));
-    toast.success(approve ? "已撤銷停用，還返 50 分" : "已維持停用");
+    toast.success(approve ? "已撤銷停用，還返扣咗嘅分" : "已維持停用");
     void reload();
   }
 
@@ -297,7 +297,7 @@ export function AahAppealsTab() {
                 <DecideBar
                   busy={busy === a.id}
                   actions={[
-                    { key: "approve", label: "撤銷停用（還返 50 分）", tone: "primary" },
+                    { key: "approve", label: "撤銷停用（還返扣咗嘅分）", tone: "primary" },
                     { key: "reject", label: "維持停用", tone: "neutral" },
                   ]}
                   onDecide={(k, note) => decide(a.id, k === "approve", note)}
