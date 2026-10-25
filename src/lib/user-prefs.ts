@@ -48,7 +48,7 @@ export async function removeFromWaitlist(userId: string, mallId: number) {
 export type PriceAlertRow = { id: string; mall_id: number; max_price: number; active: boolean; created_at: string };
 
 export async function fetchPriceAlerts(userId: string): Promise<PriceAlertRow[]> {
-  const { data, error } = await ownSb().from("price_alerts").select("id, mall_id, max_price, active, created_at").eq("user_id", userId).order("created_at", { ascending: false });
+  const { data, error } = await sb().from("price_alerts").select("id, mall_id, max_price, active, created_at").eq("user_id", userId).order("created_at", { ascending: false });
   if (error) { console.warn("[price_alerts] fetch failed", error); return []; }
   return (data ?? []).map((r: any) => ({ id: String(r.id), mall_id: Number(r.mall_id), max_price: Number(r.max_price ?? 0), active: r.active !== false, created_at: r.created_at }));
 }
@@ -57,16 +57,16 @@ export async function savePriceAlert(userId: string, mallId: number, maxPrice: n
   const existing = await fetchPriceAlerts(userId);
   const match = existing.find((a) => a.mall_id === mallId);
   if (match) {
-    const { error } = await ownSb().from("price_alerts").update({ max_price: maxPrice, active: true }).eq("id", match.id);
+    const { error } = await sb().from("price_alerts").update({ max_price: maxPrice, active: true }).eq("id", match.id);
     if (error) throw error;
     return;
   }
-  const { error } = await ownSb().from("price_alerts").insert({ user_id: userId, mall_id: mallId, max_price: maxPrice, active: true });
+  const { error } = await sb().from("price_alerts").insert({ user_id: userId, mall_id: mallId, max_price: maxPrice, active: true });
   if (error) throw error;
 }
 
 export async function deletePriceAlert(alertId: string) {
-  const { error } = await ownSb().from("price_alerts").delete().eq("id", alertId);
+  const { error } = await sb().from("price_alerts").delete().eq("id", alertId);
   if (error) throw error;
 }
 
