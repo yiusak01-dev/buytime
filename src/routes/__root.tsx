@@ -82,6 +82,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  // Email 連結落咗去其他頁（例如重新導向唔喺許可清單，跌返落首頁）：轉去啱嘅確認頁
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const path = window.location.pathname;
+    if (!q.get("token_hash") || path === "/confirm" || path === "/reset-password") return;
+    const target = q.get("type") === "recovery" ? "/reset-password" : "/confirm";
+    window.location.replace(`${target}${window.location.search}`);
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     (async () => {
