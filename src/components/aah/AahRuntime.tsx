@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { aah, useAahMode, useAahState, LEAVE_GRACE_MIN, PIN_PROMPT_AFTER_MIN } from "@/lib/aah/store";
 import { useAahMalls, nearbyMalls } from "@/lib/aah/malls";
 import { useAutoStartGeo, useCurrentMall, useGeo, useNow } from "@/lib/aah/geo";
+import { syncPush } from "@/lib/aah/push";
 
 const MIN = 60000;
 
@@ -34,6 +35,12 @@ export function AahRuntime() {
   useEffect(() => {
     if (current.mall && user.registered) aah.touchPresence(current.mall.id);
   }, [current.mall?.id, user.registered, now, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 推送：登入後確保呢部裝置登記咗；舊金鑰嘅訂閱會換走
+  useEffect(() => {
+    if (mode !== "remote") return;
+    void syncPush(!!user.registered);
+  }, [mode, user.registered, user.id]);
+
   const leftSince = useRef<number | null>(null);
   const leaveWarned = useRef(false);
 

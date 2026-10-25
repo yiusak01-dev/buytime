@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Eye, Send, Pin, Minus, Plus, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
+import { PushPrompt } from "@/components/aah/PushPrompt";
 import { BottomSheet, DemoBadge, ScenarioTag } from "@/components/aah/ui";
 import { RegisterSheet } from "@/components/aah/RegisterSheet";
 import { postSaving, priceLabel } from "@/components/aah/PostCard";
@@ -205,6 +206,11 @@ function PostDetailView({ post }: { post: Post }) {
           💡 {s.handoverHint}。{post.price ? "見面交收時先俾錢，唔好預先轉數。" : ""}
         </div>
 
+        {/* 開通知提示放喺對話上面：捲落去睇對話時一齊見到 */}
+        {mine?.status === "pending" && (
+          <PushPrompt reason="對方一覆你就會通知你，閂咗 app 都收到。" onShown={() => chatEnd.current?.scrollIntoView({ behavior: "smooth", block: "end" })} />
+        )}
+
         {/* 對話（配對前） */}
         {mine && (
           <div className="bg-card rounded-2xl p-4 space-y-2">
@@ -367,7 +373,7 @@ function MyPostView({ post }: { post: Post }) {
         {showPinPrompt && (
           <div className="bg-[#FFF6D6] border border-[#F5C518] rounded-2xl p-4 space-y-2">
             <div className="font-bold">15 分鐘都未有人理</div>
-            <div className="text-sm">置頂 15 分鐘{mode === "remote" ? (s.pushNearby ? "，同時喺附近商場嘅 feed 顯示" : "") : `，同時推送俾${s.pushNearby ? "附近商場嘅人" : `${post.mallName} 所有人`}`}？</div>
+            <div className="text-sm">置頂 15 分鐘，同時推送俾而家喺{s.pushNearby ? "呢度同附近商場" : ` ${post.mallName} `}嘅人？</div>
             <button onClick={() => setPinOpen(true)} className="h-11 px-4 rounded-2xl bg-[#1a1a1a] text-white font-bold">$5 置頂 15 分鐘</button>
           </div>
         )}
@@ -413,6 +419,8 @@ function MyPostView({ post }: { post: Post }) {
             )}
           </section>
         )}
+
+        {post.status === "open" && <PushPrompt reason="有人撳「有興趣」會即刻通知你，閂咗 app 都收到。" />}
 
         {post.status === "open" && (
           <div className="space-y-2">
@@ -476,9 +484,7 @@ function PinSheet({
     try {
       await aah.pinPost(post.id, { useCredit, extraPushed: extra });
       toast.success(`已置頂 ${effective} 分鐘`, {
-        description: mode === "remote"
-          ? s.pushNearby && nearbyNames.length ? `同時喺 ${nearbyNames.slice(0, 3).join("、")} 嘅 feed 顯示` : undefined
-          : s.pushNearby && nearbyNames.length ? `同時推送俾 ${nearbyNames.slice(0, 3).join("、")}` : `同時推送俾 ${mallName} 所有人`,
+        description: s.pushNearby && nearbyNames.length ? `同時推送俾而家喺 ${mallName}、${nearbyNames.slice(0, 2).join("、")} 嘅人` : `同時推送俾而家喺 ${mallName} 嘅人`,
       });
       onClose();
     } catch (e) {
@@ -494,15 +500,11 @@ function PinSheet({
         <ul className="text-sm space-y-2">
           <li>📌 喺 feed 最頂顯示 15 分鐘，加「急」字標籤</li>
           <li>
-            📣 {mode === "remote" ? (s.pushNearby
+            📣 {s.pushNearby
               ? nearbyNames.length
-                ? `同時喺附近商場（${nearbyNames.slice(0, 3).join("、")}）嘅 feed 顯示`
-                : "附近冇其他商場，只喺本商場顯示"
-              : "泊車收據只喺本商場用得，所以只喺本商場顯示") : s.pushNearby
-              ? nearbyNames.length
-                ? `同時推送俾 ${mallName} 同附近商場（${nearbyNames.slice(0, 3).join("、")}）`
-                : `同時推送俾 ${mallName} 所有人（附近冇其他商場）`
-              : `同時推送俾 ${mallName} 所有人（泊車收據只喺本商場用得，所以唔推去其他商場）`}
+                ? `推送俾而家喺 ${mallName} 同附近商場（${nearbyNames.slice(0, 3).join("、")}）、開咗通知嘅人`
+                : `推送俾而家喺 ${mallName}、開咗通知嘅人（附近冇其他商場）`
+              : `推送俾而家喺 ${mallName}、開咗通知嘅人（泊車收據只喺本商場用得，所以唔推去其他商場）`}
           </li>
           <li>⏳ 配對成功、post 過期，或者你離開商場，置頂都會即刻結束</li>
         </ul>

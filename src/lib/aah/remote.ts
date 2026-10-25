@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { removeThisDevice } from "./push";
 import type { Interest, Match, Outfit, Post, User } from "./types";
 
 /**
@@ -328,6 +329,8 @@ export function createRemote(host: Host) {
     },
 
     async signOut() {
+      // 呢部裝置唔再收呢個帳戶嘅推送
+      await removeThisDevice();
       await sb().auth.signOut();
       await refresh();
     },

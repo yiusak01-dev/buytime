@@ -7,6 +7,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Chip, DemoBadge, ScenarioTag } from "@/components/aah/ui";
 import { RegisterSheet } from "@/components/aah/RegisterSheet";
 import { MallPicker } from "@/components/aah/MallPicker";
+import { PushSettingRow } from "@/components/aah/PushPrompt";
 import { aah, aahErrorText, getSettings, useAahMode, useAahState, isBanned, DAY, BAN_DAYS } from "@/lib/aah/store";
 import { POINTS, levelOf } from "@/lib/aah/points";
 import { useAahMalls } from "@/lib/aah/malls";
@@ -217,6 +218,7 @@ function MePage() {
         {/* 設定 */}
         <section className="bg-card rounded-2xl p-4 space-y-4">
           <div className="font-bold">通知</div>
+          <PushSettingRow />
           <div className="flex flex-wrap gap-2">
             {SCENARIO_LIST.map((id) => {
               const on = user.notifyCats.includes(id);

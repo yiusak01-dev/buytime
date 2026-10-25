@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, MapPin, Clock, Keyboard, Flag, CheckCircle2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
+import { PushPrompt } from "@/components/aah/PushPrompt";
 import { Avatar, describeOutfit } from "@/components/aah/Avatar";
 import { OutfitEditor } from "@/components/aah/OutfitEditor";
 import { BottomSheet, Chip, DemoBadge, ScenarioTag } from "@/components/aah/ui";
@@ -241,6 +242,8 @@ function MatchPage() {
             <button onClick={() => setOutfitOpen(true)} className="mt-3 w-full h-11 rounded-2xl bg-[#F5C518] text-[#1a1a1a] font-bold">揀你今日嘅打扮，方便對方認你</button>
           )}
         </div>
+
+        {active && <PushPrompt reason="對方傳訊息、到咗、取消，都會即刻通知你。" />}
 
         {/* 交收提示 */}
         {m.price != null && m.price > 0 && (
