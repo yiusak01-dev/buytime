@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, MapPin, Clock, Keyboard, Flag, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, Flag, CheckCircle2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
 import { PushPrompt } from "@/components/aah/PushPrompt";
@@ -36,7 +36,6 @@ function MatchPage() {
   const [warnOpen, setWarnOpen] = useState(false);
   const [changeOpen, setChangeOpen] = useState(false);
   const [outfitOpen, setOutfitOpen] = useState(false);
-  const [typing, setTyping] = useState(false);
   const [text, setText] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
@@ -150,7 +149,7 @@ function MatchPage() {
         </div>
       </header>
 
-      <div className="px-4 pt-4 pb-56 space-y-4">
+      <div className="px-4 pt-4 pb-60 space-y-4">
         {/* 狀態 */}
         {m.status === "completed" && (
           <div className="bg-[#E3F5EC] text-[#1d6b47] rounded-2xl p-4 flex items-center gap-2 font-bold"><CheckCircle2 className="w-5 h-5" /> 已完成</div>
@@ -299,7 +298,7 @@ function MatchPage() {
             ),
           )}
           {/* scroll-mb：捲落嚟時唔好俾底部嗰排掣遮住 */}
-          <div ref={bottomRef} className="scroll-mb-44" />
+          <div ref={bottomRef} className="scroll-mb-52" />
         </div>
 
         {active && mode === "local" && (
@@ -330,24 +329,20 @@ function MatchPage() {
                     {t}
                   </button>
                 ))}
-                <button onClick={() => setTyping((v) => !v)} aria-label="打字" className="shrink-0 h-10 w-10 grid place-items-center rounded-full border border-border bg-card">
-                  <Keyboard className="w-4 h-4" />
-                </button>
               </div>
-              {typing && (
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (!text.trim()) return;
-                    guardedSend(text.trim().slice(0, 80));
-                    setText("");
-                  }}
-                  className="flex gap-2"
-                >
-                  <input value={text} onChange={(e) => setText(e.target.value)} placeholder="打少少字（唔好留電話）" className="flex-1 h-10 px-3 rounded-full border border-border bg-card outline-none text-sm" />
-                  <button className="h-10 px-4 rounded-full bg-[#1a1a1a] text-white text-sm font-bold">傳送</button>
-                </form>
-              )}
+              {/* 打字欄長期顯示，唔使再撳掣打開 */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!text.trim()) return;
+                  guardedSend(text.trim().slice(0, 80));
+                  setText("");
+                }}
+                className="flex gap-2"
+              >
+                <input value={text} onChange={(e) => setText(e.target.value)} placeholder="打少少字（唔好留電話）" className="flex-1 h-10 px-3 rounded-full border border-border bg-card outline-none text-base" />
+                <button className="h-10 px-4 rounded-full bg-[#1a1a1a] text-white text-sm font-bold">傳送</button>
+              </form>
               <div className="flex gap-2">
                 <button
                   onClick={arrive}
