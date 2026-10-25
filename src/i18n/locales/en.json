@@ -86,7 +86,7 @@
   },
   "help": {
     "title": "Help Centre",
-    "contact": "Still have questions? Email hello@buytime.hk",
+    "contact": "Still have questions? Email support@buytime.hk",
     "groups": {
       "about": {
         "title": "About BuyTime",
@@ -114,7 +114,7 @@
         "q1": "Am I protected?",
         "a1": "BuyTime uses an escrow mechanism: after the buyer pays, funds are held by the platform until the seller delivers and the buyer confirms receipt. If there is a dispute, you can request platform mediation.",
         "q2": "What if I have a problem?",
-        "a2": "Please email hello@buytime.hk."
+        "a2": "Please email support@buytime.hk."
       },
       "disputes": {
         "title": "Disputes & Refunds",

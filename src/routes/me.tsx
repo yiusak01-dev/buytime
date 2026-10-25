@@ -271,6 +271,7 @@ function MePage() {
         <div className="flex justify-center gap-4 text-xs text-muted-foreground">
           <Link to="/terms" className="underline">使用條款</Link>
           <Link to="/privacy" className="underline">私隱政策</Link>
+          <a href="mailto:support@buytime.hk" className="underline">聯絡我們</a>
         </div>
       </div>
 

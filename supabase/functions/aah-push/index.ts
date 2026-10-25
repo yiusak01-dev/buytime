@@ -4,7 +4,7 @@
 import webpush from "npm:web-push@3.6.7";
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
-const SUBJECT = "mailto:yiusak01@gmail.com";
+const SUBJECT = "mailto:support@buytime.hk";
 const TTL_SECONDS = 15 * 60; // 「同一時間同一地點」，過咗 15 分鐘先送到都冇用
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {

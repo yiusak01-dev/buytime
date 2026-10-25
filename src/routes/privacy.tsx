@@ -16,9 +16,9 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
   { title: "2. 使用目的", body: "所收集資料僅用於：提供配對服務、聯絡用戶處理交易事宜、改善平台服務。" },
   { title: "3. 資料保密", body: "本平台不會將你的個人資料出售、出租或披露予第三方，除非法律要求。" },
   { title: "4. 資料儲存", body: "用戶資料儲存於安全的雲端伺服器（Supabase），受業界標準加密保護。" },
-  { title: "5. 查閱及更正", body: "你有權查閱及更正本人資料。如需查閱，請電郵至 hello@buytime.hk。" },
+  { title: "5. 查閱及更正", body: "你有權查閱及更正本人資料。如需查閱，請電郵至 support@buytime.hk。" },
   { title: "6. Cookie", body: "本平台使用必要的 Cookie 維持登入狀態，不作任何追蹤或廣告用途。" },
-  { title: "7. 聯絡我們", body: "如對私隱政策有任何疑問，請電郵：hello@buytime.hk" },
+  { title: "7. 聯絡我們", body: "如對私隱政策有任何疑問，請電郵：support@buytime.hk" },
 ];
 
 function PrivacyPage() {

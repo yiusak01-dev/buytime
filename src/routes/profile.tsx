@@ -297,7 +297,7 @@ function Profile() {
             label={t("profile.feedback")}
             onPress={() => {
               window.open(
-                "mailto:hello@buytime.hk?subject=%E8%B2%B7%E6%99%82%E9%96%93%20App%20%E6%84%8F%E8%A6%8B&body=%E4%BD%A0%E5%A5%BD%E8%B2%B7%E6%99%82%E9%96%93%E5%9C%98%E9%9A%8A%EF%BC%8C%E6%88%91%E6%83%B3%E5%88%86%E4%BA%AB%E4%BB%A5%E4%B8%8B%E6%84%8F%E8%A6%8B%EF%BC%9A%0A%0A",
+                "mailto:support@buytime.hk?subject=%E8%B2%B7%E6%99%82%E9%96%93%20App%20%E6%84%8F%E8%A6%8B&body=%E4%BD%A0%E5%A5%BD%E8%B2%B7%E6%99%82%E9%96%93%E5%9C%98%E9%9A%8A%EF%BC%8C%E6%88%91%E6%83%B3%E5%88%86%E4%BA%AB%E4%BB%A5%E4%B8%8B%E6%84%8F%E8%A6%8B%EF%BC%9A%0A%0A",
                 "_self"
               );
             }}

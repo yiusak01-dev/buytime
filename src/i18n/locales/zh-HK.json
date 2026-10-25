@@ -86,7 +86,7 @@
   },
   "help": {
     "title": "幫助中心",
-    "contact": "仲有問題？電郵 hello@buytime.hk",
+    "contact": "仲有問題？電郵 support@buytime.hk",
     "groups": {
       "about": {
         "title": "關於買時間",
@@ -114,7 +114,7 @@
         "q1": "平台有保障嗎？",
         "a1": "買時間採用Escrow保管機制：買方付款後款項由平台暫時保管，賣方面交並獲買方確認後才收到款項。如有爭議，可透過平台申請介入處理。",
         "q2": "遇到問題點辦？",
-        "a2": "請電郵 hello@buytime.hk 聯絡我們。"
+        "a2": "請電郵 support@buytime.hk 聯絡我們。"
       },
       "disputes": {
         "title": "爭議與退款",

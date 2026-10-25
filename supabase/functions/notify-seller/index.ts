@@ -1,7 +1,7 @@
 // notify-seller：有新爭議時 email 通知 admin。
 // 安全：收件人固定（唔再接受 request 指定），內容會 escape，避免俾人當 email 轉發器濫用。
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
-const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL") ?? "yiusak01@gmail.com";
+const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL") ?? "support@buytime.hk";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
       const adminRes = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from: "買時間 <noreply@buytime.hk>", to: ADMIN_EMAIL, subject, html }),
+        body: JSON.stringify({ from: "啱啱好 BuyTime <noreply@buytime.hk>", to: ADMIN_EMAIL, subject, html }),
       });
       if (!adminRes.ok) {
         console.error("Resend error:", await adminRes.text());

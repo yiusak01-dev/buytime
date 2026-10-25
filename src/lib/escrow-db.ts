@@ -83,7 +83,7 @@ export async function raiseDispute(input: {
     await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-seller`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}` },
-      body: JSON.stringify({ recipient_id: null, admin_email: "yiusak01@gmail.com", transaction_id: input.transaction_id, type: "dispute", mall_name: "", buyer_name: "User" }),
+      body: JSON.stringify({ recipient_id: null, admin_email: "support@buytime.hk", transaction_id: input.transaction_id, type: "dispute", mall_name: "", buyer_name: "User" }),
     });
   } catch (e) { console.warn("admin notify failed", e); }
   return data as Dispute;
