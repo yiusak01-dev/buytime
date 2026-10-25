@@ -139,6 +139,14 @@ export function AahRuntime() {
     for (const m of matches) {
       const before = map.get(m.id);
       map.set(m.id, m.status);
+      if (!first && before === "active" && m.status === "noshow" && m.participants.some((p) => p.userId === user.id) && !m.arrived[user.id]) {
+        toast.error("對方報告你冇出現", {
+          description: "帳戶停用 30 日；有誤會可以喺 48 小時內申訴",
+          action: { label: "申訴", onClick: () => navigate({ to: "/me" }) },
+          duration: 20000,
+        });
+        continue;
+      }
       if (first || before !== "active" || m.status !== "cancelled") continue;
       if (!m.participants.some((p) => p.userId === user.id) || !m.cancelledBy || m.cancelledBy === user.id) continue;
       toast("對方取消咗配對", {

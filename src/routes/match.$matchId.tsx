@@ -175,7 +175,20 @@ function MatchPage() {
             )}
           </div>
         )}
-        {m.status === "noshow" && <div className="bg-red-50 text-red-800 rounded-2xl p-4 font-bold">有人冇出現，配對已結束</div>}
+        {m.status === "noshow" &&
+          (!m.arrived[user.id] ? (
+            // 報告人一定撳咗「我到咗」，所以未到嘅就係被報告嘅人
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 space-y-2">
+              <div className="font-black text-red-900">對方報告你冇出現</div>
+              <div className="text-sm text-red-900">
+                {user.bannedUntil && user.bannedUntil > now ? `帳戶停用到 ${new Date(user.bannedUntil).toLocaleDateString("zh-HK")}。` : ""}
+                如果有誤會（例如電話冇電、停車場收唔到 GPS），可以喺 48 小時內申訴。
+              </div>
+              <Link to="/me" className="flex items-center justify-center h-11 rounded-2xl bg-red-700 text-white font-bold">去申訴</Link>
+            </div>
+          ) : (
+            <div className="bg-red-50 text-red-800 rounded-2xl p-4 font-bold">已記錄對方冇出現，配對已結束</div>
+          ))}
 
         {/* 見面地點時間 */}
         <div className="bg-card rounded-2xl p-4 space-y-3 shadow-[var(--shadow-card)]">

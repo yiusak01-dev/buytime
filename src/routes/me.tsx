@@ -38,7 +38,9 @@ function MePage() {
   const lv = levelOf(user.lifetimePoints);
   const banned = isBanned(user, now);
   const banStart = user.bannedUntil ? user.bannedUntil - BAN_DAYS * DAY : 0;
-  const canAppeal = banned && now - banStart < 2 * DAY && !user.appeal;
+  // 只計今次停用之後提交嘅申訴（舊嘅申訴唔應該擋住今次）
+  const appeal = user.appeal && user.appeal.at >= banStart - 60000 ? user.appeal : undefined;
+  const canAppeal = banned && now - banStart < 2 * DAY && !appeal;
   const accountDays = user.registeredAt ? Math.floor((now - user.registeredAt) / DAY) : 0;
   const voucherPending = user.voucherRequests.filter((v) => v.status === "pending").length;
   const mode = useAahMode();
@@ -77,8 +79,10 @@ function MePage() {
             <div className="text-sm text-red-900">
               因為有一次冇出現，帳戶停用到 {new Date(user.bannedUntil!).toLocaleDateString("zh-HK")}。期間可以睇，但唔可以出 post、接 post 同傾偈。
             </div>
-            {user.appeal ? (
-              <div className="text-sm bg-white rounded-xl p-3">申訴已提交（{fmtAgo(user.appeal.at, now)}），人手審核緊。</div>
+            {appeal ? (
+              <div className="text-sm bg-white rounded-xl p-3">
+                {appeal.status === "rejected" ? "申訴審核咗，維持停用。" : `申訴已提交（${fmtAgo(appeal.at, now)}），人手審核緊。`}
+              </div>
             ) : canAppeal ? (
               <div className="space-y-2">
                 <div className="text-sm font-semibold">覺得被誤會？48 小時內可以申訴：</div>
