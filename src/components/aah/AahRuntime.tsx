@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { aah, useAahMode, useAahState, LEAVE_GRACE_MIN, PIN_PROMPT_AFTER_MIN } from "@/lib/aah/store";
 import { useAahMalls, nearbyMalls } from "@/lib/aah/malls";
@@ -23,6 +23,7 @@ export function AahRuntime() {
 
   const mode = useAahMode();
   const toasted = useRef<Set<string>>(new Set());
+  const pathname = useRouterState({ select: (st) => st.location.pathname });
 
   // 雲端模式：feed 讀本商場同附近商場；記錄「附近用戶」人數（唔儲存確實位置）
   useEffect(() => {
@@ -148,6 +149,61 @@ export function AahRuntime() {
     }
     prevStatus.current = map;
   }, [matches, user.id, navigate]);
+
+  // App 內提示（未有推送通知之前）：有人有興趣、配對成功、對方傳訊息。
+  // 只提示啱啱發生（90 秒內）嘅嘢，同埋唔喺相關畫面先提示，避免一開 app 彈晒舊嘢出嚟。
+  const alerted = useRef<Set<string>>(new Set());
+  const fresh = (at: number) => Date.now() - at < 90 * 1000;
+  useEffect(() => {
+    if (!user.registered) return;
+    for (const p of posts) {
+      if (p.authorId !== user.id || p.status !== "open") continue;
+      for (const i of p.interests) {
+        const k = `int:${p.id}:${i.userId}`;
+        if (i.status !== "pending" || alerted.current.has(k) || !fresh(i.at)) continue;
+        alerted.current.add(k);
+        if (pathname === `/post/${p.id}`) continue;
+        const last = i.messages[i.messages.length - 1]?.text;
+        toast(`${i.name} 想要你嘅${p.shop}`, {
+          description: last ? `「${last}」` : "去睇吓",
+          action: { label: "睇吓", onClick: () => navigate({ to: "/post/$postId", params: { postId: p.id } }) },
+          duration: 12000,
+        });
+      }
+    }
+  }, [posts, user.id, user.registered, pathname, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!user.registered) return;
+    for (const m of matches) {
+      if (m.status !== "active" || !m.participants.some((p) => p.userId === user.id)) continue;
+      const onMatch = pathname === `/match/${m.id}`;
+      const k = `match:${m.id}`;
+      if (!alerted.current.has(k) && fresh(m.createdAt)) {
+        alerted.current.add(k);
+        // 喺 post 頁面嘅話嗰版會自己跳去配對
+        if (!onMatch && pathname !== `/post/${m.postId}`) {
+          toast.success("配對成功！", {
+            description: `${m.shop}・${m.mallName}，去確認見面地點`,
+            action: { label: "去配對", onClick: () => navigate({ to: "/match/$matchId", params: { matchId: m.id } }) },
+            duration: 15000,
+          });
+        }
+      }
+      const last = m.messages[m.messages.length - 1];
+      if (!last || last.from === "system" || last.from === user.id) continue;
+      const km = `msg:${last.id}`;
+      if (alerted.current.has(km) || !fresh(last.at)) continue;
+      alerted.current.add(km);
+      if (onMatch) continue;
+      const name = m.participants.find((p) => p.userId === last.from)?.name ?? "對方";
+      toast(`${name}：${last.text}`, {
+        description: `${m.shop}・${m.mallName}`,
+        action: { label: "睇吓", onClick: () => navigate({ to: "/match/$matchId", params: { matchId: m.id } }) },
+        duration: 10000,
+      });
+    }
+  }, [matches, user.id, user.registered, pathname, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 完成之後：離開商場（或者完成 10 分鐘後）喺通知入面撳 👍 👎，可以唔答
   useEffect(() => {

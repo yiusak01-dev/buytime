@@ -9,7 +9,7 @@ import { RegisterSheet } from "@/components/aah/RegisterSheet";
 import { aah, aahErrorText, getSettings, useAahState, isBanned, dailyDiningCount, DINING_POSTS_PER_DAY } from "@/lib/aah/store";
 import { useAahMalls, demoAudience } from "@/lib/aah/malls";
 import { useCurrentMall, fmtClock, useNow } from "@/lib/aah/geo";
-import { SCENARIOS, SCENARIO_LIST, GROUPBUY_DEALS, PAY_METHODS, DIRECTION_LABEL } from "@/lib/aah/scenarios";
+import { SCENARIOS, SCENARIO_LIST, GROUPBUY_DEALS, PAY_METHODS } from "@/lib/aah/scenarios";
 import { quoteParkingReceipt, quoteParkingWant, quoteOffer } from "@/lib/aah/pricing";
 import { readAmountFromImage } from "@/lib/aah/ocr";
 import type { Direction, PayMethod, ScenarioId } from "@/lib/aah/types";
@@ -405,7 +405,7 @@ function NewPost() {
               disabled={!!missing || submitting}
               className="w-full h-14 rounded-2xl bg-[#F5C518] text-[#1a1a1a] font-black text-base shadow-lg disabled:opacity-50"
             >
-              {submitting ? "發佈緊…" : missing ? `仲要${missing}` : `發佈${s ? `・${s.label}${direction !== "join" ? DIRECTION_LABEL[direction] : ""}` : ""}`}
+              {submitting ? "發佈緊…" : missing ? `仲要${missing}` : "發佈"}
             </button>
           </div>
         </div>
