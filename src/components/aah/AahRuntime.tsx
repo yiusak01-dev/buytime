@@ -164,8 +164,8 @@ export function AahRuntime() {
         alerted.current.add(k);
         if (pathname === `/post/${p.id}`) continue;
         const last = i.messages[i.messages.length - 1]?.text;
-        toast(`${i.name} 想要你嘅${p.shop}`, {
-          description: last ? `「${last}」` : "去睇吓",
+        toast(`${i.name} 對你個 post 有興趣`, {
+          description: last ? `${p.shop}・「${last}」` : p.shop,
           action: { label: "睇吓", onClick: () => navigate({ to: "/post/$postId", params: { postId: p.id } }) },
           duration: 12000,
         });
