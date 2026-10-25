@@ -62,58 +62,66 @@ export function createRemote(host: Host) {
   async function refreshNow() {
     const { data: sess } = await sb().auth.getSession();
     uid = sess?.session?.user?.id ?? null;
+    const me = uid;
     const prefs = host.prefs();
     const base = host.baseUser();
-
-    // 用戶
     const email: string | undefined = sess?.session?.user?.email ?? undefined;
-    let user: User = { ...base, ...prefsToUser(prefs), id: uid ?? base.id, registered: false, email, signedIn: !!uid };
-    if (uid) {
-      // email 確認完返嚟登入：用註冊時填嘅暱稱自動建立 profile
-      const pending = readPending();
-      if (pending) {
-        const { data: exists } = await sb().from("aah_profiles").select("id").eq("id", uid).maybeSingle();
-        if (!exists) {
-          const { error } = await sb().from("aah_profiles").insert({ id: uid, nickname: pending.nickname, phone: pending.phone || null });
-          if (!error) clearPending();
-        } else clearPending();
-      }
-      const [{ data: prof }, { data: appeal }, { data: vouchers }, { count: lateCount }] = await Promise.all([
-        sb().from("aah_profiles").select("*").eq("id", uid).maybeSingle(),
-        sb().from("aah_appeals").select("text, status, created_at").eq("user_id", uid).order("created_at", { ascending: false }).limit(1),
-        sb().from("aah_voucher_requests").select("status, created_at").eq("user_id", uid).eq("status", "pending"),
-        sb()
-          .from("aah_point_ledger")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", uid)
-          .eq("reason", "late_cancel")
-          .gt("created_at", new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()),
-      ]);
-      if (prof) {
-        user = {
-          ...user,
-          registered: true,
-          phone: prof.phone ?? undefined,
-          nickname: prof.nickname ?? undefined,
-          registeredAt: ts(prof.created_at),
-          points: prof.points,
-          lifetimePoints: prof.lifetime_points,
-          completed: prof.completed,
-          noShows: prof.no_shows,
-          bannedUntil: ts(prof.banned_until),
-          notifyCats: prof.notify_cats ?? user.notifyCats,
-          notifyOpportunities: prof.notify_opportunities,
-          notifyPromotions: prof.notify_promotions,
-          defaultPayMethods: prof.default_pay_methods ?? user.defaultPayMethods,
-          pinCredits: prof.pin_credits,
-          appeal: appeal?.[0] ? { text: appeal[0].text, at: Date.parse(appeal[0].created_at), status: appeal[0].status } : undefined,
-          voucherRequests: (vouchers ?? []).map((v: any) => ({ at: Date.parse(v.created_at), status: "pending" as const })),
-          lateCancels30d: lateCount ?? 0,
-        };
-      }
-    }
 
-    // Post：商場 feed + 我出嘅 + 我有興趣嘅
+    // 三組資料互不依賴，一齊攞（伺服器喺悉尼，逐個等會慢成兩秒）
+    const [user, posts, matches] = await Promise.all([loadUser(me, base, prefs, email), loadPosts(me), loadMatches(me, prefs)]);
+    host.set({ user, posts, matches });
+  }
+
+  async function loadUser(me: string | null, base: User, prefs: ReturnType<typeof host.prefs>, email: string | undefined): Promise<User> {
+    let user: User = { ...base, ...prefsToUser(prefs), id: me ?? base.id, registered: false, email, signedIn: !!me };
+    if (!me) return user;
+    // email 確認完返嚟登入：用註冊時填嘅暱稱自動建立 profile
+    const pending = readPending();
+    if (pending) {
+      const { data: exists } = await sb().from("aah_profiles").select("id").eq("id", me).maybeSingle();
+      if (!exists) {
+        const { error } = await sb().from("aah_profiles").insert({ id: me, nickname: pending.nickname, phone: pending.phone || null });
+        if (!error) clearPending();
+      } else clearPending();
+    }
+    const [{ data: prof }, { data: appeal }, { data: vouchers }, { count: lateCount }] = await Promise.all([
+      sb().from("aah_profiles").select("*").eq("id", me).maybeSingle(),
+      sb().from("aah_appeals").select("text, status, created_at").eq("user_id", me).order("created_at", { ascending: false }).limit(1),
+      sb().from("aah_voucher_requests").select("status, created_at").eq("user_id", me).eq("status", "pending"),
+      sb()
+        .from("aah_point_ledger")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", me)
+        .eq("reason", "late_cancel")
+        .gt("created_at", new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()),
+    ]);
+    if (prof) {
+      user = {
+        ...user,
+        registered: true,
+        phone: prof.phone ?? undefined,
+        nickname: prof.nickname ?? undefined,
+        registeredAt: ts(prof.created_at),
+        points: prof.points,
+        lifetimePoints: prof.lifetime_points,
+        completed: prof.completed,
+        noShows: prof.no_shows,
+        bannedUntil: ts(prof.banned_until),
+        notifyCats: prof.notify_cats ?? user.notifyCats,
+        notifyOpportunities: prof.notify_opportunities,
+        notifyPromotions: prof.notify_promotions,
+        defaultPayMethods: prof.default_pay_methods ?? user.defaultPayMethods,
+        pinCredits: prof.pin_credits,
+        appeal: appeal?.[0] ? { text: appeal[0].text, at: Date.parse(appeal[0].created_at), status: appeal[0].status } : undefined,
+        voucherRequests: (vouchers ?? []).map((v: any) => ({ at: Date.parse(v.created_at), status: "pending" as const })),
+        lateCancels30d: lateCount ?? 0,
+      };
+    }
+    return user;
+  }
+
+  // Post：商場 feed + 我出嘅 + 我有興趣嘅
+  async function loadPosts(me: string | null): Promise<Post[]> {
     const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
     const queries: Promise<any>[] = [];
     if (feedMalls.length) {
@@ -121,11 +129,17 @@ export function createRemote(host: Host) {
         sb().from("aah_posts").select("*").in("mall_id", feedMalls).eq("status", "open").gt("leave_at", new Date(Date.now() - 60000).toISOString()).order("created_at", { ascending: false }).limit(200),
       );
     }
-    if (uid) {
-      queries.push(sb().from("aah_posts").select("*").eq("author_id", uid).gt("created_at", since).order("created_at", { ascending: false }).limit(50));
-      const { data: myInt } = await sb().from("aah_interests").select("post_id").eq("user_id", uid).gt("created_at", since);
-      const ids = (myInt ?? []).map((r: any) => r.post_id);
-      if (ids.length) queries.push(sb().from("aah_posts").select("*").in("id", ids));
+    if (me) {
+      queries.push(sb().from("aah_posts").select("*").eq("author_id", me).gt("created_at", since).order("created_at", { ascending: false }).limit(50));
+      // 我有興趣嘅 post：用 embed 一次過攞，唔使先攞 id 再攞 post
+      queries.push(
+        sb()
+          .from("aah_interests")
+          .select("post:aah_posts(*)")
+          .eq("user_id", me)
+          .gt("created_at", since)
+          .then((r: any) => ({ data: (r.data ?? []).map((x: any) => x.post).filter(Boolean) })),
+      );
     }
     const results = await Promise.all(queries);
     const postRows = new Map<string, any>();
@@ -134,36 +148,27 @@ export function createRemote(host: Host) {
     const postIds = [...postRows.keys()];
     let interests: any[] = [];
     let imsgs: any[] = [];
-    if (postIds.length && uid) {
-      const { data } = await sb().from("aah_interests").select("*").in("post_id", postIds);
-      interests = data ?? [];
-      const iids = interests.map((i) => i.id);
-      if (iids.length) {
-        const { data: m } = await sb().from("aah_interest_messages").select("*").in("interest_id", iids).order("created_at");
-        imsgs = m ?? [];
-      }
+    if (postIds.length && me) {
+      // 興趣同佢哋嘅訊息一次過攞（RLS 照樣過濾）
+      const { data } = await sb().from("aah_interests").select("*, msgs:aah_interest_messages(*)").in("post_id", postIds);
+      interests = (data ?? []).map(({ msgs, ...i }: any) => i);
+      imsgs = (data ?? []).flatMap((i: any) => i.msgs ?? []).sort((a: any, b: any) => Date.parse(a.created_at) - Date.parse(b.created_at));
     }
-    const posts: Post[] = [...postRows.values()].map((r) => rowToPost(r, interests, imsgs)).sort((a, b) => b.createdAt - a.createdAt);
+    return [...postRows.values()].map((r) => rowToPost(r, interests, imsgs)).sort((a, b) => b.createdAt - a.createdAt);
+  }
 
-    // 配對（RLS 只會俾返我有份嘅）
-    let matches: Match[] = [];
-    if (uid) {
-      const { data: mrows } = await sb().from("aah_matches").select("*").gt("created_at", new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString()).order("created_at", { ascending: false });
-      const mids = (mrows ?? []).map((m: any) => m.id);
-      let parts: any[] = [];
-      let msgs: any[] = [];
-      if (mids.length) {
-        const [p, m] = await Promise.all([
-          sb().from("aah_match_participants").select("*").in("match_id", mids),
-          sb().from("aah_messages").select("*").in("match_id", mids).order("created_at"),
-        ]);
-        parts = p.data ?? [];
-        msgs = m.data ?? [];
-      }
-      matches = (mrows ?? []).map((m: any) => rowToMatch(m, parts, msgs, uid!, prefs));
-    }
-
-    host.set({ user, posts, matches });
+  // 配對（RLS 只會俾返我有份嘅）；參與者同訊息一次過攞
+  async function loadMatches(me: string | null, prefs: ReturnType<typeof host.prefs>): Promise<Match[]> {
+    if (!me) return [];
+    const { data: mrows } = await sb()
+      .from("aah_matches")
+      .select("*, parts:aah_match_participants(*), msgs:aah_messages(*)")
+      .gt("created_at", new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString())
+      .order("created_at", { ascending: false });
+    const rows = mrows ?? [];
+    const parts = rows.flatMap((m: any) => m.parts ?? []);
+    const msgs = rows.flatMap((m: any) => m.msgs ?? []).sort((a: any, b: any) => Date.parse(a.created_at) - Date.parse(b.created_at));
+    return rows.map(({ parts: _p, msgs: _m, ...m }: any) => rowToMatch(m, parts, msgs, me, prefs));
   }
 
   async function refresh() {
@@ -189,6 +194,15 @@ export function createRemote(host: Host) {
       }
     })();
     return inflight;
+  }
+
+  /** 等一次喺「而家之後」先開始嘅同步（如果有舊嗰次跑緊，等佢完再嚟過），最多等 4 秒 */
+  async function refreshFresh() {
+    const run = (async () => {
+      if (inflight) await inflight.catch(() => {});
+      await refresh();
+    })();
+    await Promise.race([run, new Promise((r) => setTimeout(r, 4000))]);
   }
 
   function scheduleRefresh() {
@@ -249,7 +263,8 @@ export function createRemote(host: Host) {
   async function rpc(name: string, args: Record<string, unknown>) {
     const { data, error } = await sb().rpc(name, args);
     if (error) throw error;
-    scheduleRefresh();
+    // 等最新狀態返到嚟先完成，撳完個掣畫面即刻反映結果
+    await refreshFresh();
     return data;
   }
 
@@ -364,7 +379,6 @@ export function createRemote(host: Host) {
         },
       });
       if (input.payMethods.length) void this.updateProfile({ defaultPayMethods: input.payMethods }).catch(() => {});
-      await refresh();
       const p = host.get().posts.find((x) => x.id === id);
       return p ?? ({ ...input, id, createdAt: Date.now(), authorId: uid ?? "", authorName: "", status: "open", interests: [], viewCount: 0 } as Post);
     },
@@ -398,13 +412,11 @@ export function createRemote(host: Host) {
 
     async expressInterest(postId: string, text: string, offer?: number): Promise<string | undefined> {
       const matchId = await rpc("aah_express_interest", { p_post: postId, p_text: text, p_offer: offer ?? null });
-      await refresh();
       return matchId ?? undefined;
     },
 
     async acceptInterest(postId: string, userId: string, price?: number): Promise<string | undefined> {
       const id = await rpc("aah_accept_interest", { p_interest: interestId(postId, userId), p_price: price ?? null });
-      await refresh();
       return id ?? undefined;
     },
 
@@ -434,13 +446,11 @@ export function createRemote(host: Host) {
 
     async arrive(matchId: string, coords?: { lat: number; lng: number }) {
       const r = await rpc("aah_mark_arrived", { p_match: matchId, p_lat: coords?.lat ?? null, p_lng: coords?.lng ?? null });
-      await refresh();
       return r as "completed" | "waiting";
     },
 
     async confirmPartnerMet(matchId: string, userId: string) {
       const r = await rpc("aah_confirm_partner_met", { p_match: matchId, p_user: userId });
-      await refresh();
       return r as "completed" | "waiting";
     },
 
