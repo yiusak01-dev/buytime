@@ -17,6 +17,8 @@ function ResetPasswordPage() {
   const [ready, setReady] = useState(false);
   // 連結問題：用過咗、過咗期、或者打開咗唔完整嘅連結
   const [linkError, setLinkError] = useState<"expired" | "invalid" | null>(null);
+  // 新式連結：token 喺網址，用家撳「確認重設」先驗證（避免 email 系統預先撳咗）
+  const [tokenHash, setTokenHash] = useState<string | null>(null);
 
   useEffect(() => {
     // Supabase 驗證失敗時會將錯誤放喺網址（#error_code=otp_expired 之類）
@@ -25,6 +27,12 @@ function ResetPasswordPage() {
     const code = hash.get("error_code") ?? query.get("error_code") ?? hash.get("error") ?? query.get("error");
     if (code) {
       setLinkError(code === "otp_expired" ? "expired" : "invalid");
+      return;
+    }
+    const th = query.get("token_hash");
+    if (th && (query.get("type") ?? "recovery") === "recovery") {
+      setTokenHash(th);
+      setReady(true);
       return;
     }
     let ok = false;
@@ -60,6 +68,17 @@ function ResetPasswordPage() {
       return;
     }
     setLoading(true);
+    if (tokenHash) {
+      const { error: vErr } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" });
+      if (vErr) {
+        setLoading(false);
+        setReady(false);
+        setLinkError(/expired|invalid|not found/i.test(vErr.message) ? "expired" : "invalid");
+        return;
+      }
+      setTokenHash(null);
+      window.history.replaceState(null, "", "/reset-password");
+    }
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (error) {

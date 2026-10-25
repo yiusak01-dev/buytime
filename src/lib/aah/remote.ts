@@ -301,7 +301,7 @@ export function createRemote(host: Host) {
       const { data, error } = await sb().auth.signUp({
         email,
         password,
-        options: { data: { name: nickname }, emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined },
+        options: { data: { name: nickname }, emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/confirm` : undefined },
       });
       if (error) throw error;
       // 已經註冊過嘅 email，Supabase 會回傳冇 identities 嘅 user

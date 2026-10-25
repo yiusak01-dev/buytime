@@ -154,8 +154,8 @@ export function RegisterSheet({ open, onClose, onDone, reason }: { open: boolean
           <div className="space-y-4 text-center">
             <MailCheck className="w-12 h-12 mx-auto text-[#2E9E6A]" />
             <div className="font-bold">確認連結已經寄去 {email}</div>
-            <p className="text-sm text-muted-foreground">撳 email 入面嘅連結確認，然後返嚟呢度登入。登入之後會自動用「{nickname}」做暱稱。</p>
-            <p className="text-[11px] text-muted-foreground">搵唔到就睇吓垃圾郵件。</p>
+            <p className="text-sm text-muted-foreground">打開 email，撳「確認 email」掣，再撳「確認我嘅 email」，就會自動登入，用「{nickname}」做暱稱。</p>
+            <p className="text-[11px] text-muted-foreground">搵唔到就睇吓垃圾郵件。喺另一部機確認咗嘅話，返嚟呢度登入就得。</p>
             <button
               onClick={() => {
                 setStep("login");

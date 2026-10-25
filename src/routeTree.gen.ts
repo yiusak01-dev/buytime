@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AnnouncementsRouteImport } from './routes/announcements'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ChatsRouteImport } from './routes/chats'
+import { Route as ConfirmRouteImport } from './routes/confirm'
 import { Route as DiningRouteImport } from './routes/dining'
 import { Route as GroupBuyRouteImport } from './routes/group-buy'
 import { Route as HelpRouteImport } from './routes/help'
@@ -61,6 +62,11 @@ const AuthRoute = AuthRouteImport.update({
 const ChatsRoute = ChatsRouteImport.update({
   id: '/chats',
   path: '/chats',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfirmRoute = ConfirmRouteImport.update({
+  id: '/confirm',
+  path: '/confirm',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DiningRoute = DiningRouteImport.update({
@@ -187,6 +193,7 @@ export interface FileRoutesByFullPath {
   '/announcements': typeof AnnouncementsRoute
   '/auth': typeof AuthRoute
   '/chats': typeof ChatsRoute
+  '/confirm': typeof ConfirmRoute
   '/dining': typeof DiningRoute
   '/group-buy': typeof GroupBuyRoute
   '/help': typeof HelpRoute
@@ -217,6 +224,7 @@ export interface FileRoutesByTo {
   '/announcements': typeof AnnouncementsRoute
   '/auth': typeof AuthRoute
   '/chats': typeof ChatsRoute
+  '/confirm': typeof ConfirmRoute
   '/dining': typeof DiningRoute
   '/group-buy': typeof GroupBuyRoute
   '/help': typeof HelpRoute
@@ -248,6 +256,7 @@ export interface FileRoutesById {
   '/announcements': typeof AnnouncementsRoute
   '/auth': typeof AuthRoute
   '/chats': typeof ChatsRoute
+  '/confirm': typeof ConfirmRoute
   '/dining': typeof DiningRoute
   '/group-buy': typeof GroupBuyRoute
   '/help': typeof HelpRoute
@@ -280,6 +289,7 @@ export interface FileRouteTypes {
     | '/announcements'
     | '/auth'
     | '/chats'
+    | '/confirm'
     | '/dining'
     | '/group-buy'
     | '/help'
@@ -310,6 +320,7 @@ export interface FileRouteTypes {
     | '/announcements'
     | '/auth'
     | '/chats'
+    | '/confirm'
     | '/dining'
     | '/group-buy'
     | '/help'
@@ -340,6 +351,7 @@ export interface FileRouteTypes {
     | '/announcements'
     | '/auth'
     | '/chats'
+    | '/confirm'
     | '/dining'
     | '/group-buy'
     | '/help'
@@ -371,6 +383,7 @@ export interface RootRouteChildren {
   AnnouncementsRoute: typeof AnnouncementsRoute
   AuthRoute: typeof AuthRoute
   ChatsRoute: typeof ChatsRoute
+  ConfirmRoute: typeof ConfirmRoute
   DiningRoute: typeof DiningRoute
   GroupBuyRoute: typeof GroupBuyRoute
   HelpRoute: typeof HelpRoute
@@ -431,6 +444,13 @@ declare module '@tanstack/react-router' {
       path: '/chats'
       fullPath: '/chats'
       preLoaderRoute: typeof ChatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/confirm': {
+      id: '/confirm'
+      path: '/confirm'
+      fullPath: '/confirm'
+      preLoaderRoute: typeof ConfirmRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dining': {
@@ -603,6 +623,7 @@ const rootRouteChildren: RootRouteChildren = {
   AnnouncementsRoute: AnnouncementsRoute,
   AuthRoute: AuthRoute,
   ChatsRoute: ChatsRoute,
+  ConfirmRoute: ConfirmRoute,
   DiningRoute: DiningRoute,
   GroupBuyRoute: GroupBuyRoute,
   HelpRoute: HelpRoute,
