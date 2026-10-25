@@ -48,8 +48,13 @@ function MatchPage() {
     if (!m.outfits[user.id] && user.outfitToday?.date === todayKey()) void aah.setOutfitToday(user.outfitToday.outfit, m.id).catch(() => {});
   }, [m?.id, m?.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 有新訊息先自動捲落去（第一次打開唔捲，等用家先睇到見面資料）
+  const seenMsgs = useRef<number | null>(null);
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    const n = m?.messages.length;
+    if (n == null) return;
+    if (seenMsgs.current != null && n > seenMsgs.current) bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    seenMsgs.current = n;
   }, [m?.messages.length]);
 
   const others = useMemo(() => (m ? m.participants.filter((p) => p.userId !== user.id) : []), [m, user.id]);
@@ -195,7 +200,7 @@ function MatchPage() {
         {/* 認人：公仔 */}
         <div className="bg-card rounded-2xl p-4 shadow-[var(--shadow-card)]">
           <div className="text-xs font-bold text-muted-foreground mb-2">見面認人</div>
-          <div className="flex gap-4 overflow-x-auto">
+          <div className="flex gap-4 overflow-x-auto overflow-y-hidden overscroll-x-contain">
             {others.map((o) => (
               <div key={o.userId} className="flex flex-col items-center text-center w-28 shrink-0">
                 <Avatar outfit={m.outfits[o.userId]} size={64} />
@@ -268,7 +273,8 @@ function MatchPage() {
               </div>
             ),
           )}
-          <div ref={bottomRef} />
+          {/* scroll-mb：捲落嚟時唔好俾底部嗰排掣遮住 */}
+          <div ref={bottomRef} className="scroll-mb-44" />
         </div>
 
         {active && mode === "local" && (

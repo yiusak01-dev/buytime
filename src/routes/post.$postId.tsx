@@ -113,6 +113,15 @@ function PostDetailView({ post }: { post: Post }) {
   const mine = post.interests.find((i) => i.userId === user.id);
   const lastSent = useRef<{ text: string; at: number } | null>(null);
 
+  // 自己傳咗訊息或者對方覆：捲落對話度（唔好俾底部嗰排掣遮住）
+  const chatEnd = useRef<HTMLDivElement>(null);
+  const seenMsgs = useRef<number | null>(null);
+  useEffect(() => {
+    const n = mine?.messages.length ?? 0;
+    if (seenMsgs.current != null && n > seenMsgs.current) chatEnd.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    seenMsgs.current = n;
+  }, [mine?.messages.length]);
+
   // 對方揀咗你 → 去配對畫面
   useEffect(() => {
     if (mine?.status === "accepted" && post.matchId) {
@@ -206,6 +215,7 @@ function PostDetailView({ post }: { post: Post }) {
               </div>
             ))}
             {mine.status === "pending" && <div className="text-xs text-muted-foreground text-center pt-1">等緊對方覆…</div>}
+            <div ref={chatEnd} className="scroll-mb-44" />
           </div>
         )}
       </div>
