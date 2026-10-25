@@ -54,6 +54,9 @@ export function createRemote(host: Host) {
   let inflightSince = 0;
   let again = false;
   let channel: any = null;
+  let channelUid: string | null | undefined = undefined;
+  let realtimeOk = false;
+  let lastRefresh = 0;
   let lastPresence = 0;
 
   async function refreshNow() {
@@ -174,6 +177,7 @@ export function createRemote(host: Host) {
     inflight = (async () => {
       try {
         await refreshNow();
+        lastRefresh = Date.now();
       } catch (e) {
         console.warn("[aah] refresh failed", e);
       } finally {
@@ -193,12 +197,30 @@ export function createRemote(host: Host) {
   }
 
   function subscribe() {
+    // 同一個用戶唔使重新訂閱（token 每個鐘更新一次都會觸發 onAuthStateChange）
+    if (channel && channelUid === uid) return;
     if (channel) sb().removeChannel(channel);
-    channel = sb().channel(`aah-${uid ?? "anon"}`);
+    realtimeOk = false;
+    channelUid = uid;
+    const ch = sb().channel(`aah-${uid ?? "anon"}-${Date.now()}`);
+    channel = ch;
     for (const table of ["aah_posts", "aah_interests", "aah_interest_messages", "aah_matches", "aah_match_participants", "aah_messages", "aah_profiles"]) {
-      channel.on("postgres_changes", { event: "*", schema: "public", table }, scheduleRefresh);
+      ch.on("postgres_changes", { event: "*", schema: "public", table }, scheduleRefresh);
     }
-    channel.subscribe();
+    // 任何一個 table 冇開 realtime，Supabase 會令成個 channel 失效，但 subscribe 狀態仍然係 SUBSCRIBED，
+    // 所以要聽 system 訊息先知；失效時改為每 5 秒同步
+    ch.on("system", {}, (msg: any) => {
+      if (channel !== ch || msg?.extension !== "postgres_changes") return;
+      realtimeOk = msg.status === "ok";
+      if (!realtimeOk) console.warn("[aah] realtime unavailable, polling every 5s:", msg?.message);
+    });
+    ch.subscribe((status: string, err?: unknown) => {
+      if (channel !== ch) return;
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+        realtimeOk = false;
+        if (status !== "CLOSED") console.warn("[aah] realtime", status, err);
+      }
+    });
   }
 
   async function start() {
@@ -210,10 +232,18 @@ export function createRemote(host: Host) {
         void refresh().then(subscribe);
       }, 0);
     });
-    // 後備：每 20 秒同步一次（realtime 斷線時都唔會漏）
+    // 後備同步：realtime 正常就每 20 秒一次；realtime 斷咗就每 5 秒一次
     setInterval(() => {
-      if (typeof document === "undefined" || document.visibilityState === "visible") void refresh();
-    }, 20000);
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+      const every = realtimeOk ? 20000 : 5000;
+      if (Date.now() - lastRefresh >= every - 500) void refresh();
+    }, 5000);
+    // 由背景返嚟即刻同步一次
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") void refresh();
+      });
+    }
   }
 
   async function rpc(name: string, args: Record<string, unknown>) {
