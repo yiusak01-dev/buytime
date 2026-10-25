@@ -1,6 +1,6 @@
 // aah-delete-account：用家喺 app 入面刪除自己個帳戶。
-// 1. 用 JWT 確認係本人；2. 清走 app 入面嘅個人資料（對方嘅紀錄保留但匿名）；
-// 3. 軟刪除 auth 用戶：email 會被清走、唔可以再登入，但對方嘅配對紀錄唔會斷。
+// 1. 用 JWT 確認係本人；2. 資料庫 aah__delete_account：檢查冇進行中配對、收 post、名同訊息匿名、清空 profile；
+// 3. 清走推送裝置同位置紀錄；4. 軟刪除 auth 用戶：email 會被清走、唔可以再登入，但對方嘅配對紀錄唔會斷。
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
@@ -29,6 +29,13 @@ Deno.serve(async (req) => {
   if (cleanErr) {
     if (/active match/.test(cleanErr.message)) return json({ error: "active match" }, 409);
     console.error("[aah-delete-account] cleanup", cleanErr.message);
+    return json({ error: "cleanup failed" }, 500);
+  }
+
+  const { error: pushErr } = await admin.from("aah_push_subscriptions").delete().eq("user_id", uid);
+  const { error: presErr } = await admin.from("aah_presence").delete().eq("user_id", uid);
+  if (pushErr || presErr) {
+    console.error("[aah-delete-account] devices", pushErr?.message, presErr?.message);
     return json({ error: "cleanup failed" }, 500);
   }
 
