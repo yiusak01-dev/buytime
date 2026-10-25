@@ -176,7 +176,12 @@ function MatchPage() {
           </div>
         )}
         {m.status === "noshow" &&
-          (!m.arrived[user.id] ? (
+          (!m.arrived[user.id] && !(user.bannedUntil && user.bannedUntil > now) && user.appeal?.status === "approved" ? (
+            <div className="bg-[#E3F5EC] text-[#1d6b47] rounded-2xl p-4 space-y-1">
+              <div className="font-black">申訴成功</div>
+              <div className="text-sm">已經撤銷呢次冇出現，帳戶同積分已經恢復。</div>
+            </div>
+          ) : !m.arrived[user.id] ? (
             // 報告人一定撳咗「我到咗」，所以未到嘅就係被報告嘅人
             <div className="bg-red-50 border border-red-200 rounded-2xl p-4 space-y-2">
               <div className="font-black text-red-900">對方報告你冇出現</div>

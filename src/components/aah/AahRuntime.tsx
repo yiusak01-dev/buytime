@@ -213,6 +213,20 @@ export function AahRuntime() {
     }
   }, [matches, user.id, user.registered, pathname, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 申訴結果：停用被撤銷時話俾佢知
+  const wasBanned = useRef<boolean | null>(null);
+  useEffect(() => {
+    const banned = !!(user.bannedUntil && user.bannedUntil > Date.now());
+    if (wasBanned.current === true && !banned && user.appeal?.status === "approved") {
+      toast.success("申訴成功", { description: "已經撤銷冇出現，帳戶同積分已經恢復", duration: 12000 });
+    }
+    if (wasBanned.current === true && banned && user.appeal?.status === "rejected" && !toasted.current.has("appeal-rejected")) {
+      toasted.current.add("appeal-rejected");
+      toast("申訴審核咗", { description: "維持停用，到期會自動恢復", duration: 12000 });
+    }
+    if (user.registered) wasBanned.current = banned;
+  }, [user.bannedUntil, user.appeal?.status, user.registered]);
+
   // 完成之後：離開商場（或者完成 10 分鐘後）喺通知入面撳 👍 👎，可以唔答
   useEffect(() => {
     for (const m of matches) {
