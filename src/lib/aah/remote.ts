@@ -51,6 +51,7 @@ export function createRemote(host: Host) {
   let feedMalls: string[] = [];
   let timer: ReturnType<typeof setTimeout> | null = null;
   let inflight: Promise<void> | null = null;
+  let inflightSince = 0;
   let again = false;
   let channel: any = null;
   let lastPresence = 0;
@@ -163,10 +164,13 @@ export function createRemote(host: Host) {
   }
 
   async function refresh() {
+    // 保險：如果上一次同步卡住超過 15 秒，放棄佢重新嚟過
+    if (inflight && Date.now() - inflightSince > 15000) inflight = null;
     if (inflight) {
       again = true;
       return inflight;
     }
+    inflightSince = Date.now();
     inflight = (async () => {
       try {
         await refreshNow();
@@ -200,8 +204,11 @@ export function createRemote(host: Host) {
   async function start() {
     await refresh();
     subscribe();
+    // 注意：唔可以喺 onAuthStateChange 入面直接 call Supabase（會鎖死登入流程，之後唔再更新），要遲一拍先做
     sb().auth.onAuthStateChange(() => {
-      void refresh().then(subscribe);
+      setTimeout(() => {
+        void refresh().then(subscribe);
+      }, 0);
     });
     // 後備：每 20 秒同步一次（realtime 斷線時都唔會漏）
     setInterval(() => {

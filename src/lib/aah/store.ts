@@ -65,6 +65,16 @@ function load(): State {
   } catch {
     /* 讀唔到就由頭開始 */
   }
+  // 雲端模式唔會存 aah:v1，用返之前儲低嘅設定（例如已經睇過歡迎頁、測試位置），唔好每次重新載入都跳返歡迎頁
+  try {
+    const prefsRaw = window.localStorage.getItem("aah:prefs");
+    if (prefsRaw) {
+      const p = JSON.parse(prefsRaw);
+      return { user: { ...freshUser(), onboarded: !!p.onboarded, testMallId: p.testMallId ?? null, arrivalShown: p.arrivalShown ?? {}, outfitToday: p.outfitToday }, posts: [], matches: [] };
+    }
+  } catch {
+    /* 用預設 */
+  }
   return { user: freshUser(), posts: [], matches: [] };
 }
 

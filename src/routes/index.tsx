@@ -40,9 +40,10 @@ function Home() {
   const now = useNow(15000);
   const [pickerOpen, setPickerOpen] = useState(false);
 
+  const modeNow = useAahMode();
   useEffect(() => {
-    if (!user.onboarded) navigate({ to: "/welcome", replace: true });
-  }, [user.onboarded, navigate]);
+    if (modeNow !== "detecting" && !user.onboarded) navigate({ to: "/welcome", replace: true });
+  }, [user.onboarded, navigate, modeNow]);
 
   const mall = current.mall;
 
