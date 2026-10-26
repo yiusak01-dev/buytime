@@ -197,9 +197,9 @@ function PostDetailView({ post }: { post: Post }) {
       <div className="px-4 pt-4 pb-40 space-y-4">
         <PostSummary post={post} now={now} />
 
-        {post.scenario === "parking" && post.direction === "have" && receiptCountNote(post.fields.receiptCount, "taker") && (
+        {post.scenario === "parking" && post.direction === "have" && receiptCountNote(post.fields.receiptCount, "taker", mall?.stacking) && (
           <div className="text-xs rounded-xl px-3 py-2.5 bg-amber-50 text-amber-900 border border-amber-200">
-            ⚠️ {receiptCountNote(post.fields.receiptCount, "taker")}
+            ⚠️ {receiptCountNote(post.fields.receiptCount, "taker", mall?.stacking)}
           </div>
         )}
 

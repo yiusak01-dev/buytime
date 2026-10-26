@@ -219,8 +219,29 @@ export function hasDiningReceipt(f: Record<string, string | number | undefined>)
  * 幾張單加埋計嘅提醒（唔阻止出 post，只係提醒）：
  * 唔係個個商場收合併單，好多最多 2 張，3 張或以上好少見。
  */
-export function receiptCountNote(count: string | number | undefined, role: "giver" | "taker"): string | null {
+/** 由「支援拼單」資料讀出最多幾多張：❌ 不可拼單 = 1；「最多2張」= 2；未知 = null */
+export function maxReceipts(stacking: string | null | undefined): number | null {
+  if (!stacking || stacking.includes("待確認")) return null;
+  if (/❌|不可|唔可以|不接受/.test(stacking)) return 1;
+  const m = /最多\s*(\d+)\s*張/.exec(stacking);
+  return m ? Number(m[1]) : null;
+}
+
+export function receiptCountNote(count: string | number | undefined, role: "giver" | "taker", stacking?: string | null): string | null {
   const own = "平台只係俾大家配對，換唔換到、有冇風險，要雙方自己衡量。";
+  const n = count === "2 張" ? 2 : count === "3 張或以上" ? 3 : 1;
+  const max = maxReceipts(stacking);
+  if (n > 1 && max != null) {
+    const rule = max === 1 ? "唔收合併單" : `最多合併 ${max} 張`;
+    if (n > max) {
+      return role === "giver"
+        ? `呢個商場資料顯示${rule}（參考），你揀咗 ${count}，對方可能換唔到，出 post 前問清楚商場。${own}`
+        : `呢份係 ${count}單加埋計，但呢個商場資料顯示${rule}（參考），可能換唔到，接之前自己同商場確認。${own}`;
+    }
+    return role === "giver"
+      ? `呢個商場資料顯示${rule}（參考），以商場最新規定為準。${own}`
+      : `呢份係 ${count}單加埋計，商場資料顯示${rule}（參考），接之前自己同商場確認。${own}`;
+  }
   if (count === "2 張") {
     return role === "giver"
       ? `唔係個個商場收合併單，出 post 前睇清楚條款。${own}`

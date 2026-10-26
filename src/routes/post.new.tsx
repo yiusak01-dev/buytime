@@ -360,9 +360,9 @@ function NewPost() {
                             <Chip key={o} active={fields[f.key] === o} onClick={() => setFields({ ...fields, [f.key]: o })}>{o}</Chip>
                           ))}
                         </div>
-                        {f.key === "receiptCount" && receiptCountNote(fields.receiptCount, "giver") && (
+                        {f.key === "receiptCount" && receiptCountNote(fields.receiptCount, "giver", mall?.stacking) && (
                           <div className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900 border border-amber-200">
-                            {receiptCountNote(fields.receiptCount, "giver")}
+                            {receiptCountNote(fields.receiptCount, "giver", mall?.stacking)}
                           </div>
                         )}
                       </>

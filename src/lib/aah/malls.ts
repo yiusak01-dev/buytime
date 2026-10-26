@@ -26,7 +26,7 @@ export function useAahMalls() {
     queryFn: async () => {
       const { data, error } = await ownSupabase
         .from("malls")
-        .select("id,name,district,lat,lng,weekday_parking_cond,holiday_parking_cond,hourly_rate_weekday_num,hourly_rate_holiday_num,hourly_rate_weekend,is_active");
+        .select("id,name,district,lat,lng,weekday_parking_cond,holiday_parking_cond,hourly_rate_weekday_num,hourly_rate_holiday_num,hourly_rate_weekend,supports_stacking,is_active");
       if (error) throw error;
       const rows: AahMall[] = (data ?? [])
         .filter((r: any) => r.is_active !== false && r.lat != null && r.lng != null)
@@ -43,6 +43,7 @@ export function useAahMalls() {
           condWeekend: r.holiday_parking_cond ?? r.weekday_parking_cond ?? null,
           rateWeekday: r.hourly_rate_weekday_num != null ? Number(r.hourly_rate_weekday_num) : null,
           rateWeekend: r.hourly_rate_holiday_num != null ? Number(r.hourly_rate_holiday_num) : r.hourly_rate_weekend != null ? Number(r.hourly_rate_weekend) : null,
+          stacking: r.supports_stacking ?? null,
           source: "db" as const,
         }));
       return rows;

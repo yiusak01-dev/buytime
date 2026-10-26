@@ -40,6 +40,7 @@ export function ScenarioTips({
           {mall!.condWeekend && mall!.condWeekend !== mall!.condWeekday && <div>週末及假期：{mall!.condWeekend}</div>}
           {disc != null && <div className="font-semibold mt-0.5">換到嘅鐘數唔係免費：每個鐘仲要俾停車場 ${disc}。</div>}
           {extra != null && <div className="font-semibold">有食肆（餐廳）單額外多換 {extra} 個鐘：幾張單加埋夠數（一般最多 2 張），其中一張係食肆單都得。</div>}
+          {mall!.stacking && !mall!.stacking.includes("待確認") && <div>拼單：{mall!.stacking}</div>}
           <div className="text-[11px] text-amber-800 mt-0.5">以商場最新公布為準</div>
         </div>
       )}
