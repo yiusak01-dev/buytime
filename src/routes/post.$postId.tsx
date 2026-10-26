@@ -24,7 +24,7 @@ import {
 } from "@/lib/aah/store";
 import { useAahMalls, nearbyMalls, demoAudience } from "@/lib/aah/malls";
 import { useCurrentMall, useNow, fmtClock, fmtLeft, fmtAgo } from "@/lib/aah/geo";
-import { SCENARIOS, keyInfo, payLabel, authorRole } from "@/lib/aah/scenarios";
+import { SCENARIOS, keyInfo, payLabel, authorRole, receiptCountNote } from "@/lib/aah/scenarios";
 import { ScenarioTips } from "@/components/aah/ScenarioTips";
 import { buyerParkingSaving } from "@/lib/aah/pricing";
 import type { Post } from "@/lib/aah/types";
@@ -190,6 +190,12 @@ function PostDetailView({ post }: { post: Post }) {
       <TopBar title="着數詳情" />
       <div className="px-4 pt-4 pb-40 space-y-4">
         <PostSummary post={post} now={now} />
+
+        {post.scenario === "parking" && post.direction === "have" && receiptCountNote(post.fields.receiptCount, "taker") && (
+          <div className="text-xs rounded-xl px-3 py-2.5 bg-amber-50 text-amber-900 border border-amber-200">
+            ⚠️ {receiptCountNote(post.fields.receiptCount, "taker")}
+          </div>
+        )}
 
         {parkingCalc === null && post.scenario === "parking" && post.direction === "have" && (
           <div className="bg-card rounded-2xl p-4 space-y-2">

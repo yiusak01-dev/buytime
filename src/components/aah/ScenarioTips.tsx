@@ -39,7 +39,7 @@ export function ScenarioTips({
           {mall!.condWeekday && <div>平日：{mall!.condWeekday}</div>}
           {mall!.condWeekend && mall!.condWeekend !== mall!.condWeekday && <div>週末及假期：{mall!.condWeekend}</div>}
           {disc != null && <div className="font-semibold mt-0.5">換到嘅鐘數唔係免費：每個鐘仲要俾停車場 ${disc}。</div>}
-          {extra != null && <div className="font-semibold">有食肆（餐廳）單額外多換 {extra} 個鐘：幾張單加埋夠數，其中一張係食肆單都得。</div>}
+          {extra != null && <div className="font-semibold">有食肆（餐廳）單額外多換 {extra} 個鐘：幾張單加埋夠數（一般最多 2 張），其中一張係食肆單都得。</div>}
           <div className="text-[11px] text-amber-800 mt-0.5">以商場最新公布為準</div>
         </div>
       )}
@@ -57,7 +57,7 @@ export function ScenarioTips({
           <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
         </button>
       )}
-      <div className="text-[11px] text-amber-800">以上係一般提示，商場同商戶規則隨時會改，以佢哋最新規定為準。</div>
+      <div className="text-[11px] text-amber-800">以上係一般提示，商場同商戶規則隨時會改，以佢哋最新規定為準。平台只係俾大家配對，交收風險要雙方自己衡量。</div>
     </div>
   );
 }

@@ -65,11 +65,11 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
       giver: [
         "每個商場換泊車條款唔同：消費金額、換幾多個鐘、平日同假期都唔同，出 post 前睇清楚商場最新條款。",
         "好多商場要用商場 app 或者電子收據登記先換到泊車；已經登記咗喺你會員帳戶嘅消費通常轉唔到。喺 post 講清楚係紙單定電子單。",
-        "收據一般要即日、喺同一個商場消費；有啲唔可以合併、分拆，或者唔收影印本。",
+        "收據一般要即日、喺同一個商場消費；好多商場最多合併 2 張單，有啲完全唔收合併、分拆，或者唔收影印本。",
         "已經換過泊車嘅收據唔好再俾人。",
       ],
       taker: [
-        "接之前問清楚係紙單定電子單、幾多張單、消費金額同日期，同你要換嘅條款夾唔夾。",
+        "接之前問清楚係紙單定電子單、幾多張單、消費金額同日期，同你要換嘅條款夾唔夾；幾張單加埋計嘅，自己同商場確認收唔收。",
         "問清楚喺邊度換（客務台、繳費機定商場 app），預留時間喺離場前換。",
         "收據交到手、確認啱用先俾錢。",
       ],
@@ -213,6 +213,25 @@ export function keyInfo(s: ScenarioId, dir: Direction, f: Record<string, string 
 /** 泊車收據入面有冇食肆單（「食肆單」係舊寫法） */
 export function hasDiningReceipt(f: Record<string, string | number | undefined>): boolean {
   return f.receiptCategory === "有食肆單" || f.receiptCategory === "食肆單";
+}
+
+/**
+ * 幾張單加埋計嘅提醒（唔阻止出 post，只係提醒）：
+ * 唔係個個商場收合併單，好多最多 2 張，3 張或以上好少見。
+ */
+export function receiptCountNote(count: string | number | undefined, role: "giver" | "taker"): string | null {
+  const own = "平台只係俾大家配對，換唔換到、有冇風險，要雙方自己衡量。";
+  if (count === "2 張") {
+    return role === "giver"
+      ? `唔係個個商場收合併單，出 post 前睇清楚條款。${own}`
+      : `呢份係 2 張單加埋計，唔係個個商場收合併單，接之前自己同商場確認。${own}`;
+  }
+  if (count === "3 張或以上") {
+    return role === "giver"
+      ? `好少商場收 3 張或以上合併，好多最多 2 張。出 post 前問清楚商場，免得對方換唔到。${own}`
+      : `呢份係 3 張或以上單加埋計。好少商場收咁多張（好多最多 2 張），接之前自己同商場確認。${own}`;
+  }
+  return null;
 }
 
 /** 呢個 post 嘅作者係「俾嘢」定「接收」嗰個 */

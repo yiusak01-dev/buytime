@@ -9,7 +9,7 @@ import { RegisterSheet } from "@/components/aah/RegisterSheet";
 import { aah, aahErrorText, getSettings, useAahState, isBanned, dailyDiningCount, DINING_POSTS_PER_DAY } from "@/lib/aah/store";
 import { useAahMalls, demoAudience } from "@/lib/aah/malls";
 import { useCurrentMall, fmtClock, useNow } from "@/lib/aah/geo";
-import { SCENARIOS, SCENARIO_LIST, GROUPBUY_DEALS, PAY_METHODS, authorRole, hasDiningReceipt } from "@/lib/aah/scenarios";
+import { SCENARIOS, SCENARIO_LIST, GROUPBUY_DEALS, PAY_METHODS, authorRole, hasDiningReceipt, receiptCountNote } from "@/lib/aah/scenarios";
 import { ScenarioTips } from "@/components/aah/ScenarioTips";
 import { quoteParkingReceipt, quoteParkingWant, quoteOffer, mallDiningExtra } from "@/lib/aah/pricing";
 import type { FieldDef } from "@/lib/aah/scenarios";
@@ -325,6 +325,8 @@ function NewPost() {
                     hint={
                       f.key === "receiptAmount"
                         ? "幾張單加埋計就填總數（有冇得合併睇商場條款）"
+                        : f.key === "receiptCount"
+                          ? "好多商場最多合併 2 張，有啲唔收合併"
                         : f.key === "receiptType"
                           ? "有啲商場只收電子單或者只收紙單，講清楚免得對方白行一趟"
                           : f.key === "receiptCategory" && diningExtra
@@ -333,11 +335,18 @@ function NewPost() {
                     }
                   >
                     {f.type === "choice" ? (
-                      <div className="flex flex-wrap gap-2">
-                        {(f.options ?? []).map((o) => (
-                          <Chip key={o} active={fields[f.key] === o} onClick={() => setFields({ ...fields, [f.key]: o })}>{o}</Chip>
-                        ))}
-                      </div>
+                      <>
+                        <div className="flex flex-wrap gap-2">
+                          {(f.options ?? []).map((o) => (
+                            <Chip key={o} active={fields[f.key] === o} onClick={() => setFields({ ...fields, [f.key]: o })}>{o}</Chip>
+                          ))}
+                        </div>
+                        {f.key === "receiptCount" && receiptCountNote(fields.receiptCount, "giver") && (
+                          <div className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900 border border-amber-200">
+                            {receiptCountNote(fields.receiptCount, "giver")}
+                          </div>
+                        )}
+                      </>
                     ) : (
                     <div className="flex items-center gap-2 h-12 px-4 rounded-2xl border border-border bg-card">
                       <input
