@@ -1,4 +1,4 @@
-import { calcParkingHours } from "@/lib/parking-rules";
+import { calcParkingHours, diningExtraHours } from "@/lib/parking-rules";
 import type { AahMall } from "./types";
 
 /**
@@ -56,7 +56,13 @@ function rulesFor(mall: AahMall, ts: number) {
   const disc = discountedRate(raw);
   // 每個鐘慳到嘅錢：免費就係成個時租；優惠價就係時租減優惠價
   const perHour = rate == null ? null : disc != null ? Math.max(0, rate - disc) : rate;
-  return { day, cond: normalizeCond(raw), rate, perHour };
+  return { day, cond: normalizeCond(raw), rate, perHour, disc };
+}
+
+/** 呢個商場有冇「食肆單額外加鐘」（平日或者假期任何一邊有都算） */
+export function mallDiningExtra(mall: AahMall | null | undefined): number | null {
+  if (!mall) return null;
+  return diningExtraHours(mall.condWeekday) ?? diningExtraHours(mall.condWeekend);
 }
 
 export type ParkingQuote = {
@@ -69,12 +75,20 @@ export type ParkingQuote = {
   belowThreshold: boolean;
   minThreshold: number;
   cond: string | null;
+  /** 換到嘅鐘數每個鐘仲要俾停車場幾多（例如領展 $5）；免費就 null */
+  discRate: number | null;
+  /** 換到嘅鐘數合共要俾停車場幾多（hours × discRate） */
+  copay: number | null;
+  /** 今日規則食肆單可以額外加幾多個鐘；冇呢條規則就 null */
+  diningExtra: number | null;
+  /** 今次計咗食肆單額外加幾多個鐘 */
+  extraApplied: number;
 };
 
-/** 賣家：張收據可以換幾多個鐘、慳幾多 */
-export function quoteParkingReceipt(mall: AahMall, receiptAmount: number, ts: number): ParkingQuote {
-  const { day, cond, rate, perHour } = rulesFor(mall, ts);
-  const r = calcParkingHours(cond, receiptAmount);
+/** 賣家：張收據可以換幾多個鐘、慳幾多；dining = 係咪食肆單 */
+export function quoteParkingReceipt(mall: AahMall, receiptAmount: number, ts: number, opts: { dining?: boolean } = {}): ParkingQuote {
+  const { day, cond, rate, perHour, disc } = rulesFor(mall, ts);
+  const r = calcParkingHours(cond, receiptAmount, { dining: opts.dining });
   const saving = perHour != null ? Math.round(r.hours * perHour) : null;
   return {
     hours: r.hours,
@@ -85,14 +99,26 @@ export function quoteParkingReceipt(mall: AahMall, receiptAmount: number, ts: nu
     belowThreshold: r.belowThreshold,
     minThreshold: r.minThreshold,
     cond,
+    discRate: disc,
+    copay: disc != null ? Math.round(r.hours * disc) : null,
+    diningExtra: diningExtraHours(cond),
+    extraApplied: r.extraHours,
   };
 }
 
-/** 「我要」泊車：想要嘅鐘數值幾多錢 */
+/** 「我要」泊車：想要嘅鐘數值幾多錢（fee = 用收據慳到嘅錢；full = 正價） */
 export function quoteParkingWant(mall: AahMall, hours: number, ts: number) {
-  const { day, rate, perHour } = rulesFor(mall, ts);
+  const { day, rate, perHour, disc } = rulesFor(mall, ts);
   const fee = perHour != null ? Math.round(hours * perHour) : null;
-  return { fee, rate, suggestMax: fee != null ? Math.floor(fee / 2) : null, dayLabel: day.label };
+  return {
+    fee,
+    rate,
+    full: rate != null ? Math.round(hours * rate) : null,
+    discRate: disc,
+    copay: disc != null ? Math.round(hours * disc) : null,
+    suggestMax: fee != null ? Math.floor(fee / 2) : null,
+    dayLabel: day.label,
+  };
 }
 
 /**
@@ -105,7 +131,8 @@ export function buyerParkingSaving(mall: AahMall, hoursOffered: number, entryTs:
   if (rate == null || perHour == null) return null;
   const fee = parked * rate;
   const saving = Math.min(hoursOffered, parked) * perHour;
-  return { parked, fee, saving, dayLabel: day.label, rate };
+  // 用收據之後仲要俾停車場幾多（例如領展換到嘅鐘數每個鐘 $5，加埋超出嘅鐘數正價）
+  return { parked, fee, saving, payAfter: fee - saving, dayLabel: day.label, rate };
 }
 
 /** 優惠券：建議唔好超過面值一半 */

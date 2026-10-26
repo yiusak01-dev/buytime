@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronDown, Info } from "lucide-react";
 import { SCENARIOS } from "@/lib/aah/scenarios";
+import { discountedRate, mallDiningExtra } from "@/lib/aah/pricing";
 import type { AahMall, ScenarioId } from "@/lib/aah/types";
 
 /**
@@ -23,6 +24,8 @@ export function ScenarioTips({
   const [open, setOpen] = useState(false);
   const shown = open ? tips : tips.slice(0, 2);
   const cond = scenario === "parking" && mall && (mall.condWeekday || mall.condWeekend);
+  const disc = cond ? discountedRate(mall!.condWeekday) ?? discountedRate(mall!.condWeekend) : null;
+  const extra = cond ? mallDiningExtra(mall) : null;
 
   return (
     <div className="bg-amber-50 border border-amber-200 text-amber-950 rounded-2xl px-4 py-3 text-sm space-y-2">
@@ -35,6 +38,8 @@ export function ScenarioTips({
           <div className="font-semibold">{mall!.name} 換泊車條件（參考）</div>
           {mall!.condWeekday && <div>平日：{mall!.condWeekday}</div>}
           {mall!.condWeekend && mall!.condWeekend !== mall!.condWeekday && <div>週末及假期：{mall!.condWeekend}</div>}
+          {disc != null && <div className="font-semibold mt-0.5">換到嘅鐘數唔係免費：每個鐘仲要俾停車場 ${disc}。</div>}
+          {extra != null && <div className="font-semibold">食肆（餐廳）單額外多換 {extra} 個鐘。</div>}
           <div className="text-[11px] text-amber-800 mt-0.5">以商場最新公布為準</div>
         </div>
       )}

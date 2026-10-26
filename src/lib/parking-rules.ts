@@ -12,19 +12,37 @@ export type ParkingRuleResult = {
   hours: number;
   minThreshold: number; // amount needed to earn any hours (0 if unknown)
   belowThreshold: boolean;
+  /** 食肆單額外加咗幾多個鐘（冇就 0） */
+  extraHours: number;
 };
 
-const EMPTY: ParkingRuleResult = { hours: 0, minThreshold: 0, belowThreshold: false };
+const EMPTY: ParkingRuleResult = { hours: 0, minThreshold: 0, belowThreshold: false, extraHours: 0 };
 
 function parseMaxHours(s: string): number | null {
   const m = s.match(/最多\s*(\d+(?:\.\d+)?)\s*hr/i);
   return m ? Number(m[1]) : null;
 }
 
+/** 領展等商場：「食肆單額外+2hr」= 食肆單達到門檻再加幾多個鐘；冇呢條規則就 null */
+export function diningExtraHours(cond: string | null | undefined): number | null {
+  const m = cond ? /食肆單?\s*額外\s*\+?\s*(\d+(?:\.\d+)?)\s*hr/i.exec(cond) : null;
+  return m ? Number(m[1]) : null;
+}
+
 export function calcParkingHours(
   cond: string | null | undefined,
   amount: number,
+  opts: { dining?: boolean } = {},
 ): ParkingRuleResult {
+  const base = calcBaseHours(cond, amount);
+  const extra = opts.dining ? diningExtraHours(cond) : null;
+  if (!extra || base.belowThreshold || base.hours <= 0) return base;
+  const maxHours = parseMaxHours(String(cond));
+  const total = maxHours != null ? Math.min(base.hours + extra, maxHours) : base.hours + extra;
+  return { ...base, hours: total, extraHours: total - base.hours };
+}
+
+function calcBaseHours(cond: string | null | undefined, amount: number): ParkingRuleResult {
   if (!cond || !amount || amount <= 0) return EMPTY;
   const text = String(cond).trim();
   const maxHours = parseMaxHours(text);
@@ -36,11 +54,11 @@ export function calcParkingHours(
     const perHours = Number(perUnit[2]);
     if (unit <= 0) return EMPTY;
     if (amount < unit) {
-      return { hours: 0, minThreshold: unit, belowThreshold: true };
+      return { hours: 0, minThreshold: unit, belowThreshold: true, extraHours: 0 };
     }
     let h = Math.floor(amount / unit) * perHours;
     if (maxHours != null) h = Math.min(h, maxHours);
-    return { hours: h, minThreshold: unit, belowThreshold: false };
+    return { hours: h, minThreshold: unit, belowThreshold: false, extraHours: 0 };
   }
 
   // Tier pattern: collect all "$THRESHOLD=Nhr" occurrences.
@@ -54,7 +72,7 @@ export function calcParkingHours(
   tiers.sort((a, b) => a.threshold - b.threshold);
   const minThreshold = tiers[0].threshold;
   if (amount < minThreshold) {
-    return { hours: 0, minThreshold, belowThreshold: true };
+    return { hours: 0, minThreshold, belowThreshold: true, extraHours: 0 };
   }
   // pick highest tier where amount >= threshold
   let best = 0;
@@ -62,7 +80,7 @@ export function calcParkingHours(
     if (amount >= t.threshold) best = t.hours;
   }
   if (maxHours != null) best = Math.min(best, maxHours);
-  return { hours: best, minThreshold, belowThreshold: false };
+  return { hours: best, minThreshold, belowThreshold: false, extraHours: 0 };
 }
 
 export type MallParkingRule = {

@@ -201,6 +201,7 @@ function PostDetailView({ post }: { post: Post }) {
           <div className="bg-[#E3F5EC] text-[#1d6b47] rounded-2xl p-4 text-sm space-y-1">
             <div>你 {entry} 入場，泊咗 {parkingCalc.parked} 個鐘，按今日（{parkingCalc.dayLabel}）收費要俾 ${parkingCalc.fee}。</div>
             <div className="font-black text-base">用呢張收據慳 ${parkingCalc.saving}{post.price ? `，扣埋 $${post.price} 淨慳 $${Math.max(0, parkingCalc.saving - post.price)}` : ""}</div>
+            {parkingCalc.payAfter > 0 && <div className="text-xs">用咗收據之後，停車場仲要俾 ${parkingCalc.payAfter}。</div>}
             <button onClick={() => setEntry("")} className="text-xs underline">改時間</button>
           </div>
         )}

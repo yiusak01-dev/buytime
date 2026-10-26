@@ -11,6 +11,8 @@ export type FieldDef = {
   required?: boolean;
   /** 只喺某個方向顯示 */
   onlyFor?: Direction[];
+  /** 只喺商場有「食肆單額外加鐘」規則先顯示 */
+  onlyIfDiningRule?: boolean;
 };
 
 export type ScenarioDef = {
@@ -51,6 +53,7 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
     fields: [
       { key: "receiptAmount", label: "收據消費金額", type: "number", placeholder: "例如 520", suffix: "元", required: true, onlyFor: ["have"] },
       { key: "receiptType", label: "收據類型", type: "choice", options: ["紙單", "電子單"], required: true, onlyFor: ["have"] },
+      { key: "receiptCategory", label: "係咪食肆（餐廳）單？", type: "choice", options: ["食肆單", "其他消費"], required: true, onlyFor: ["have"], onlyIfDiningRule: true },
       { key: "hours", label: "想要幾多個鐘", type: "number", placeholder: "例如 2", suffix: "個鐘", required: true, onlyFor: ["want"] },
     ],
     hasPrice: true,
@@ -195,7 +198,7 @@ export function keyInfo(s: ScenarioId, dir: Direction, f: Record<string, string 
   switch (s) {
     case "parking":
       return dir === "have"
-        ? `${f.hours ? `可換 ${f.hours} 個鐘` : `消費 $${f.receiptAmount}`}${f.receiptType ? `・${f.receiptType}` : ""}`
+        ? `${f.hours ? `可換 ${f.hours} 個鐘` : `消費 $${f.receiptAmount}`}${f.receiptCategory === "食肆單" ? "・食肆單" : ""}${f.receiptType ? `・${f.receiptType}` : ""}`
         : `要 ${f.hours} 個鐘`;
     case "dining":
       return `${f.queueNo}・${f.partySize} 位${f.calling ? `・而家叫到 ${f.calling}` : ""}`;

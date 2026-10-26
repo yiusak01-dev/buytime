@@ -8,7 +8,7 @@ import { ScenarioTag } from "./ui";
 /** 呢個 post 可以慳幾多（顯示得比價錢大，強調係配對唔係買賣） */
 export function postSaving(post: Post, mall: AahMall | undefined, now: number): number | null {
   if (post.scenario === "parking" && post.direction === "have" && mall) {
-    const q = quoteParkingReceipt(mall, Number(post.fields.receiptAmount ?? 0), now);
+    const q = quoteParkingReceipt(mall, Number(post.fields.receiptAmount ?? 0), now, { dining: post.fields.receiptCategory === "食肆單" });
     if (q.saving == null) return null;
     return Math.max(0, q.saving - (post.price ?? 0));
   }

@@ -11,7 +11,8 @@ import { useAahMalls, demoAudience } from "@/lib/aah/malls";
 import { useCurrentMall, fmtClock, useNow } from "@/lib/aah/geo";
 import { SCENARIOS, SCENARIO_LIST, GROUPBUY_DEALS, PAY_METHODS, authorRole } from "@/lib/aah/scenarios";
 import { ScenarioTips } from "@/components/aah/ScenarioTips";
-import { quoteParkingReceipt, quoteParkingWant, quoteOffer } from "@/lib/aah/pricing";
+import { quoteParkingReceipt, quoteParkingWant, quoteOffer, mallDiningExtra } from "@/lib/aah/pricing";
+import type { FieldDef } from "@/lib/aah/scenarios";
 import { readAmountFromImage } from "@/lib/aah/ocr";
 import type { Direction, PayMethod, ScenarioId } from "@/lib/aah/types";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,8 @@ function NewPost() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const s = scenario ? SCENARIOS[scenario] : null;
+  const diningExtra = mallDiningExtra(mall);
+  const fieldShown = (f: FieldDef) => (!f.onlyFor || f.onlyFor.includes(direction)) && (!f.onlyIfDiningRule || diningExtra != null);
 
   function pickScenario(id: ScenarioId) {
     setScenario(id);
@@ -76,17 +79,29 @@ function NewPost() {
     if (s.id === "parking" && direction === "have") {
       const amt = Number(fields.receiptAmount);
       if (!amt) return null;
-      const q = quoteParkingReceipt(mall, amt, now);
+      const dining = fields.receiptCategory === "食肆單";
+      const q = quoteParkingReceipt(mall, amt, now, { dining });
       if (q.belowThreshold) return { text: `按今日（${q.dayLabel}）規則，要消費滿 $${q.minThreshold} 先換到泊車。`, max: null, hours: 0, warn: true };
-      if (q.saving == null) return { text: `可以換 ${q.hours} 個鐘（呢個商場未有時租資料）。`, max: null, hours: q.hours };
-      return { text: `按今日（${q.dayLabel}）收費計，可以換 ${q.hours} 個鐘，即係慳 $${q.saving}。`, max: q.suggestMax, hours: q.hours };
+      const hoursText = `可以換 ${q.hours} 個鐘${q.extraApplied ? `（食肆單額外 +${q.extraApplied}）` : ""}`;
+      const copayText = q.discRate != null ? `，每個鐘 $${q.discRate}，共俾停車場 $${q.copay}` : "";
+      const moreText = q.diningExtra && !dining && q.hours > 0 ? ` 如果係食肆單，可以多換 ${q.diningExtra} 個鐘。` : "";
+      if (q.saving == null) return { text: `${hoursText}${copayText}（呢個商場未有時租資料）。${moreText}`, max: null, hours: q.hours };
+      return {
+        text: `按今日（${q.dayLabel}）收費計，${hoursText}${copayText}，比正價慳 $${q.saving}。${moreText}`,
+        max: q.suggestMax,
+        hours: q.hours,
+      };
     }
     if (s.id === "parking" && direction === "want") {
       const h = Number(fields.hours);
       if (!h) return null;
       const q = quoteParkingWant(mall, h, now);
       if (q.fee == null) return null;
-      return { text: `按今日（${q.dayLabel}）收費，泊 ${h} 個鐘要 $${q.fee}。`, max: q.suggestMax, hours: h };
+      const text =
+        q.discRate != null && q.full != null
+          ? `按今日（${q.dayLabel}）收費，泊 ${h} 個鐘正價 $${q.full}；用收據換（每個鐘 $${q.discRate}，共 $${q.copay}）慳 $${q.fee}。`
+          : `按今日（${q.dayLabel}）收費，泊 ${h} 個鐘要 $${q.fee}。`;
+      return { text, max: q.suggestMax, hours: h };
     }
     if (s.id === "offer" && direction === "have" && Number(fields.faceValue)) {
       return { text: `面值 $${fields.faceValue}。`, max: quoteOffer(Number(fields.faceValue)).suggestMax, hours: 0 };
@@ -100,14 +115,14 @@ function NewPost() {
     if (!s) return "揀一個場景";
     if (s.shopLabel && !shop.trim()) return "填舖頭";
     for (const f of s.fields) {
-      if (f.onlyFor && !f.onlyFor.includes(direction)) continue;
+      if (!fieldShown(f)) continue;
       if (f.required && !String(fields[f.key] ?? "").trim()) return `${f.type === "choice" ? "揀" : "填"}「${f.label}」`;
     }
     if (s.hasPrice && priceNum == null) return "填價錢（可以揀免費）";
     if (s.hasPrice && priceNum != null && priceNum > 0 && pay.length === 0) return "揀收款方式";
     if (!leaveAt) return "揀時間";
     return null;
-  }, [s, shop, fields, direction, priceNum, pay, leaveAt]);
+  }, [s, shop, fields, direction, priceNum, pay, leaveAt, diningExtra]);
 
   async function submit() {
     if (!s || !scenario || missing || !leaveAt || submitting) return;
@@ -130,7 +145,7 @@ function NewPost() {
     }
     const f: Record<string, string | number> = {};
     for (const def of s.fields) {
-      if (def.onlyFor && !def.onlyFor.includes(direction)) continue;
+      if (!fieldShown(def)) continue;
       const v = fields[def.key];
       if (v == null || v === "") continue;
       f[def.key] = def.type === "number" ? Number(v) : v.trim();
@@ -302,9 +317,19 @@ function NewPost() {
               )}
 
               {s.fields
-                .filter((f) => (!f.onlyFor || f.onlyFor.includes(direction)) && !(s.id === "groupbuy" && f.key === "deal"))
+                .filter((f) => fieldShown(f) && !(s.id === "groupbuy" && f.key === "deal"))
                 .map((f) => (
-                  <Section key={f.key} title={f.label} hint={f.key === "receiptType" ? "有啲商場只收電子單或者只收紙單，講清楚免得對方白行一趟" : undefined}>
+                  <Section
+                    key={f.key}
+                    title={f.label}
+                    hint={
+                      f.key === "receiptType"
+                        ? "有啲商場只收電子單或者只收紙單，講清楚免得對方白行一趟"
+                        : f.key === "receiptCategory" && diningExtra
+                          ? `呢個商場食肆單可以額外多換 ${diningExtra} 個鐘`
+                          : undefined
+                    }
+                  >
                     {f.type === "choice" ? (
                       <div className="flex flex-wrap gap-2">
                         {(f.options ?? []).map((o) => (
