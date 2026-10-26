@@ -24,7 +24,8 @@ import {
 } from "@/lib/aah/store";
 import { useAahMalls, nearbyMalls, demoAudience } from "@/lib/aah/malls";
 import { useCurrentMall, useNow, fmtClock, fmtLeft, fmtAgo } from "@/lib/aah/geo";
-import { SCENARIOS, keyInfo, payLabel } from "@/lib/aah/scenarios";
+import { SCENARIOS, keyInfo, payLabel, authorRole } from "@/lib/aah/scenarios";
+import { ScenarioTips } from "@/components/aah/ScenarioTips";
 import { buyerParkingSaving } from "@/lib/aah/pricing";
 import type { Post } from "@/lib/aah/types";
 import { cn } from "@/lib/utils";
@@ -204,7 +205,7 @@ function PostDetailView({ post }: { post: Post }) {
           </div>
         )}
 
-        {s.warning && <div className="text-xs bg-amber-50 border border-amber-200 text-amber-900 rounded-xl px-3 py-2.5">⚠️ {s.warning}</div>}
+        <ScenarioTips scenario={post.scenario} role={post.direction === "join" ? "taker" : authorRole(post.direction) === "giver" ? "taker" : "giver"} mall={mall} title="接之前要知" />
         <div className="text-xs bg-card rounded-xl px-3 py-2.5 text-muted-foreground">
           💡 {s.handoverHint}。{post.price ? "見面交收時先俾錢，唔好預先轉數。" : ""}
         </div>

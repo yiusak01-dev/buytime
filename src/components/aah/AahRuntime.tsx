@@ -157,7 +157,7 @@ export function AahRuntime() {
       if (first || before !== "active" || m.status !== "cancelled") continue;
       if (!m.participants.some((p) => p.userId === user.id) || !m.cancelledBy || m.cancelledBy === user.id) continue;
       toast("對方取消咗配對", {
-        description: m.lateCancel && m.arrived[user.id] ? "你已經到咗，已記錄對方臨時取消，並補償你 20 分" : `${m.shop}・${m.mallName}`,
+        description: m.lateCancel && m.arrived[user.id] ? "你已經到咗，已記錄對方臨時取消" : `${m.shop}・${m.mallName}`,
         action: { label: "睇附近着數", onClick: () => navigate({ to: "/", search: { cat: m.scenario } }) },
         duration: 12000,
       });
@@ -225,7 +225,7 @@ export function AahRuntime() {
   useEffect(() => {
     const banned = !!(user.bannedUntil && user.bannedUntil > Date.now());
     if (wasBanned.current === true && !banned && user.appeal?.status === "approved") {
-      toast.success("申訴成功", { description: "已經撤銷冇出現，帳戶同積分已經恢復", duration: 12000 });
+      toast.success("申訴成功", { description: "已經撤銷冇出現，帳戶已經恢復", duration: 12000 });
     }
     if (wasBanned.current === true && banned && user.appeal?.status === "rejected" && !toasted.current.has("appeal-rejected")) {
       toasted.current.add("appeal-rejected");

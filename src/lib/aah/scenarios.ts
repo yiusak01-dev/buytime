@@ -3,7 +3,9 @@ import type { Direction, PayMethod, ScenarioId } from "./types";
 export type FieldDef = {
   key: string;
   label: string;
-  type: "number" | "text";
+  type: "number" | "text" | "choice";
+  /** type = choice 嘅選項 */
+  options?: string[];
   placeholder?: string;
   suffix?: string;
   required?: boolean;
@@ -30,8 +32,8 @@ export type ScenarioDef = {
   meetPlaces: string[];
   /** 見面點完成 */
   handoverHint: string;
-  /** 出 post 要特別提醒 */
-  warning?: string;
+  /** 交收前要知：有嘢俾人嗰個（giver）同接收嗰個（taker）各自要留意嘅規則 */
+  tips: { giver: string[]; taker: string[] };
   /** $5 置頂推唔推附近商場 */
   pushNearby: boolean;
 };
@@ -48,13 +50,26 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
     shopSuggestions: [],
     fields: [
       { key: "receiptAmount", label: "收據消費金額", type: "number", placeholder: "例如 520", suffix: "元", required: true, onlyFor: ["have"] },
+      { key: "receiptType", label: "收據類型", type: "choice", options: ["紙單", "電子單"], required: true, onlyFor: ["have"] },
       { key: "hours", label: "想要幾多個鐘", type: "number", placeholder: "例如 2", suffix: "個鐘", required: true, onlyFor: ["want"] },
     ],
     hasPrice: true,
     timeQuestion: "你大約幾點離開商場？",
     meetPlaces: ["客戶服務台", "停車場繳費機", "商場正門"],
     handoverHint: "見面交收據，一手交錢一手交收據",
-    warning: "呢個商場要用實體收據換泊車先適用；綁咗會員 app 嘅消費轉唔到。",
+    tips: {
+      giver: [
+        "每個商場換泊車條款唔同：消費金額、換幾多個鐘、平日同假期都唔同，出 post 前睇清楚商場最新條款。",
+        "好多商場要用商場 app 或者電子收據登記先換到泊車；已經登記咗喺你會員帳戶嘅消費通常轉唔到。喺 post 講清楚係紙單定電子單。",
+        "收據一般要即日、喺同一個商場消費；有啲唔可以合併、分拆，或者唔收影印本。",
+        "已經換過泊車嘅收據唔好再俾人。",
+      ],
+      taker: [
+        "接之前問清楚係紙單定電子單、消費金額同日期，同你要換嘅條款夾唔夾。",
+        "問清楚喺邊度換（客務台、繳費機定商場 app），預留時間喺離場前換。",
+        "收據交到手、確認啱用先俾錢。",
+      ],
+    },
     pushNearby: false,
   },
   dining: {
@@ -75,7 +90,18 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
     timeQuestion: "預計幾點叫到號？",
     meetPlaces: ["餐廳門口", "商場正門"],
     handoverHint: "喺餐廳門口交飛",
-    warning: "人數要啱：2 位嘅飛唔啱 4 個人用。用手機排隊、綁咗電話號碼嘅飛轉唔到。",
+    tips: {
+      giver: [
+        "部分餐廳唔准轉讓飛，或者入座時要核對電話同人數；出 post 前確認轉得。",
+        "用手機排隊、綁咗電話號碼嘅飛通常轉唔到。",
+        "留意叫號進度，過咗號會作廢。",
+      ],
+      taker: [
+        "人數要同張飛一樣：2 位嘅飛唔啱 4 個人用。",
+        "問清楚而家叫到幾號，預算時間去到餐廳門口。",
+        "餐廳有權唔接受轉讓嘅飛，有爭議以餐廳決定為準。",
+      ],
+    },
     pushNearby: true,
   },
   offer: {
@@ -95,7 +121,17 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
     timeQuestion: "你大約幾點離開商場？",
     meetPlaces: ["舖頭門口", "商場正門"],
     handoverHint: "交券或者俾對方掃碼",
-    warning: "綁咗 app 或者會員帳戶嘅優惠轉唔到，出 post 前確認可以俾人用。",
+    tips: {
+      giver: [
+        "睇清楚有效期、使用條款同適用分店。",
+        "綁咗 app 或者會員帳戶嘅電子券通常轉唔到；確認可以轉贈先出 post。",
+        "實體券、印花要完整、冇用過。",
+      ],
+      taker: [
+        "接之前睇清楚優惠內容、有效期同限制，例如最低消費、指定貨品。",
+        "電子券最好即場轉贈或者用，確認成功先俾錢。",
+      ],
+    },
     pushNearby: true,
   },
   groupbuy: {
@@ -115,6 +151,18 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
     timeQuestion: "你大約幾點離開商場？",
     meetPlaces: ["舖頭門口", "商場正門"],
     handoverHint: "見面一齊去收銀處，各自俾自己嗰份",
+    tips: {
+      giver: [
+        "優惠條件以舖頭為準，例如要同一張單、指定貨品。",
+        "喺 post 講清楚想買咩、每人大約俾幾多。",
+        "見面一齊去收銀處，講好點樣夾錢先埋單。",
+      ],
+      taker: [
+        "優惠條件以舖頭為準，例如要同一張單、指定貨品。",
+        "加入前講清楚你想買咩、大約俾幾多。",
+        "見面一齊去收銀處，講好點樣夾錢先埋單。",
+      ],
+    },
     pushNearby: true,
   },
 };
@@ -147,7 +195,7 @@ export function keyInfo(s: ScenarioId, dir: Direction, f: Record<string, string 
   switch (s) {
     case "parking":
       return dir === "have"
-        ? f.hours ? `可換 ${f.hours} 個鐘` : `消費 $${f.receiptAmount}`
+        ? `${f.hours ? `可換 ${f.hours} 個鐘` : `消費 $${f.receiptAmount}`}${f.receiptType ? `・${f.receiptType}` : ""}`
         : `要 ${f.hours} 個鐘`;
     case "dining":
       return `${f.queueNo}・${f.partySize} 位${f.calling ? `・而家叫到 ${f.calling}` : ""}`;
@@ -156,4 +204,9 @@ export function keyInfo(s: ScenarioId, dir: Direction, f: Record<string, string 
     case "groupbuy":
       return `${f.deal}${f.note ? `・${f.note}` : ""}${needCount ? `・仲要 ${needCount} 人` : ""}`;
   }
+}
+
+/** 呢個 post 嘅作者係「俾嘢」定「接收」嗰個 */
+export function authorRole(direction: Direction): "giver" | "taker" {
+  return direction === "want" ? "taker" : "giver";
 }

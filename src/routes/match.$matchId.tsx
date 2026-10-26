@@ -11,7 +11,8 @@ import { aah, aahErrorText, useAahMode, useAahState, todayKey, CHAT_CLOSE_AFTER_
 import { geoStore } from "@/lib/aah/geo";
 import { useAahMalls } from "@/lib/aah/malls";
 import { useCurrentMall, useNow, fmtClock } from "@/lib/aah/geo";
-import { SCENARIOS, payLabel } from "@/lib/aah/scenarios";
+import { SCENARIOS, payLabel, authorRole } from "@/lib/aah/scenarios";
+import { ScenarioTips } from "@/components/aah/ScenarioTips";
 import type { Match } from "@/lib/aah/types";
 import { cn } from "@/lib/utils";
 
@@ -158,7 +159,7 @@ function MatchPage() {
           <div className="bg-card rounded-2xl p-4 space-y-3">
             <div className="font-bold">{cancelledByOther ? "對方取消咗配對" : "配對已取消"}</div>
             {cancelledByOther && m.lateCancel && iArrived && (
-              <div className="text-sm text-muted-foreground">你已經到咗，對方先取消。已經記錄咗對方一次臨時取消，亦補償咗你 20 分。</div>
+              <div className="text-sm text-muted-foreground">你已經到咗，對方先取消。已經記錄咗對方一次臨時取消。</div>
             )}
             {m.cancelledBy === user.id && m.lateCancel && (
               <div className="text-sm text-amber-800">對方已經到咗先取消，記咗一次臨時取消。</div>
@@ -179,7 +180,7 @@ function MatchPage() {
           (!m.arrived[user.id] && !(user.bannedUntil && user.bannedUntil > now) && user.appeal?.status === "approved" ? (
             <div className="bg-[#E3F5EC] text-[#1d6b47] rounded-2xl p-4 space-y-1">
               <div className="font-black">申訴成功</div>
-              <div className="text-sm">已經撤銷呢次冇出現，帳戶同積分已經恢復。</div>
+              <div className="text-sm">已經撤銷呢次冇出現，帳戶已經恢復。</div>
             </div>
           ) : !m.arrived[user.id] ? (
             // 報告人一定撳咗「我到咗」，所以未到嘅就係被報告嘅人
@@ -243,6 +244,14 @@ function MatchPage() {
         </div>
 
         {active && <PushPrompt reason="對方傳訊息、到咗、取消，都會即刻通知你。" />}
+
+        {/* 呢類交收要留意嘅規則（按我係俾嘢定接收） */}
+        {active && (() => {
+          const dir = posts.find((p) => p.id === m.postId)?.direction ?? "have";
+          const iAmAuthor = m.authorId === user.id;
+          const role = m.scenario === "groupbuy" ? (iAmAuthor ? "giver" : "taker") : iAmAuthor ? authorRole(dir) : authorRole(dir) === "giver" ? "taker" : "giver";
+          return <ScenarioTips scenario={m.scenario} role={role} mall={malls.find((x) => x.id === m.mallId)} />;
+        })()}
 
         {/* 交收提示 */}
         {m.price != null && m.price > 0 && (
@@ -398,7 +407,7 @@ function MatchPage() {
           {lateIfCancel ? (
             <div className="bg-red-50 text-red-900 rounded-2xl p-4 text-sm space-y-1.5">
               <div className="font-black flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" />對方已經到咗等緊你</div>
-              <div>而家取消會記一次「臨時取消」，扣 30 分，並且補償對方 20 分。</div>
+              <div>而家取消會記一次「臨時取消」；30 日內兩次會停用帳戶。</div>
               {(user.lateCancels30d ?? 0) >= 1 ? (
                 <div className="font-bold">你 30 日內已經有 {user.lateCancels30d} 次臨時取消，今次取消帳戶會停用一個月。</div>
               ) : (
@@ -415,7 +424,7 @@ function MatchPage() {
                 const late = lateIfCancel;
                 setCancelOpen(false);
                 void aah.cancelMatch(m.id, t).then(
-                  () => (late ? toast("已取消，記咗一次臨時取消", { description: "扣 30 分" }) : toast("已取消配對")),
+                  () => (late ? toast("已取消，記咗一次臨時取消", { description: "30 日內兩次會停用帳戶" }) : toast("已取消配對")),
                   (e) => toast.error(aahErrorText(e)),
                 );
               }}

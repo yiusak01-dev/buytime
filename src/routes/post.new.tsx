@@ -9,7 +9,8 @@ import { RegisterSheet } from "@/components/aah/RegisterSheet";
 import { aah, aahErrorText, getSettings, useAahState, isBanned, dailyDiningCount, DINING_POSTS_PER_DAY } from "@/lib/aah/store";
 import { useAahMalls, demoAudience } from "@/lib/aah/malls";
 import { useCurrentMall, fmtClock, useNow } from "@/lib/aah/geo";
-import { SCENARIOS, SCENARIO_LIST, GROUPBUY_DEALS, PAY_METHODS } from "@/lib/aah/scenarios";
+import { SCENARIOS, SCENARIO_LIST, GROUPBUY_DEALS, PAY_METHODS, authorRole } from "@/lib/aah/scenarios";
+import { ScenarioTips } from "@/components/aah/ScenarioTips";
 import { quoteParkingReceipt, quoteParkingWant, quoteOffer } from "@/lib/aah/pricing";
 import { readAmountFromImage } from "@/lib/aah/ocr";
 import type { Direction, PayMethod, ScenarioId } from "@/lib/aah/types";
@@ -100,7 +101,7 @@ function NewPost() {
     if (s.shopLabel && !shop.trim()) return "填舖頭";
     for (const f of s.fields) {
       if (f.onlyFor && !f.onlyFor.includes(direction)) continue;
-      if (f.required && !String(fields[f.key] ?? "").trim()) return `填「${f.label}」`;
+      if (f.required && !String(fields[f.key] ?? "").trim()) return `${f.type === "choice" ? "揀" : "填"}「${f.label}」`;
     }
     if (s.hasPrice && priceNum == null) return "填價錢（可以揀免費）";
     if (s.hasPrice && priceNum != null && priceNum > 0 && pay.length === 0) return "揀收款方式";
@@ -303,7 +304,14 @@ function NewPost() {
               {s.fields
                 .filter((f) => (!f.onlyFor || f.onlyFor.includes(direction)) && !(s.id === "groupbuy" && f.key === "deal"))
                 .map((f) => (
-                  <Section key={f.key} title={f.label}>
+                  <Section key={f.key} title={f.label} hint={f.key === "receiptType" ? "有啲商場只收電子單或者只收紙單，講清楚免得對方白行一趟" : undefined}>
+                    {f.type === "choice" ? (
+                      <div className="flex flex-wrap gap-2">
+                        {(f.options ?? []).map((o) => (
+                          <Chip key={o} active={fields[f.key] === o} onClick={() => setFields({ ...fields, [f.key]: o })}>{o}</Chip>
+                        ))}
+                      </div>
+                    ) : (
                     <div className="flex items-center gap-2 h-12 px-4 rounded-2xl border border-border bg-card">
                       <input
                         inputMode={f.type === "number" ? "numeric" : "text"}
@@ -314,6 +322,7 @@ function NewPost() {
                       />
                       {f.suffix && <span className="text-sm text-muted-foreground">{f.suffix}</span>}
                     </div>
+                    )}
                   </Section>
                 ))}
 
@@ -386,9 +395,7 @@ function NewPost() {
                 <Switch checked={autoAccept} onCheckedChange={setAutoAccept} />
               </label>
 
-              {s.warning && (
-                <div className="text-xs bg-amber-50 border border-amber-200 text-amber-900 rounded-xl px-3 py-2.5">⚠️ {s.warning}</div>
-              )}
+              <ScenarioTips scenario={s.id} role={authorRole(direction)} mall={mall} title="出 post 前要知" />
               <p className="text-[11px] text-muted-foreground">
                 發佈即表示你會遵守商場同商戶嘅規則。平台只係顯示資訊同配對，唔參與交易。
               </p>
