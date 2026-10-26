@@ -86,6 +86,12 @@ function PostSummary({ post, now }: { post: Post; now: number }) {
         <div className="font-black text-lg leading-snug">{post.shop}</div>
         <div className="text-sm text-muted-foreground">📍 {post.mallName}・{post.authorName}</div>
         <div className="text-[15px]">{keyInfo(post.scenario, post.direction, post.fields, post.needCount)}</div>
+        {post.fields.remark && (
+          <div className="text-sm bg-muted/60 rounded-xl px-3 py-2 whitespace-pre-wrap break-words">
+            <span className="font-semibold">備注：</span>
+            {String(post.fields.remark)}
+          </div>
+        )}
         {saving != null && saving > 0 && <div className="text-2xl font-black text-[#2E9E6A]">慳 ${saving}</div>}
         {post.payMethods.length > 0 && post.price != null && post.price > 0 && <div className="text-sm text-muted-foreground">收款：{payLabel(post.payMethods)}</div>}
         <div className="flex items-center gap-3 text-xs flex-wrap pt-1">

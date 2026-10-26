@@ -51,6 +51,7 @@ export function PostCard({ post, mall, now, otherMallLabel }: { post: Post; mall
           {otherMallLabel && <span className="text-xs font-semibold text-muted-foreground">・{otherMallLabel}</span>}
         </div>
         <div className="text-sm text-foreground/80">{keyInfo(post.scenario, post.direction, post.fields, post.needCount)}</div>
+        {post.fields.remark && <div className="text-xs text-muted-foreground line-clamp-1">備注：{String(post.fields.remark)}</div>}
 
         {saving != null && saving > 0 && <div className="text-lg font-black text-[#2E9E6A]">慳 ${saving}</div>}
 

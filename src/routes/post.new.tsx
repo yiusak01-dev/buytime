@@ -23,6 +23,13 @@ export const Route = createFileRoute("/post/new")({
 });
 
 const MIN = 60000;
+const REMARK_MAX = 80;
+const REMARK_PLACEHOLDER: Record<ScenarioId, string> = {
+  parking: "例如：一張餐廳單加一張超市單，喺停車場繳費處等",
+  dining: "例如：卡位，叫號前 5 分鐘喺門口等",
+  offer: "例如：只限指定貨品，今晚 10 點到期",
+  groupbuy: "例如：滿 $500 減 $100，想搵人夾 $250",
+};
 
 function NewPost() {
   const navigate = useNavigate();
@@ -36,6 +43,7 @@ function NewPost() {
   const [direction, setDirection] = useState<Direction>("have");
   const [shop, setShop] = useState("");
   const [fields, setFields] = useState<Record<string, string>>({});
+  const [remark, setRemark] = useState("");
   const [price, setPrice] = useState<string>("");
   const [free, setFree] = useState(false);
   const [pay, setPay] = useState<PayMethod[]>(user.defaultPayMethods);
@@ -57,6 +65,7 @@ function NewPost() {
     setScenario(id);
     setDirection(SCENARIOS[id].directions[0]);
     setFields(id === "groupbuy" ? { deal: GROUPBUY_DEALS[1] } : {});
+    setRemark("");
     setShop(id === "parking" ? "停車場" : "");
     setPrice("");
     setFree(false);
@@ -151,6 +160,7 @@ function NewPost() {
       f[def.key] = def.type === "number" ? Number(v) : v.trim();
     }
     if (scenario === "parking" && direction === "have" && suggestion?.hours) f.hours = suggestion.hours;
+    if (remark.trim()) f.remark = remark.trim();
 
     setSubmitting(true);
     try {
@@ -307,11 +317,20 @@ function NewPost() {
               )}
 
               {s.id === "groupbuy" && (
-                <Section title="咩優惠？">
+                <Section title="咩優惠？" hint="揀一個，或者自己寫">
                   <div className="flex flex-wrap gap-2">
                     {GROUPBUY_DEALS.map((d) => (
                       <Chip key={d} active={fields.deal === d} onClick={() => setFields({ ...fields, deal: d })}>{d}</Chip>
                     ))}
+                  </div>
+                  <div className="flex items-center gap-2 h-12 px-4 rounded-2xl border border-border bg-card">
+                    <input
+                      value={fields.deal && !GROUPBUY_DEALS.includes(fields.deal) ? fields.deal : ""}
+                      onChange={(e) => setFields({ ...fields, deal: e.target.value.slice(0, 30) })}
+                      placeholder="或者自己寫，例如 滿 $500 減 $100"
+                      aria-label="自己寫優惠"
+                      className="flex-1 min-w-0 bg-transparent outline-none"
+                    />
                   </div>
                 </Section>
               )}
@@ -403,6 +422,18 @@ function NewPost() {
                   </div>
                 </Section>
               )}
+
+              <Section title="備注（可以唔填）" hint="所有人都睇到；唔好寫電話或者個人資料">
+                <textarea
+                  value={remark}
+                  onChange={(e) => setRemark(e.target.value.slice(0, REMARK_MAX))}
+                  rows={2}
+                  placeholder={REMARK_PLACEHOLDER[s.id]}
+                  aria-label="備注"
+                  className="w-full px-4 py-3 rounded-2xl border border-border bg-card outline-none resize-none text-[15px]"
+                />
+                {remark.length > 0 && <div className="text-[11px] text-muted-foreground text-right">{remark.length}/{REMARK_MAX}</div>}
+              </Section>
 
               <Section title={s.timeQuestion} hint={leaveAt ? `大約 ${fmtClock(leaveAt)} ${timeWord}，到時個 post 會自動過期` : undefined}>
                 <div className="flex flex-wrap gap-2">
