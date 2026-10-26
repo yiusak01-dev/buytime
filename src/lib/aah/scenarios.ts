@@ -52,8 +52,9 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
     shopSuggestions: [],
     fields: [
       { key: "receiptAmount", label: "收據消費金額", type: "number", placeholder: "例如 520", suffix: "元", required: true, onlyFor: ["have"] },
+      { key: "receiptCount", label: "幾多張單？", type: "choice", options: ["1 張", "2 張", "3 張或以上"], required: true, onlyFor: ["have"] },
       { key: "receiptType", label: "收據類型", type: "choice", options: ["紙單", "電子單"], required: true, onlyFor: ["have"] },
-      { key: "receiptCategory", label: "係咪食肆（餐廳）單？", type: "choice", options: ["食肆單", "其他消費"], required: true, onlyFor: ["have"], onlyIfDiningRule: true },
+      { key: "receiptCategory", label: "入面有冇食肆（餐廳）單？", type: "choice", options: ["有食肆單", "冇食肆單"], required: true, onlyFor: ["have"], onlyIfDiningRule: true },
       { key: "hours", label: "想要幾多個鐘", type: "number", placeholder: "例如 2", suffix: "個鐘", required: true, onlyFor: ["want"] },
     ],
     hasPrice: true,
@@ -68,7 +69,7 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
         "已經換過泊車嘅收據唔好再俾人。",
       ],
       taker: [
-        "接之前問清楚係紙單定電子單、消費金額同日期，同你要換嘅條款夾唔夾。",
+        "接之前問清楚係紙單定電子單、幾多張單、消費金額同日期，同你要換嘅條款夾唔夾。",
         "問清楚喺邊度換（客務台、繳費機定商場 app），預留時間喺離場前換。",
         "收據交到手、確認啱用先俾錢。",
       ],
@@ -198,7 +199,7 @@ export function keyInfo(s: ScenarioId, dir: Direction, f: Record<string, string 
   switch (s) {
     case "parking":
       return dir === "have"
-        ? `${f.hours ? `可換 ${f.hours} 個鐘` : `消費 $${f.receiptAmount}`}${f.receiptCategory === "食肆單" ? "・食肆單" : ""}${f.receiptType ? `・${f.receiptType}` : ""}`
+        ? `${f.hours ? `可換 ${f.hours} 個鐘` : `消費 $${f.receiptAmount}`}${f.receiptCount && f.receiptCount !== "1 張" ? `・${f.receiptCount}單` : ""}${hasDiningReceipt(f) ? "・有食肆單" : ""}${f.receiptType ? `・${f.receiptType}` : ""}`
         : `要 ${f.hours} 個鐘`;
     case "dining":
       return `${f.queueNo}・${f.partySize} 位${f.calling ? `・而家叫到 ${f.calling}` : ""}`;
@@ -207,6 +208,11 @@ export function keyInfo(s: ScenarioId, dir: Direction, f: Record<string, string 
     case "groupbuy":
       return `${f.deal}${f.note ? `・${f.note}` : ""}${needCount ? `・仲要 ${needCount} 人` : ""}`;
   }
+}
+
+/** 泊車收據入面有冇食肆單（「食肆單」係舊寫法） */
+export function hasDiningReceipt(f: Record<string, string | number | undefined>): boolean {
+  return f.receiptCategory === "有食肆單" || f.receiptCategory === "食肆單";
 }
 
 /** 呢個 post 嘅作者係「俾嘢」定「接收」嗰個 */

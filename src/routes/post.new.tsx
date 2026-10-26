@@ -9,7 +9,7 @@ import { RegisterSheet } from "@/components/aah/RegisterSheet";
 import { aah, aahErrorText, getSettings, useAahState, isBanned, dailyDiningCount, DINING_POSTS_PER_DAY } from "@/lib/aah/store";
 import { useAahMalls, demoAudience } from "@/lib/aah/malls";
 import { useCurrentMall, fmtClock, useNow } from "@/lib/aah/geo";
-import { SCENARIOS, SCENARIO_LIST, GROUPBUY_DEALS, PAY_METHODS, authorRole } from "@/lib/aah/scenarios";
+import { SCENARIOS, SCENARIO_LIST, GROUPBUY_DEALS, PAY_METHODS, authorRole, hasDiningReceipt } from "@/lib/aah/scenarios";
 import { ScenarioTips } from "@/components/aah/ScenarioTips";
 import { quoteParkingReceipt, quoteParkingWant, quoteOffer, mallDiningExtra } from "@/lib/aah/pricing";
 import type { FieldDef } from "@/lib/aah/scenarios";
@@ -79,12 +79,12 @@ function NewPost() {
     if (s.id === "parking" && direction === "have") {
       const amt = Number(fields.receiptAmount);
       if (!amt) return null;
-      const dining = fields.receiptCategory === "食肆單";
+      const dining = hasDiningReceipt(fields);
       const q = quoteParkingReceipt(mall, amt, now, { dining });
       if (q.belowThreshold) return { text: `按今日（${q.dayLabel}）規則，要消費滿 $${q.minThreshold} 先換到泊車。`, max: null, hours: 0, warn: true };
-      const hoursText = `可以換 ${q.hours} 個鐘${q.extraApplied ? `（食肆單額外 +${q.extraApplied}）` : ""}`;
+      const hoursText = `可以換 ${q.hours} 個鐘${q.extraApplied ? `（有食肆單額外 +${q.extraApplied}）` : ""}`;
       const copayText = q.discRate != null ? `，每個鐘 $${q.discRate}，共俾停車場 $${q.copay}` : "";
-      const moreText = q.diningExtra && !dining && q.hours > 0 ? ` 如果係食肆單，可以多換 ${q.diningExtra} 個鐘。` : "";
+      const moreText = q.diningExtra && !dining && q.hours > 0 ? ` 如果入面有食肆單，可以多換 ${q.diningExtra} 個鐘。` : "";
       if (q.saving == null) return { text: `${hoursText}${copayText}（呢個商場未有時租資料）。${moreText}`, max: null, hours: q.hours };
       return {
         text: `按今日（${q.dayLabel}）收費計，${hoursText}${copayText}，比正價慳 $${q.saving}。${moreText}`,
@@ -323,11 +323,13 @@ function NewPost() {
                     key={f.key}
                     title={f.label}
                     hint={
-                      f.key === "receiptType"
-                        ? "有啲商場只收電子單或者只收紙單，講清楚免得對方白行一趟"
-                        : f.key === "receiptCategory" && diningExtra
-                          ? `呢個商場食肆單可以額外多換 ${diningExtra} 個鐘`
-                          : undefined
+                      f.key === "receiptAmount"
+                        ? "幾張單加埋計就填總數（有冇得合併睇商場條款）"
+                        : f.key === "receiptType"
+                          ? "有啲商場只收電子單或者只收紙單，講清楚免得對方白行一趟"
+                          : f.key === "receiptCategory" && diningExtra
+                            ? `呢個商場只要其中一張係食肆單，可以額外多換 ${diningExtra} 個鐘`
+                            : undefined
                     }
                   >
                     {f.type === "choice" ? (

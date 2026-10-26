@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { AahMall, Post } from "@/lib/aah/types";
-import { SCENARIOS, keyInfo, payLabel } from "@/lib/aah/scenarios";
+import { SCENARIOS, keyInfo, payLabel, hasDiningReceipt } from "@/lib/aah/scenarios";
 import { quoteParkingReceipt } from "@/lib/aah/pricing";
 import { fmtClock, fmtLeft } from "@/lib/aah/geo";
 import { ScenarioTag } from "./ui";
@@ -8,7 +8,7 @@ import { ScenarioTag } from "./ui";
 /** 呢個 post 可以慳幾多（顯示得比價錢大，強調係配對唔係買賣） */
 export function postSaving(post: Post, mall: AahMall | undefined, now: number): number | null {
   if (post.scenario === "parking" && post.direction === "have" && mall) {
-    const q = quoteParkingReceipt(mall, Number(post.fields.receiptAmount ?? 0), now, { dining: post.fields.receiptCategory === "食肆單" });
+    const q = quoteParkingReceipt(mall, Number(post.fields.receiptAmount ?? 0), now, { dining: hasDiningReceipt(post.fields) });
     if (q.saving == null) return null;
     return Math.max(0, q.saving - (post.price ?? 0));
   }
