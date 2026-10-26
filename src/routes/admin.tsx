@@ -16,7 +16,7 @@ import {
   type Dispute,
   type AppRole,
 } from "@/lib/escrow-db";
-import { AahAppealsTab, AahReportsTab, AahVouchersTab, AahAdminLogTab } from "@/components/aah/admin/AahAdminTabs";
+import { AahAppealsTab, AahReportsTab, AahAdminLogTab } from "@/components/aah/admin/AahAdminTabs";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPanel,
@@ -87,7 +87,6 @@ function AdminPanel() {
           {([
             ["appeals", "申訴"],
             ["aahReports", "舉報"],
-            ["vouchers", "禮券"],
             ["log", "操作紀錄"],
             ...(isSuper ? ([["users", "用戶"]] as [Tab, string][]) : []),
             ["legacy", "舊版"],
@@ -108,7 +107,6 @@ function AdminPanel() {
       <div className="p-4">
         {tab === "appeals" && <AahAppealsTab />}
         {tab === "aahReports" && <AahReportsTab />}
-        {tab === "vouchers" && <AahVouchersTab />}
         {tab === "log" && <AahAdminLogTab />}
         {tab === "users" && isSuper && me && <UsersTab adminId={me} />}
         {tab === "legacy" && me && (

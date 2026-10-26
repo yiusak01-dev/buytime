@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ChevronRight, Gift, KeyRound, LogOut, Pencil, Pin, ShieldAlert, Trash2 } from "lucide-react";
+import { ChevronRight, KeyRound, LogOut, Pencil, Pin, ShieldAlert, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { AppLayout } from "@/components/AppLayout";
@@ -49,8 +49,6 @@ function MePage() {
   // 只計今次停用之後提交嘅申訴（舊嘅申訴唔應該擋住今次）
   const appeal = user.appeal && user.appeal.at >= banStart - 60000 ? user.appeal : undefined;
   const canAppeal = banned && now - banStart < 2 * DAY && !appeal;
-  const accountDays = user.registeredAt ? Math.floor((now - user.registeredAt) / DAY) : 0;
-  const voucherPending = user.voucherRequests.filter((v) => v.status === "pending").length;
   const mode = useAahMode();
 
   return (
@@ -166,13 +164,14 @@ function MePage() {
               <div className="text-[11px] text-muted-foreground">再儲 {lv.next.min - user.lifetimePoints} 分升做 {lv.next.badge} {lv.next.label}</div>
             </div>
           )}
+          <div className="text-sm">積分係你幫人嘅紀錄，儲分就會升等級。</div>
           <div className="text-xs text-muted-foreground">
             完成交收儲分：有嘢俾人 {POINTS.giver} 分、接收 {POINTS.taker} 分、夾單每人 {POINTS.groupbuy} 分。同一對人一星期內唔重複計分，每日最多 {POINTS.dailyCap} 分。
           </div>
           {pinIsFree(mode) ? (
             <div className="w-full rounded-2xl bg-accent/60 flex items-center gap-3 px-4 py-3">
               <Pin className="w-5 h-5 shrink-0" />
-              <span className="text-sm">現階段置頂免費，唔使用分換，積分留返換禮券。</span>
+              <span className="text-sm">現階段置頂免費，唔使用分換。</span>
             </div>
           ) : (
             <button
@@ -186,24 +185,6 @@ function MePage() {
               </span>
             </button>
           )}
-          <button
-            onClick={() => {
-              if (!user.registered) return setRegOpen(true);
-              if (accountDays < POINTS.voucherMinAccountDays) return toast.error(`帳戶要用夠 ${POINTS.voucherMinAccountDays} 日先可以換禮券`, { description: `你已經用咗 ${accountDays} 日` });
-              aah.requestVoucher().then(
-                () => toast.success("已提交換領申請", { description: "人手審核後，會將電子禮券寄去你登記嘅 email" }),
-                (e) => toast.error(aahErrorText(e)),
-              );
-            }}
-            className="w-full rounded-2xl border border-border flex items-center gap-3 px-4 py-3 text-left"
-          >
-            <Gift className="w-5 h-5 shrink-0" />
-            <span className="flex-1 min-w-0">
-              <span className="block font-semibold text-sm">{POINTS.voucherCost.toLocaleString()} 分換 ${POINTS.voucherValue} 百佳電子禮券</span>
-              <span className="block text-xs text-muted-foreground">每月限量 {POINTS.voucherMonthlyQuota} 張・帳戶要用夠 {POINTS.voucherMinAccountDays} 日</span>
-            </span>
-          </button>
-          {voucherPending > 0 && <div className="text-xs text-muted-foreground">有 {voucherPending} 張禮券審核緊</div>}
           <div className="text-[11px] text-muted-foreground">積分唔可以換現金、唔可以轉俾人。冇出現扣 {POINTS.noShowPenalty} 分。</div>
         </section>
 
@@ -333,7 +314,7 @@ function MePage() {
           <div className="bg-red-50 text-red-900 rounded-2xl p-4 text-sm space-y-1.5">
             <div className="font-bold">刪除之後冇得還原：</div>
             <div>・你嘅 email、暱稱、推送裝置同位置紀錄會被清走</div>
-            <div>・仲開緊嘅 post 會收埋，積分（{user.points} 分）同禮券申請會作廢</div>
+            <div>・仲開緊嘅 post 會收埋，積分（{user.points} 分）同等級會作廢</div>
             <div>・對方嘅配對紀錄會保留，但你個名同訊息會變做「已刪除」</div>
             <div>・之後可以用同一個 email 重新註冊，但會係一個新帳戶</div>
           </div>
