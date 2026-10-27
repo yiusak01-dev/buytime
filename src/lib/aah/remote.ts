@@ -456,7 +456,7 @@ export function createRemote(host: Host) {
       return matchId ?? undefined;
     },
 
-    /** 去緊嘅人過咗講好時間 5 分鐘都未到：取消、記冇出現、重新放出 post */
+    /** 去緊嘅人過咗講好時間 5 分鐘都未到：取消、記佢一次臨時取消、重新放出 post */
     async releaseLate(matchId: string): Promise<"open" | "expired"> {
       const r = await rpc("aah_release_late", { p_match: matchId });
       scheduleRefresh();
@@ -664,6 +664,7 @@ export function aahErrorText(e: unknown): string {
     [/too far for eta/, "你距離商場太遠，揀長啲時間再試"],
     [/bad eta/, "最多可以揀 30 分鐘到"],
     [/not en route/, "呢個配對唔係去緊嘅人"],
+    [/en route use release/, "對方係去緊嘅人：過咗講好時間 5 分鐘，用上面「取消並重新放出」"],
     [/not at mall|gps required/, "GPS 未確認你喺商場，去到見面地點再撳"],
     [/too early/, "未到約定時間，唔可以報告冇出現"],
     [/reporter has not arrived/, "你要先撳「我到咗」"],

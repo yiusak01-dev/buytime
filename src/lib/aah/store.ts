@@ -4,6 +4,7 @@ import type { AahMall, Interest, Match, Message, Outfit, Post, User } from "./ty
 import { SCENARIOS } from "./scenarios";
 import { quoteParkingReceipt } from "./pricing";
 import { POINTS, canEarnPoints } from "./points";
+import { cancelIsLate } from "./enroute";
 import { createRemote, detectRemote, type InterestOpts, type LocalPrefs, type Remote, type RemoteSettings } from "./remote";
 
 /**
@@ -445,14 +446,15 @@ const local = {
     if (!m) return;
     const me = state.user.id;
     const now = Date.now();
-    // 臨時取消：對方已經到咗，自己未到
-    const late = !m.arrived[me] && m.participants.some((p) => p.userId !== me && m.arrived[p.userId]);
+    // 臨時取消：對方已經到咗而自己未到；或者去緊嘅配對過咗頭 2 分鐘、去緊嘅人仲未到
+    const late = cancelIsLate(m, me, now);
+    const otherWaiting = !m.arrived[me] && m.participants.some((p) => p.userId !== me && m.arrived[p.userId]);
     const msgs = [{ id: uid("msg"), from: me, text: reason, at: now }];
     if (late) {
       const log = [...(state.user.lateCancelLog ?? []), now].filter((t) => now - t < 30 * DAY);
       const ded = Math.min(30, state.user.points);
       const banned = log.length >= 2;
-      msgs.push(sysMsg(`${displayName(state.user)} 喺對方到咗之後取消，記一次臨時取消。已經到咗嘅人補償 20 分。`));
+      msgs.push(sysMsg(`${displayName(state.user)} ${otherWaiting ? "喺對方到咗之後取消" : m.enRouteUser === me ? "中途取消" : "喺對方去緊嘅時候取消"}，記一次臨時取消。`));
       if (banned) msgs.push(sysMsg(`${displayName(state.user)} 30 日內第二次臨時取消，帳戶停用一個月。`));
       set({
         ...state,
@@ -465,7 +467,7 @@ const local = {
         },
       });
     } else {
-      msgs.push(sysMsg("配對已取消。對方未到之前取消唔會被罰。"));
+      msgs.push(sysMsg("配對已取消。配對頭 2 分鐘、或者對方未到又唔係喺路上，取消唔會被罰。"));
     }
     patchMatch(matchId, (x) => ({ ...x, status: "cancelled", endedAt: now, cancelledBy: me, lateCancel: late, messages: [...x.messages, ...msgs] }));
     const iAmAuthor = m.authorId === me;
@@ -499,7 +501,19 @@ const local = {
     if (!m.enRouteUser || !m.etaAt) throw new Error("not en route");
     if (Date.now() < m.etaAt + 5 * MIN) throw new Error("too early");
     if (!m.arrived[state.user.id]) throw new Error("reporter has not arrived");
-    patchMatch(matchId, (x) => ({ ...x, status: "noshow", endedAt: Date.now(), messages: [...x.messages, sysMsg("對方過咗講好嘅時間都未到，配對已經取消，個 post 重新放出。")] }));
+    const lateName = m.participants.find((pp) => pp.userId === m.enRouteUser)?.name ?? "對方";
+    patchMatch(matchId, (x) => ({
+      ...x,
+      status: "cancelled",
+      endedAt: Date.now(),
+      cancelledBy: state.user.id,
+      lateCancel: false,
+      messages: [
+        ...x.messages,
+        { id: uid("msg"), from: state.user.id, text: "你過咗講好嘅時間都未到，我取消咗，個 post 重新放出", at: Date.now() },
+        sysMsg(`${lateName} 過咗講好嘅時間 5 分鐘都未到，記一次臨時取消。`),
+      ],
+    }));
     const p = state.posts.find((x) => x.id === m.postId);
     const status = p && p.leaveAt > Date.now() + 2 * MIN ? "open" : "expired";
     if (p) {

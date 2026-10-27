@@ -50,7 +50,7 @@ function NewPost() {
   const [leaveMode, setLeaveMode] = useState<number | "custom">(30);
   const [customTime, setCustomTime] = useState("");
   const [autoAccept, setAutoAccept] = useState(false);
-  const [acceptEnRoute, setAcceptEnRoute] = useState(true);
+  const [acceptEnRoute, setAcceptEnRoute] = useState(false);
   const [needCount, setNeedCount] = useState(1);
   const [regOpen, setRegOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -462,8 +462,8 @@ function NewPost() {
                     <div className="font-semibold text-sm">接受去緊嘅人</div>
                     <div className="text-xs text-muted-foreground">
                       {acceptEnRoute
-                        ? "未到商場嘅人都可以接，最多 30 分鐘到；佢遲到你可以取消並重新放出"
-                        : "只限已經喺商場嘅人接；啱啱就走、等唔切就揀呢個"}
+                        ? "未到商場嘅人都可以接，最多 30 分鐘到。配對咗之後佢喺路上，你無故取消會記一次臨時取消；佢遲到 5 分鐘你可以取消並重新放出"
+                        : "而家只限已經喺商場嘅人接。開咗，未到商場、去緊嘅人都可以接"}
                     </div>
                   </div>
                   <Switch checked={acceptEnRoute} onCheckedChange={setAcceptEnRoute} />

@@ -279,7 +279,7 @@ function PostDetailView({ post }: { post: Post }) {
             <div className="bg-card rounded-2xl p-4 text-center space-y-1 shadow-lg">
               <div className="font-bold">你話咗 {fmtClock(mine.etaAt)} 前到 {post.mallName}</div>
               <div className="text-xs text-muted-foreground">
-                去到商場會自動話對方知你到咗。過咗 {fmtClock(mine.etaAt + LATE_GRACE_MIN * 60000)} 都未到，對方可以取消，會記你一次冇出現。
+                去到商場會自動話對方知你到咗。過咗 {fmtClock(mine.etaAt + LATE_GRACE_MIN * 60000)} 都未到，對方可以取消，會記你一次臨時取消。
               </div>
             </div>
           ) : !inRange && enRouteOk && !mine ? (
@@ -301,7 +301,9 @@ function PostDetailView({ post }: { post: Post }) {
                       </Chip>
                     ))}
                   </div>
-                  <div className="text-[11px] text-amber-800">過咗講好嘅時間 5 分鐘都未到，對方可以取消，會記你一次冇出現（帳戶停用 30 日）。</div>
+                  <div className="text-[11px] text-amber-800">
+                    配對咗之後中途唔嚟，或者過咗講好時間 5 分鐘都未到，會記一次臨時取消（30 日內兩次停用一個月）。出 post 嘅人喺你去緊時無故取消，佢都會被記。
+                  </div>
                   <button
                     disabled={eta == null}
                     onClick={() => eta != null && goEnRoute(eta)}

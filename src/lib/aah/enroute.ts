@@ -1,4 +1,4 @@
-import type { Interest, Post } from "./types";
+import type { Interest, Match, Post } from "./types";
 
 /** 「我去緊」：可以揀幾多分鐘到 */
 export const ETA_OPTIONS = [10, 20, 30] as const;
@@ -6,8 +6,21 @@ export const ETA_OPTIONS = [10, 20, 30] as const;
 export const ETA_BUFFER_MIN = 5;
 /** 過咗講好時間幾多分鐘，對方可以取消並重新放出 */
 export const LATE_GRACE_MIN = 5;
+/** 配對頭幾分鐘反悔唔計臨時取消 */
+export const CANCEL_GRACE_MIN = 2;
 
 const MIN = 60000;
+
+/**
+ * 而家取消會唔會記一次臨時取消（同伺服器一樣）：
+ *  - 對方已經到咗，自己未到；或者
+ *  - 去緊嘅配對：配對咗 2 分鐘之後，去緊嘅人仲未到（邊個取消都算）
+ */
+export function cancelIsLate(m: Match, me: string, now: number): boolean {
+  const otherArrived = !m.arrived[me] && m.participants.some((p) => p.userId !== me && m.arrived[p.userId]);
+  const enRoute = !!m.enRouteUser && now > m.createdAt + CANCEL_GRACE_MIN * MIN && !m.arrived[m.enRouteUser];
+  return otherArrived || enRoute;
+}
 
 /** 呢個 post 接唔接去緊嘅人（夾單一律唔接） */
 export function acceptsEnRoute(post: Post): boolean {

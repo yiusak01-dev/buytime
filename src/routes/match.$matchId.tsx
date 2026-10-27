@@ -11,7 +11,7 @@ import { aah, aahErrorText, useAahMode, useAahState, todayKey, CHAT_CLOSE_AFTER_
 import { geoStore } from "@/lib/aah/geo";
 import { useAahMalls } from "@/lib/aah/malls";
 import { useCurrentMall, useNow, fmtClock, fmtLeft } from "@/lib/aah/geo";
-import { LATE_GRACE_MIN } from "@/lib/aah/enroute";
+import { LATE_GRACE_MIN, CANCEL_GRACE_MIN, cancelIsLate } from "@/lib/aah/enroute";
 import { SCENARIOS, payLabel, authorRole } from "@/lib/aah/scenarios";
 import { ScenarioTips } from "@/components/aah/ScenarioTips";
 import type { Match } from "@/lib/aah/types";
@@ -97,8 +97,12 @@ function MatchPage() {
     void act(aah.sendMessage(m!.id, t));
   }
 
-  // 臨時取消：對方已經到咗，自己未到
-  const lateIfCancel = !iArrived && others.some((o) => m.arrived[o.userId]);
+  // 臨時取消：對方已經到咗而自己未到；或者去緊嘅配對過咗頭 2 分鐘、去緊嘅人仲未到
+  const lateIfCancel = cancelIsLate(m, user.id, now);
+  const otherWaiting = !iArrived && others.some((o) => m.arrived[o.userId]);
+  const enRouteLate = lateIfCancel && !otherWaiting;
+  const iAmEnRoute = m.enRouteUser === user.id;
+  const enRouteMins = Math.max(1, Math.round((now - m.createdAt) / MIN));
   const cancelledByOther = m.status === "cancelled" && !!m.cancelledBy && m.cancelledBy !== user.id;
   const alternatives = posts.filter((p) => p.mallId === m.mallId && p.scenario === m.scenario && p.status === "open" && p.leaveAt > now && p.authorId !== user.id && p.id !== m.postId);
 
@@ -126,7 +130,11 @@ function MatchPage() {
     }
   }
 
-  const presets = [`喺${m.meetPlace}等`, "5 分鐘到", "10 分鐘到", "等我 2 分鐘", "搵唔到你"];
+  const presets = m.enRouteUser
+    ? m.enRouteUser === user.id
+      ? ["出發咗", "塞車，遲 5 分鐘", "就到", "唔好意思，有急事", `喺${m.meetPlace}等`]
+      : [`喺${m.meetPlace}等`, "唔使急，慢慢嚟", "到咗未？", "唔好意思，有急事"]
+    : [`喺${m.meetPlace}等`, "5 分鐘到", "10 分鐘到", "等我 2 分鐘", "搵唔到你", "唔好意思，有急事"];
 
   // 我去緊：對方講咗幾點到
   const enRouteName = m.enRouteUser ? m.participants.find((p) => p.userId === m.enRouteUser)?.name ?? "對方" : null;
@@ -221,8 +229,8 @@ function MatchPage() {
             <div className="bg-amber-50 border border-amber-200 text-amber-950 rounded-2xl p-4 space-y-1">
               <div className="font-bold">你講咗 {fmtClock(m.etaAt)} 前到</div>
               <div className="text-sm">
-                {now < m.etaAt ? `仲有 ${fmtLeft(m.etaAt - now)}。` : "已經過咗講好嘅時間。"}
-                到咗見面地點撳「我到咗」。過咗 {fmtClock(graceEnd)} 都未到，對方可以取消，會記你一次冇出現。
+                {now < m.etaAt ? `${fmtLeft(m.etaAt - now)}。` : "已經過咗講好嘅時間。"}
+                到咗見面地點撳「我到咗」。過咗 {fmtClock(graceEnd)} 都未到，對方可以取消，會記你一次臨時取消。
               </div>
             </div>
           ) : (
@@ -230,7 +238,7 @@ function MatchPage() {
               <div className="font-bold">{enRouteName} 去緊，講咗 {fmtClock(m.etaAt)} 前到</div>
               <div className="text-sm">
                 {now < m.etaAt
-                  ? `仲有 ${fmtLeft(m.etaAt - now)}。`
+                  ? `${fmtLeft(m.etaAt - now)}。`
                   : now < graceEnd
                     ? `遲咗少少。${fmtClock(graceEnd)} 都未到，你可以取消並重新放出。`
                     : "已經過咗講好嘅時間 5 分鐘。"}
@@ -240,7 +248,7 @@ function MatchPage() {
                   <div className="text-xs">你撳咗「我到咗」之後，就可以取消並重新放出個 post。</div>
                 ) : releaseAsk ? (
                   <div className="space-y-2">
-                    <div className="text-xs">確定？會記 {enRouteName} 一次冇出現（佢可以申訴），之前有興趣嘅人會收到通知。</div>
+                    <div className="text-xs">確定？會記 {enRouteName} 一次臨時取消，之前有興趣嘅人會收到通知。</div>
                     <div className="flex gap-2">
                       <button onClick={() => void releaseLate()} className="flex-1 h-11 rounded-2xl bg-[#1a1a1a] text-white font-bold">確定取消</button>
                       <button onClick={() => setReleaseAsk(false)} className="flex-1 h-11 rounded-2xl border border-amber-300 font-bold">再等等</button>
@@ -436,7 +444,11 @@ function MatchPage() {
           <div className="bg-red-50 text-red-900 rounded-2xl p-4 text-sm space-y-2">
             <div className="font-black flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" />冇出現會被停用一個月</div>
             <div>確認之後，如果你最後冇出現，對方報告並經 GPS 核實，你嘅帳戶會停用 {BAN_DAYS} 日。</div>
-            <div>有急事？喺約定時間（{fmtClock(m.meetAt)}）之前撳「取消」，唔會被罰。</div>
+            {m.enRouteUser ? (
+              <div>配對咗 {CANCEL_GRACE_MIN} 分鐘之後，去緊嘅人仲喺路上，邊個無故取消都會記一次臨時取消；遲到 {LATE_GRACE_MIN} 分鐘都一樣。</div>
+            ) : (
+              <div>有急事？喺約定時間（{fmtClock(m.meetAt)}）之前撳「取消」，唔會被罰。</div>
+            )}
             <div>覺得被誤會（例如電話冇電、停車場收唔到 GPS），可以喺 48 小時內喺「我的配對」申訴。</div>
           </div>
           <button
@@ -467,18 +479,26 @@ function MatchPage() {
         <div className="space-y-2 pb-2">
           {lateIfCancel ? (
             <div className="bg-red-50 text-red-900 rounded-2xl p-4 text-sm space-y-1.5">
-              <div className="font-black flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" />對方已經到咗等緊你</div>
+              <div className="font-black flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4" />
+                {!enRouteLate ? "對方已經到咗等緊你" : iAmEnRoute ? "對方喺度等緊你" : `對方已經出發咗 ${enRouteMins} 分鐘`}
+              </div>
               <div>而家取消會記一次「臨時取消」；30 日內兩次會停用帳戶。</div>
+              <div>真係有急事，可以先喺對話同對方講聲，俾個面對方。</div>
               {(user.lateCancels30d ?? 0) >= 1 ? (
                 <div className="font-bold">你 30 日內已經有 {user.lateCancels30d} 次臨時取消，今次取消帳戶會停用一個月。</div>
               ) : (
                 <div>30 日內第二次臨時取消，帳戶會停用一個月。</div>
               )}
             </div>
+          ) : m.enRouteUser && !m.arrived[m.enRouteUser] ? (
+            <p className="text-sm text-muted-foreground">
+              配對咗未夠 {CANCEL_GRACE_MIN} 分鐘，而家取消唔會被罰。過咗 {CANCEL_GRACE_MIN} 分鐘，{iAmEnRoute ? "你" : "對方"}喺路上時取消就會記一次臨時取消。
+            </p>
           ) : (
             <p className="text-sm text-muted-foreground">對方未到，而家取消唔會被罰。</p>
           )}
-          {["唔好意思，唔要喇", "我要走喇"].map((t) => (
+          {["唔好意思，有急事", "唔好意思，唔要喇", "我要走喇"].map((t) => (
             <button
               key={t}
               onClick={() => {
