@@ -5,6 +5,7 @@ import { SCENARIOS } from "./scenarios";
 import { quoteParkingReceipt } from "./pricing";
 import { POINTS, canEarnPoints } from "./points";
 import { cancelIsLate } from "./enroute";
+import { nicknameProblem, nextNicknameChangeAt } from "./nickname";
 import { createRemote, detectRemote, type InterestOpts, type LocalPrefs, type Remote, type RemoteSettings } from "./remote";
 
 /**
@@ -768,9 +769,16 @@ export const aah = {
   async changeNickname(nickname: string) {
     const n = nickname.trim().slice(0, 12);
     if (!n) throw new Error("nickname required");
-    if (!isRemote()) return local.updateUser({ nickname: n });
+    if (!isRemote()) {
+      // 示範模式：同伺服器一樣嘅規則
+      if (nicknameProblem(n)) throw new Error(/數字/.test(nicknameProblem(n)!) ? "nickname has number" : "nickname reserved");
+      if (n === state.user.nickname) return;
+      if (nextNicknameChangeAt(state.user.nicknameChangedAt, Date.now())) throw new Error("nickname cooldown");
+      return local.updateUser({ nickname: n, nicknameChangedAt: Date.now() });
+    }
+    if (n === state.user.nickname) return;
     await R().updateProfile({ nickname: n });
-    patchUserLocal({ nickname: n });
+    patchUserLocal({ nickname: n, nicknameChangedAt: Date.now() });
   },
   async completeRegistration(phone: string | null, nickname: string) {
     if (!isRemote()) return local.register(phone ?? "", nickname);

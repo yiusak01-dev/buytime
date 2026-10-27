@@ -12,6 +12,7 @@ import { aah, aahErrorText, getSettings, useAahMode, useAahState, isBanned, DAY,
 import { useAahMalls } from "@/lib/aah/malls";
 import { useCurrentMall, useNow, fmtClock, fmtAgo } from "@/lib/aah/geo";
 import { SCENARIOS, SCENARIO_LIST } from "@/lib/aah/scenarios";
+import { nicknameProblem, nextNicknameChangeAt } from "@/lib/aah/nickname";
 
 export const Route = createFileRoute("/me")({
   head: () => ({ meta: [{ title: "我的配對 · 啱啱好" }] }),
@@ -38,8 +39,16 @@ function MePage() {
 
   const myMatches = useMemo(() => matches.filter((m) => m.participants.some((p) => p.userId === user.id)), [matches, user.id]);
   const activeMatches = myMatches.filter((m) => m.status === "active");
-  const pastMatches = myMatches.filter((m) => m.status !== "active");
+
+  // 改暱稱：配對緊、有 post 開緊、30 日內改過就唔改得
+  const nextNickAt = nextNicknameChangeAt(user.nicknameChangedAt, now);
   const myOpenPosts = posts.filter((p) => p.authorId === user.id && p.status === "open" && p.leaveAt > now);
+  const pastMatches = myMatches.filter((m) => m.status !== "active");
+  const nickBlock = nextNickAt
+    ? `暱稱 30 日只可以改一次，${new Date(nextNickAt).toLocaleDateString("zh-HK")} 之後先改得。`
+    : activeMatches.length > 0 || myOpenPosts.length > 0
+      ? "你有 post 開緊或者配對緊，完成或者取消之後先改得暱稱。"
+      : null;
   const myOldPosts = posts.filter((p) => p.authorId === user.id && (p.status === "expired" || p.status === "cancelled")).slice(0, 10);
 
   const banned = isBanned(user, now);
@@ -311,7 +320,7 @@ function MePage() {
           className="space-y-3 pb-2"
           onSubmit={(e) => {
             e.preventDefault();
-            if (!nickDraft.trim()) return;
+            if (!nickDraft.trim() || nickBlock || nicknameProblem(nickDraft)) return;
             setNickBusy(true);
             aah.changeNickname(nickDraft).then(
               () => {
@@ -322,16 +331,35 @@ function MePage() {
             ).finally(() => setNickBusy(false));
           }}
         >
-          <input
-            value={nickDraft}
-            onChange={(e) => setNickDraft(e.target.value.slice(0, 12))}
-            placeholder="暱稱，例如 阿明"
-            className="w-full h-12 px-4 rounded-2xl border border-border bg-background outline-none text-base"
-          />
-          <div className="text-xs text-muted-foreground">最多 12 個字。對方配對時會見到呢個名；已經發佈嘅 post 會保留舊名。</div>
-          <button disabled={nickBusy || !nickDraft.trim()} className="w-full h-12 rounded-2xl bg-[#1a1a1a] text-white font-bold disabled:opacity-40">
-            {nickBusy ? "儲存緊…" : "儲存"}
-          </button>
+          {nickBlock ? (
+            <div className="text-sm bg-amber-50 text-amber-900 border border-amber-200 rounded-2xl px-4 py-3">{nickBlock}</div>
+          ) : (
+            <>
+              <input
+                value={nickDraft}
+                onChange={(e) => setNickDraft(e.target.value.slice(0, 12))}
+                placeholder="暱稱，例如 阿明"
+                className="w-full h-12 px-4 rounded-2xl border border-border bg-background outline-none text-base"
+              />
+              {nickDraft.trim() && nickDraft.trim() !== user.nickname && nicknameProblem(nickDraft) && (
+                <div className="text-xs text-destructive">{nicknameProblem(nickDraft)}</div>
+              )}
+            </>
+          )}
+          <ul className="text-xs text-muted-foreground space-y-0.5">
+            <li>・最多 12 個字，30 日只可以改一次</li>
+            <li>・有 post 開緊或者配對緊嗰陣唔改得，免得對方以為等錯人</li>
+            <li>・唔可以用「啱啱好」「官方」「客服」呢類字，唔可以有電話號碼</li>
+            <li>・已經發佈嘅 post 會保留舊名；完成次數跟帳戶，唔會因為改名而消失</li>
+          </ul>
+          {!nickBlock && (
+            <button
+              disabled={nickBusy || !nickDraft.trim() || nickDraft.trim() === user.nickname || !!nicknameProblem(nickDraft)}
+              className="w-full h-12 rounded-2xl bg-[#1a1a1a] text-white font-bold disabled:opacity-40"
+            >
+              {nickBusy ? "儲存緊…" : "儲存"}
+            </button>
+          )}
         </form>
       </BottomSheet>
       <MallPicker

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { aah, aahErrorText, useAahMode, useAahState } from "@/lib/aah/store";
 import { BottomSheet, DemoBadge } from "./ui";
 import { cn } from "@/lib/utils";
+import { nicknameProblem } from "@/lib/aah/nickname";
 
 type Step = "signup" | "login" | "checkEmail" | "profile";
 
@@ -20,6 +21,7 @@ export function RegisterSheet({ open, onClose, onDone, reason }: { open: boolean
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nickname, setNickname] = useState("");
+  const nickErr = nickname.trim() ? nicknameProblem(nickname) : null;
   const [phone, setPhone] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -83,6 +85,7 @@ export function RegisterSheet({ open, onClose, onDone, reason }: { open: boolean
             <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className={input} />
             <input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="密碼（最少 6 個字）" className={input} />
             <input value={nickname} onChange={(e) => setNickname(e.target.value.slice(0, 12))} placeholder="暱稱，例如 阿明" className={input} />
+            {nickErr && <p className="text-xs text-destructive -mt-1">{nickErr}</p>}
             <div className="flex items-center gap-2 border border-border rounded-2xl px-3 h-12 bg-background">
               <span className="text-sm font-semibold text-muted-foreground">+852</span>
               <input
@@ -101,7 +104,7 @@ export function RegisterSheet({ open, onClose, onDone, reason }: { open: boolean
             )}
             {err && <p className="text-xs text-destructive">{err}</p>}
             <button
-              disabled={!emailOk || password.length < 6 || !nickname.trim() || !phoneOk || busy}
+              disabled={!emailOk || password.length < 6 || !nickname.trim() || !!nickErr || !phoneOk || busy}
               onClick={() =>
                 run(async () => {
                   const r = await aah.signUpEmail(email.trim(), password, nickname.trim(), fullPhone);
@@ -179,9 +182,10 @@ export function RegisterSheet({ open, onClose, onDone, reason }: { open: boolean
           <>
             <p className="text-sm text-muted-foreground">{user.email ? `${user.email} 已經登入。` : ""}改個暱稱就可以開始用。</p>
             <input autoFocus value={nickname} onChange={(e) => setNickname(e.target.value.slice(0, 12))} placeholder="暱稱，例如 阿明" className={input} />
+            {nickErr && <p className="text-xs text-destructive -mt-1">{nickErr}</p>}
             {err && <p className="text-xs text-destructive">{err}</p>}
             <button
-              disabled={!nickname.trim() || busy}
+              disabled={!nickname.trim() || !!nickErr || busy}
               onClick={() =>
                 run(async () => {
                   await aah.completeRegistration(fullPhone ?? null, nickname.trim());

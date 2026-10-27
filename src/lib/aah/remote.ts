@@ -105,6 +105,7 @@ export function createRemote(host: Host) {
         registered: true,
         phone: prof.phone ?? undefined,
         nickname: prof.nickname ?? undefined,
+        nicknameChangedAt: ts(prof.nickname_changed_at),
         registeredAt: ts(prof.created_at),
         points: prof.points,
         lifetimePoints: prof.lifetime_points,
@@ -687,6 +688,10 @@ export function aahErrorText(e: unknown): string {
     [/duplicate key.*phone|aah_profiles_phone_key/, "呢個電話號碼已經註冊咗"],
     [/Token has expired|invalid.*otp|otp.*invalid/i, "驗證碼唔啱或者過咗期"],
     [/nickname required|aah_profiles_nickname_check/, "暱稱要 1 至 12 個字"],
+    [/nickname reserved/, "暱稱唔可以用「啱啱好」「官方」「客服」呢類字"],
+    [/nickname has number/, "暱稱唔可以有 6 個或以上數字（唔好留電話）"],
+    [/nickname cooldown/, "暱稱 30 日只可以改一次"],
+    [/nickname busy/, "有 post 開緊或者配對緊，完成或者取消之後先改得"],
     [/Failed to fetch|NetworkError|network/i, "網絡唔穩定，請再試"],
   ];
   for (const [re, text] of map) if (re.test(msg)) return text;

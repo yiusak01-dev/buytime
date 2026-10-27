@@ -127,6 +127,8 @@ export type User = {
   /** 雲端模式：已經登入（未必已建立 profile） */
   signedIn?: boolean;
   nickname?: string;
+  /** 上次改暱稱時間（30 日只可以改一次） */
+  nicknameChangedAt?: number;
   registeredAt?: number;
   points: number;
   lifetimePoints: number;
