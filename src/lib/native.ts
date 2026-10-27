@@ -13,6 +13,8 @@ let started = false;
 export async function initNative(go: (path: string) => void) {
   if (!isNative() || started) return;
   started = true;
+  // iPhone 會用 theme-color 填狀態列後面；原生 app 用白色，同底部掣同 Android 一致
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", "#FFFFFF");
   try {
     const [{ StatusBar, Style }, { SplashScreen }, { App }] = await Promise.all([
       import("@capacitor/status-bar"),
