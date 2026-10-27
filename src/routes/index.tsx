@@ -7,7 +7,7 @@ import { PostCard } from "@/components/aah/PostCard";
 import { Chip, DemoBadge } from "@/components/aah/ui";
 import { MallPicker } from "@/components/aah/MallPicker";
 import { aah, testLocationAllowed, useAahMode, useAahState, MAX_PINNED_PER_MALL } from "@/lib/aah/store";
-import { useAahMalls, nearbyMalls, distanceM } from "@/lib/aah/malls";
+import { useAahMalls, nearbyMalls, distanceM, nearestMalls, hotMalls, useLiveCounts, fmtDistance, trafficLabel } from "@/lib/aah/malls";
 import { useCurrentMall, useGeo, useNow } from "@/lib/aah/geo";
 import { SCENARIOS, SCENARIO_LIST } from "@/lib/aah/scenarios";
 import type { ScenarioId } from "@/lib/aah/types";
@@ -46,6 +46,14 @@ function Home() {
   }, [user.onboarded, navigate, modeNow]);
 
   const mall = current.mall;
+
+  // 附近商場（有定位）或者熱門商場（冇定位）；唔包括而家睇緊嗰個
+  const liveCounts = useLiveCounts();
+  const here = geo.status === "ok" && geo.lat != null && geo.lng != null ? { lat: geo.lat, lng: geo.lng } : null;
+  const quickMalls = useMemo(() => {
+    const list = here ? nearestMalls(malls, here.lat, here.lng, 7) : hotMalls(malls, liveCounts, null, 7);
+    return list.filter((m) => m.id !== mall?.id).slice(0, 6);
+  }, [malls, here?.lat, here?.lng, liveCounts, mall?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const mode = useAahMode();
   useEffect(() => {
@@ -116,6 +124,34 @@ function Home() {
           </div>
           <ChevronDown className="w-4 h-4 text-muted-foreground" />
         </button>
+
+        {/* 附近商場：一撳就轉過去睇 */}
+        {quickMalls.length > 0 && (
+          <div>
+            <div className="text-[11px] font-bold text-[#1a1a1a]/70 mb-1.5">{here ? "附近商場" : "熱門商場"}</div>
+            <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-0.5 scrollbar-hide">
+              {quickMalls.map((m) => {
+                const n = liveCounts.get(m.id) ?? 0;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => aah.updateUser({ testMallId: m.id })}
+                    className="shrink-0 max-w-[10rem] bg-white/70 rounded-xl px-3 py-2 text-left active:scale-[0.98] transition-transform"
+                  >
+                    <div className="text-[13px] font-bold truncate">{m.name}</div>
+                    <div className="text-[10px] text-[#1a1a1a]/60 whitespace-nowrap">
+                      {n > 0 ? <span className="font-bold text-[#E8642A]">🔥 {n} 個着數</span> : here ? fmtDistance(distanceM(here.lat, here.lng, m.lat, m.lng)) : trafficLabel(m.traffic) ?? m.district}
+                      {n > 0 && here ? `・${fmtDistance(distanceM(here.lat, here.lng, m.lat, m.lng))}` : ""}
+                    </div>
+                  </button>
+                );
+              })}
+              <button onClick={() => setPickerOpen(true)} className="shrink-0 bg-white/40 rounded-xl px-3 py-2 text-[13px] font-bold">
+                全部 ›
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       <div className="px-4 pt-4 space-y-4">

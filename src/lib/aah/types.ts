@@ -170,6 +170,8 @@ export type AahMall = {
   rateWeekend: number | null;
   /** 支援拼單，例如「✅ 最多2張」「❌ 不可拼單」「待確認」（每週由商場資料庫同步） */
   stacking?: string | null;
+  /** 人流分數：5 極高、4 高、3 中、2 低、1 極低、0 未評 */
+  traffic?: number;
   /** 資料來源 */
   source: "db" | "sample";
 };

@@ -7,9 +7,9 @@ import type { AahMall } from "./types";
  * 呢度只係資料庫讀唔到時嘅後備。泊車條件同時租係示範數字，未核實。
  */
 export const SAMPLE_MALLS: AahMall[] = [
-  { id: "s-apm", name: "APM", district: "觀塘", lat: 22.3121, lng: 114.2252, radius: 180, condWeekday: "$300=2hr | $500=3hr", condWeekend: "$500=2hr | $800=3hr", rateWeekday: 24, rateWeekend: 28, source: "sample" },
-  { id: "s-langham", name: "朗豪坊", district: "旺角", lat: 22.3184, lng: 114.1686, radius: 160, condWeekday: "$300=2hr | $600=3hr", condWeekend: "$500=2hr | $800=3hr", rateWeekday: 30, rateWeekend: 35, source: "sample" },
-  { id: "s-timessq", name: "時代廣場", district: "銅鑼灣", lat: 22.2783, lng: 114.1822, radius: 150, condWeekday: "$400=2hr | $800=3hr", condWeekend: "$600=2hr | $1000=3hr", rateWeekday: 35, rateWeekend: 40, source: "sample" },
+  { id: "s-apm", name: "APM", district: "觀塘", lat: 22.3121, lng: 114.2252, radius: 180, condWeekday: "$300=2hr | $500=3hr", condWeekend: "$500=2hr | $800=3hr", rateWeekday: 24, rateWeekend: 28, traffic: 4, source: "sample" },
+  { id: "s-langham", name: "朗豪坊", district: "旺角", lat: 22.3184, lng: 114.1686, radius: 160, condWeekday: "$300=2hr | $600=3hr", condWeekend: "$500=2hr | $800=3hr", rateWeekday: 30, rateWeekend: 35, traffic: 5, source: "sample" },
+  { id: "s-timessq", name: "時代廣場", district: "銅鑼灣", lat: 22.2783, lng: 114.1822, radius: 150, condWeekday: "$400=2hr | $800=3hr", condWeekend: "$600=2hr | $1000=3hr", rateWeekday: 35, rateWeekend: 40, traffic: 5, source: "sample" },
   { id: "s-hysan", name: "希慎廣場", district: "銅鑼灣", lat: 22.2797, lng: 114.1839, radius: 120, condWeekday: "$400=2hr", condWeekend: "$600=2hr", rateWeekday: 35, rateWeekend: 40, source: "sample" },
   { id: "s-leegarden", name: "利園", district: "銅鑼灣", lat: 22.2779, lng: 114.1849, radius: 120, condWeekday: "$500=2hr", condWeekend: "$800=2hr", rateWeekday: 38, rateWeekend: 42, source: "sample" },
   { id: "s-ntp", name: "新城市廣場", district: "沙田", lat: 22.3817, lng: 114.1889, radius: 220, condWeekday: "$200=1hr | $400=2hr | $600=3hr", condWeekend: "$300=1hr | $600=2hr | $900=3hr", rateWeekday: 22, rateWeekend: 26, source: "sample" },
@@ -26,7 +26,7 @@ export function useAahMalls() {
     queryFn: async () => {
       const { data, error } = await ownSupabase
         .from("malls")
-        .select("id,name,district,lat,lng,weekday_parking_cond,holiday_parking_cond,hourly_rate_weekday_num,hourly_rate_holiday_num,hourly_rate_weekend,supports_stacking,is_active");
+        .select("id,name,district,lat,lng,weekday_parking_cond,holiday_parking_cond,hourly_rate_weekday_num,hourly_rate_holiday_num,hourly_rate_weekend,supports_stacking,traffic_score,is_active");
       if (error) throw error;
       const rows: AahMall[] = (data ?? [])
         .filter((r: any) => r.is_active !== false && r.lat != null && r.lng != null)
@@ -44,6 +44,7 @@ export function useAahMalls() {
           rateWeekday: r.hourly_rate_weekday_num != null ? Number(r.hourly_rate_weekday_num) : null,
           rateWeekend: r.hourly_rate_holiday_num != null ? Number(r.hourly_rate_holiday_num) : r.hourly_rate_weekend != null ? Number(r.hourly_rate_weekend) : null,
           stacking: r.supports_stacking ?? null,
+          traffic: r.traffic_score != null ? Number(r.traffic_score) : 0,
           source: "db" as const,
         }));
       return rows;
@@ -87,6 +88,54 @@ export function demoAudience(mallId: string) {
   let h = 0;
   for (const c of mallId) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return 20 + (h % 40);
+}
+
+/**
+ * 每個商場而家有幾多個進行中嘅着數（只計數目，唔讀內容）。每分鐘更新一次。
+ * 開放中嘅 post 本身所有人都睇得到（RLS），所以呢度唔洩露任何資料。
+ */
+export function useLiveCounts(): Map<string, number> {
+  const q = useQuery<Map<string, number>>({
+    queryKey: ["aah", "liveCounts"],
+    staleTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
+    retry: 0,
+    queryFn: async () => {
+      const { data, error } = await ownSupabase
+        .from("aah_posts")
+        .select("mall_id")
+        .eq("status", "open")
+        .gt("leave_at", new Date().toISOString())
+        .limit(1000);
+      if (error) throw error;
+      const m = new Map<string, number>();
+      for (const r of data ?? []) m.set(String((r as any).mall_id), (m.get(String((r as any).mall_id)) ?? 0) + 1);
+      return m;
+    },
+  });
+  return q.data ?? EMPTY_COUNTS;
+}
+const EMPTY_COUNTS = new Map<string, number>();
+
+/** 人流標籤（資料庫 traffic_score：5 極高、4 高、3 中、2 低、1 極低） */
+export function trafficLabel(score?: number): string | null {
+  if (!score) return null;
+  return score >= 5 ? "人流極高" : score >= 4 ? "人流高" : score >= 3 ? "人流中" : null;
+}
+
+/**
+ * 熱門商場：而家有着數嘅排先（多嘅先），之後人流極高、高；同分就近嘅先。
+ */
+export function hotMalls(malls: AahMall[], counts: Map<string, number>, from?: { lat: number; lng: number } | null, n = 8): AahMall[] {
+  const d = (m: AahMall) => (from ? distanceM(from.lat, from.lng, m.lat, m.lng) : 0);
+  return malls
+    .filter((m) => (counts.get(m.id) ?? 0) > 0 || (m.traffic ?? 0) >= 4)
+    .sort((a, b) => (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0) || (b.traffic ?? 0) - (a.traffic ?? 0) || d(a) - d(b))
+    .slice(0, n);
+}
+
+export function fmtDistance(m: number): string {
+  return m < 1000 ? `${Math.round(m)} 米` : `${(m / 1000).toFixed(1)} 公里`;
 }
 
 export function nearestMalls(malls: AahMall[], lat: number, lng: number, n = 5): (AahMall & { distance: number })[] {
