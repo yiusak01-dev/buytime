@@ -44,6 +44,32 @@ export function AahRuntime() {
   const leftSince = useRef<number | null>(null);
   const leaveWarned = useRef(false);
 
+  // 我去緊：GPS 確認咗到咗嗰個商場，就自動話對方知（轉做已喺場；自動配對嘅 post 會即刻配對）
+  const onSiteTried = useRef<Map<string, number>>(new Map());
+  useEffect(() => {
+    const m = current.mall;
+    if (!m || !current.verified || geo.lat == null || geo.lng == null) return;
+    for (const p of posts) {
+      if (p.mallId !== m.id || p.status !== "open") continue;
+      const mine = p.interests.find((i) => i.userId === user.id);
+      if (!mine || !mine.enRoute || mine.status !== "pending") continue;
+      const last = onSiteTried.current.get(p.id) ?? 0;
+      if (Date.now() - last < 60000) continue;
+      onSiteTried.current.set(p.id, Date.now());
+      void aah
+        .interestOnSite(p.id, { lat: geo.lat, lng: geo.lng })
+        .then((matchId) => {
+          if (matchId) {
+            toast.success("配對成功！");
+            navigate({ to: "/match/$matchId", params: { matchId } });
+          } else {
+            toast("已經話對方知你到咗", { description: `${p.shop}・${m.name}` });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [current.mall?.id, current.verified, geo.lat, geo.lng, posts, user.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // 到埗通知：「啱啱好！附近有 X 個着數」，每個商場每日最多一次，0 個唔發
   useEffect(() => {
     const m = current.mall;

@@ -4,7 +4,7 @@ import { ArrowLeft, Eye, Send, Pin, Minus, Plus, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
 import { PushPrompt } from "@/components/aah/PushPrompt";
-import { BottomSheet, DemoBadge, ScenarioTag } from "@/components/aah/ui";
+import { BottomSheet, Chip, DemoBadge, ScenarioTag } from "@/components/aah/ui";
 import { RegisterSheet } from "@/components/aah/RegisterSheet";
 import { postSaving, priceLabel } from "@/components/aah/PostCard";
 import {
@@ -23,7 +23,10 @@ import {
   PIN_PROMPT_AFTER_MIN,
 } from "@/lib/aah/store";
 import { useAahMalls, nearbyMalls, demoAudience } from "@/lib/aah/malls";
-import { useCurrentMall, useNow, fmtClock, fmtLeft, fmtAgo } from "@/lib/aah/geo";
+import { useCurrentMall, useNow, fmtClock, fmtLeft, fmtAgo, useGeo, geoStore } from "@/lib/aah/geo";
+import { distanceM } from "@/lib/aah/malls";
+import { acceptsEnRoute, etaChoices, fmtKm, sortInterests, suggestedInterest, LATE_GRACE_MIN } from "@/lib/aah/enroute";
+import type { InterestOpts } from "@/lib/aah/remote";
 import { SCENARIOS, keyInfo, payLabel, authorRole, receiptCountNote } from "@/lib/aah/scenarios";
 import { ScenarioTips } from "@/components/aah/ScenarioTips";
 import { buyerParkingSaving } from "@/lib/aah/pricing";
@@ -116,9 +119,11 @@ function PostDetailView({ post }: { post: Post }) {
   const s = SCENARIOS[post.scenario];
   const mall = malls.find((m) => m.id === post.mallId);
   const [regOpen, setRegOpen] = useState(false);
-  const [pending, setPending] = useState<{ text: string; offer?: number } | null>(null);
+  const [pending, setPending] = useState<{ text: string; offer?: number; opts?: InterestOpts } | null>(null);
   const [offer, setOffer] = useState(() => (post.price && post.price > 10 ? post.price - 5 : post.price ?? 0));
   const [entry, setEntry] = useState("");
+  const geo = useGeo();
+  const [eta, setEta] = useState<number | null>(null);
 
   const mine = post.interests.find((i) => i.userId === user.id);
   const lastSent = useRef<{ text: string; at: number } | null>(null);
@@ -152,24 +157,40 @@ function PostDetailView({ post }: { post: Post }) {
   const banned = isBanned(user);
   const open = post.status === "open" && post.leaveAt > now;
 
-  function send(text: string, off?: number) {
+  // 我去緊
+  const enRouteOk = acceptsEnRoute(post);
+  const choices = etaChoices(post.leaveAt, now);
+  const myDist = geo.status === "ok" && geo.lat != null && geo.lng != null && mall ? distanceM(geo.lat, geo.lng, mall.lat, mall.lng) : null;
+  function goEnRoute(m: number) {
+    const g = geoStore.get();
+    if (g.status !== "ok" || g.lat == null || g.lng == null) {
+      void geoStore.start();
+      toast("要開定位，計你距離商場幾遠", { description: "開咗再撳一次" });
+      return;
+    }
+    send(`我去緊，大約 ${m} 分鐘到`, undefined, { etaMin: m, coords: { lat: g.lat, lng: g.lng } });
+  }
+
+  function send(text: string, off?: number, opts?: InterestOpts) {
     // 防連撳：同一句 5 秒內唔重複發送
     const t0 = Date.now();
     if (lastSent.current && lastSent.current.text === text && t0 - lastSent.current.at < 5000) return;
     lastSent.current = { text, at: t0 };
     const me = aah.get().user;
     if (isBanned(me)) return;
+    // 喺場撳：話俾伺服器知（之前講咗去緊嘅，會轉做已喺場）
+    const o = opts ?? (inRange && current.verified ? { onSite: true } : undefined);
     if (!me.registered) {
-      setPending({ text, offer: off });
+      setPending({ text, offer: off, opts: o });
       setRegOpen(true);
       return;
     }
-    void doExpress(text, off);
+    void doExpress(text, off, o);
   }
 
-  async function doExpress(text: string, off?: number) {
+  async function doExpress(text: string, off?: number, opts?: InterestOpts) {
     try {
-      const matchId = await aah.expressInterest(post.id, text, off);
+      const matchId = await aah.expressInterest(post.id, text, off, opts);
       if (matchId) {
         toast.success("配對成功！");
         navigate({ to: "/match/$matchId", params: { matchId } });
@@ -252,10 +273,50 @@ function PostDetailView({ post }: { post: Post }) {
             <div className="text-center text-sm bg-card rounded-2xl p-4">
               你嘅帳戶停用緊，暫時唔可以接 post。<Link to="/me" className="underline font-semibold">申訴</Link>
             </div>
-          ) : !inRange ? (
-            <div className="text-center text-sm bg-card rounded-2xl p-4">要喺 {post.mallName}{s.pushNearby ? " 或者附近商場" : ""} 先可以接呢個 post{current.test && !testLocationAllowed() ? "（GPS 確認咗你喺度就得）" : ""}</div>
           ) : mine?.status === "declined" ? (
             <div className="text-center text-sm bg-card rounded-2xl p-4">唔好意思，對方已經俾咗人</div>
+          ) : !inRange && mine?.enRoute && mine.etaAt ? (
+            <div className="bg-card rounded-2xl p-4 text-center space-y-1 shadow-lg">
+              <div className="font-bold">你話咗 {fmtClock(mine.etaAt)} 前到 {post.mallName}</div>
+              <div className="text-xs text-muted-foreground">
+                去到商場會自動話對方知你到咗。過咗 {fmtClock(mine.etaAt + LATE_GRACE_MIN * 60000)} 都未到，對方可以取消，會記你一次冇出現。
+              </div>
+            </div>
+          ) : !inRange && enRouteOk && !mine ? (
+            <div className="bg-card rounded-2xl p-4 space-y-3 shadow-lg">
+              <div>
+                <div className="font-bold">未到 {post.mallName}？話對方知你去緊</div>
+                <div className="text-xs text-muted-foreground">
+                  {myDist != null ? `你而家距離約 ${fmtKm(myDist)}。` : ""}對方會見到你幾點到，由佢揀接唔接。
+                </div>
+              </div>
+              {choices.length === 0 ? (
+                <div className="text-sm text-amber-800">趕唔切喇：呢個 post {fmtClock(post.leaveAt)} 就完，要早 5 分鐘到。</div>
+              ) : (
+                <>
+                  <div className="flex gap-2 flex-wrap">
+                    {choices.map((m) => (
+                      <Chip key={m} active={eta === m} onClick={() => setEta(m)}>
+                        {m} 分鐘到
+                      </Chip>
+                    ))}
+                  </div>
+                  <div className="text-[11px] text-amber-800">過咗講好嘅時間 5 分鐘都未到，對方可以取消，會記你一次冇出現（帳戶停用 30 日）。</div>
+                  <button
+                    disabled={eta == null}
+                    onClick={() => eta != null && goEnRoute(eta)}
+                    className="w-full h-12 rounded-2xl bg-[#F5C518] text-[#1a1a1a] font-black disabled:opacity-50"
+                  >
+                    {eta != null ? `我去緊・${fmtClock(now + eta * 60000)} 前到` : "揀幾耐到"}
+                  </button>
+                </>
+              )}
+            </div>
+          ) : !inRange ? (
+            <div className="text-center text-sm bg-card rounded-2xl p-4">
+              要喺 {post.mallName}{s.pushNearby ? " 或者附近商場" : ""} 先可以接呢個 post
+              {current.test && !testLocationAllowed() ? "（GPS 確認咗你喺度就得）" : !enRouteOk && post.scenario !== "groupbuy" ? "（出 post 嘅人揀咗只限喺場）" : ""}
+            </div>
           ) : (
             <>
               <div className="flex gap-2 overflow-x-auto scrollbar-hide">
@@ -288,7 +349,7 @@ function PostDetailView({ post }: { post: Post }) {
         reason="接 post 同傾偈要先註冊。"
         onDone={() => {
           setRegOpen(false);
-          if (pending) void doExpress(pending.text, pending.offer);
+          if (pending) void doExpress(pending.text, pending.offer, pending.opts);
           setPending(null);
         }}
       />
@@ -307,7 +368,8 @@ function MyPostView({ post }: { post: Post }) {
   const s = SCENARIOS[post.scenario];
   const mall = malls.find((m) => m.id === post.mallId);
   const pinned = (post.pinnedUntil ?? 0) > now;
-  const pending = post.interests.filter((i) => i.status === "pending");
+  const pending = sortInterests(post.interests.filter((i) => i.status === "pending"));
+  const suggested = pending.length > 1 ? suggestedInterest(pending) : undefined;
   const age = now - post.createdAt;
   const showPinPrompt = post.status === "open" && !pinned && post.interests.length === 0 && age >= PIN_PROMPT_AFTER_MIN * 60000;
 
@@ -402,16 +464,37 @@ function MyPostView({ post }: { post: Post }) {
           <section className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="font-bold">有興趣嘅人（{pending.length}）</div>
-              {post.autoAccept && <span className="text-[11px] text-muted-foreground">第一個有興趣會自動配對</span>}
+              {post.autoAccept && <span className="text-[11px] text-muted-foreground">第一個喺場嘅人會自動配對</span>}
             </div>
+            {pending.length > 1 && (
+              <div className="text-[11px] text-muted-foreground">已喺場嘅排前；去緊嘅按邊個快到排。⭐ 係系統建議（穩陣交收為主，唔睇價錢），最後由你揀。</div>
+            )}
             {pending.length === 0 ? (
-              <div className="bg-card rounded-2xl p-5 text-center text-sm text-muted-foreground">未有人，有人撳「有興趣」會即刻通知你。</div>
+              <div className="bg-card rounded-2xl p-5 text-center text-sm text-muted-foreground">
+                未有人，有人撳「有興趣」會即刻通知你。{acceptsEnRoute(post) ? "未到商場、去緊嘅人都可以撳。" : ""}
+              </div>
             ) : (
               pending.map((it) => (
-                <div key={it.userId} className="bg-card rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="font-bold">{it.name}</div>
-                    <div className="text-xs text-muted-foreground">{fmtAgo(it.at, now)}</div>
+                <div key={it.userId} className={cn("bg-card rounded-2xl p-4 space-y-3", suggested?.userId === it.userId && "ring-2 ring-[#F5C518]")}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-bold flex items-center gap-1.5 flex-wrap">
+                        {it.name}
+                        {suggested?.userId === it.userId && <span className="text-[10px] font-bold bg-[#F5C518] text-[#1a1a1a] px-1.5 py-0.5 rounded-full">⭐ 建議</span>}
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-wrap mt-1 text-[11px]">
+                        {it.enRoute ? (
+                          <span className="font-semibold bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded-full">
+                            去緊・約 {it.etaAt ? fmtClock(it.etaAt) : "?"} 到{fmtKm(it.distanceM) ? `（${fmtKm(it.distanceM)}）` : ""}
+                          </span>
+                        ) : (
+                          <span className="font-semibold bg-[#E3F5EC] text-[#1d6b47] px-1.5 py-0.5 rounded-full">已喺場</span>
+                        )}
+                        {it.completed != null && <span className="text-muted-foreground">完成 {it.completed} 次</span>}
+                        {(it.noShows ?? 0) > 0 && <span className="font-semibold text-destructive">冇出現 {it.noShows} 次</span>}
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground shrink-0">{fmtAgo(it.at, now)}</div>
                   </div>
                   <div className="space-y-1.5">
                     {it.messages.map((m, i) => (

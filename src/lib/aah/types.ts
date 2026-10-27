@@ -19,6 +19,15 @@ export type Interest = {
   offer?: number;
   messages: { from: string; text: string; at: number }[];
   status: "pending" | "accepted" | "declined";
+  /** 未到商場，去緊 */
+  enRoute?: boolean;
+  /** 去緊：講咗幾點到 */
+  etaAt?: number;
+  /** 去緊：撳有興趣嗰陣距離商場幾遠（米） */
+  distanceM?: number;
+  /** 撳有興趣嗰陣嘅紀錄（俾出 post 嘅人參考） */
+  completed?: number;
+  noShows?: number;
 };
 
 export type Post = {
@@ -48,6 +57,8 @@ export type Post = {
   matchId?: string;
   /** 第一個有興趣嘅自動配對 */
   autoAccept: boolean;
+  /** 接唔接未到商場、去緊嘅人（預設接受；夾單一律唔接） */
+  acceptEnRoute?: boolean;
   /** 夾單：仲要幾多個人 */
   needCount?: number;
   /** 示範資料（其他用戶） */
@@ -101,6 +112,10 @@ export type Match = {
   cancelledBy?: string;
   /** 對方已經到咗先取消 */
   lateCancel?: boolean;
+  /** 配對咗嗰陣仲去緊嘅人 */
+  enRouteUser?: string;
+  /** 去緊嘅人講咗幾點到 */
+  etaAt?: number;
 };
 
 export type User = {

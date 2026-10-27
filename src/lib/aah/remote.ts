@@ -12,6 +12,9 @@ const sb = () => supabase as any;
 
 export type RemoteSettings = { allowTestLocation: boolean; enforceGps: boolean; freePinTrial: boolean };
 
+/** 撳有興趣：etaMin = 去緊幾多分鐘到（有就係「我去緊」）；onSite = GPS 確認咗喺商場 */
+export type InterestOpts = { etaMin?: number; coords?: { lat: number; lng: number }; onSite?: boolean };
+
 export type LocalPrefs = {
   onboarded: boolean;
   testMallId: string | null;
@@ -397,6 +400,7 @@ export function createRemote(host: Host) {
           leave_at: new Date(input.leaveAt).toISOString(),
           verified_on_site: input.verifiedOnSite,
           auto_accept: input.autoAccept,
+          accept_en_route: input.acceptEnRoute ?? true,
           need_count: input.needCount ?? null,
         },
       });
@@ -432,9 +436,31 @@ export function createRemote(host: Host) {
       await rpc("aah_pin_post", { p_post: id, p_use_credit: useCredit });
     },
 
-    async expressInterest(postId: string, text: string, offer?: number): Promise<string | undefined> {
-      const matchId = await rpc("aah_express_interest", { p_post: postId, p_text: text, p_offer: offer ?? null });
+    async expressInterest(postId: string, text: string, offer?: number, opts: InterestOpts = {}): Promise<string | undefined> {
+      const matchId = await rpc("aah_express_interest_v2", {
+        p_post: postId,
+        p_text: text,
+        p_offer: offer ?? null,
+        p_eta_min: opts.etaMin ?? null,
+        p_lat: opts.coords?.lat ?? null,
+        p_lng: opts.coords?.lng ?? null,
+        p_on_site: opts.onSite ?? null,
+      });
       return matchId ?? undefined;
+    },
+
+    /** 去緊嘅人到咗商場：轉做已喺場（自動配對嘅 post 會即刻配對，回傳配對 id） */
+    async interestOnSite(postId: string, coords?: { lat: number; lng: number }): Promise<string | undefined> {
+      const matchId = await rpc("aah_interest_on_site", { p_post: postId, p_lat: coords?.lat ?? null, p_lng: coords?.lng ?? null });
+      scheduleRefresh();
+      return matchId ?? undefined;
+    },
+
+    /** 去緊嘅人過咗講好時間 5 分鐘都未到：取消、記冇出現、重新放出 post */
+    async releaseLate(matchId: string): Promise<"open" | "expired"> {
+      const r = await rpc("aah_release_late", { p_match: matchId });
+      scheduleRefresh();
+      return r as "open" | "expired";
     },
 
     async acceptInterest(postId: string, userId: string, price?: number): Promise<string | undefined> {
@@ -548,6 +574,11 @@ function rowToPost(r: any, interests: any[], imsgs: any[]): Post {
       at: Date.parse(i.created_at),
       offer: i.offer ?? undefined,
       status: i.status,
+      enRoute: !!i.en_route,
+      etaAt: ts(i.eta_at),
+      distanceM: i.distance_m ?? undefined,
+      completed: i.completed ?? undefined,
+      noShows: i.no_shows ?? undefined,
       messages: imsgs.filter((m) => m.interest_id === i.id).map((m) => ({ from: m.from_id, text: m.text, at: Date.parse(m.created_at) })),
     }));
   return {
@@ -572,6 +603,7 @@ function rowToPost(r: any, interests: any[], imsgs: any[]): Post {
     interests: its,
     matchId: r.match_id ?? undefined,
     autoAccept: !!r.auto_accept,
+    acceptEnRoute: r.accept_en_route ?? true,
     needCount: r.need_count ?? undefined,
   };
 }
@@ -603,6 +635,8 @@ function rowToMatch(m: any, parts: any[], msgs: any[], uid: string, prefs: Local
     rated: mine?.rating ?? undefined,
     cancelledBy: m.cancelled_by ?? undefined,
     lateCancel: !!m.late_cancel,
+    enRouteUser: m.en_route_user ?? undefined,
+    etaAt: ts(m.eta_at),
     ratePromptShown: flags.ratePromptShown,
     askedArrival: flags.askedArrival,
   };
@@ -625,6 +659,11 @@ export function aahErrorText(e: unknown): string {
     [/free pin daily limit/, "今日 3 次免費置頂用晒，聽日再嚟"],
     [/active match/, "你有進行中嘅配對，完成或者取消咗先可以刪除帳戶"],
     [/cleanup failed|delete failed/, "刪除唔到，請再試；仲係唔得請電郵 support@buytime.hk"],
+    [/en route not allowed/, "出 post 嘅人揀咗只限喺場，要去到商場先可以接"],
+    [/eta too late/, "趕唔切喇：要喺個 post 過期前 5 分鐘到"],
+    [/too far for eta/, "你距離商場太遠，揀長啲時間再試"],
+    [/bad eta/, "最多可以揀 30 分鐘到"],
+    [/not en route/, "呢個配對唔係去緊嘅人"],
     [/not at mall|gps required/, "GPS 未確認你喺商場，去到見面地點再撳"],
     [/too early/, "未到約定時間，唔可以報告冇出現"],
     [/reporter has not arrived/, "你要先撳「我到咗」"],

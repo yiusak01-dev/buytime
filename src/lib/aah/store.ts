@@ -4,7 +4,7 @@ import type { AahMall, Interest, Match, Message, Outfit, Post, User } from "./ty
 import { SCENARIOS } from "./scenarios";
 import { quoteParkingReceipt } from "./pricing";
 import { POINTS, canEarnPoints } from "./points";
-import { createRemote, detectRemote, type LocalPrefs, type Remote, type RemoteSettings } from "./remote";
+import { createRemote, detectRemote, type InterestOpts, type LocalPrefs, type Remote, type RemoteSettings } from "./remote";
 
 /**
  * 兩個模式：
@@ -107,6 +107,12 @@ function patchMatch(id: string, fn: (m: Match) => Match) {
 
 function sysMsg(text: string): Message {
   return { id: uid("msg"), from: "system", text, at: Date.now() };
+}
+
+/** 香港時間 HH:MM */
+function fmtHm(ts: number) {
+  const d = new Date(ts + 8 * 3600 * 1000);
+  return `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
 }
 
 export function todayKey(ts = Date.now()) {
@@ -226,24 +232,35 @@ const local = {
     if (opts.useCredit) set({ ...state, user: { ...state.user, pinCredits: Math.max(0, state.user.pinCredits - 1) } });
   },
 
-  /** 買家撳「有興趣」 */
-  expressInterest(postId: string, text: string, offer?: number) {
+  /** 買家撳「有興趣」；opts.etaMin = 我去緊 */
+  expressInterest(postId: string, text: string, offer?: number, opts: InterestOpts = {}) {
     const me = state.user;
     const p = state.posts.find((x) => x.id === postId);
     if (!p || p.status !== "open") return;
+    const enRoute = opts.etaMin != null;
+    if (enRoute) {
+      if (p.scenario === "groupbuy" || p.acceptEnRoute === false) throw new Error("en route not allowed");
+      if (Date.now() + opts.etaMin! * MIN > p.leaveAt - 5 * MIN) throw new Error("eta too late");
+    }
     const existing = p.interests.find((i) => i.userId === me.id);
     const msg = { from: me.id, text, at: Date.now() };
+    const route = enRoute
+      ? { enRoute: true, etaAt: Date.now() + opts.etaMin! * MIN }
+      : opts.onSite && existing?.enRoute
+        ? { enRoute: false, etaAt: undefined }
+        : {};
     if (existing) {
       patchPost(postId, (x) => ({
         ...x,
-        interests: x.interests.map((i) => (i.userId === me.id ? { ...i, offer: offer ?? i.offer, messages: [...i.messages, msg] } : i)),
+        interests: x.interests.map((i) => (i.userId === me.id ? { ...i, ...route, offer: offer ?? i.offer, messages: [...i.messages, msg] } : i)),
       }));
     } else {
-      const it: Interest = { userId: me.id, name: displayName(me), at: Date.now(), offer, messages: [msg], status: "pending" };
+      const it: Interest = { userId: me.id, name: displayName(me), at: Date.now(), offer, messages: [msg], status: "pending", completed: me.completed, noShows: me.noShows, ...route };
       patchPost(postId, (x) => ({ ...x, interests: [...x.interests, it] }));
     }
     const fresh = state.posts.find((x) => x.id === postId)!;
-    if (fresh.autoAccept && !existing) {
+    // 自動配對只揀已喺場嘅人
+    if (fresh.autoAccept && !existing && !enRoute) {
       return local.acceptInterest(postId, me.id);
     }
     // 示範：其他用戶嘅 post，賣家一陣就會覆
@@ -300,13 +317,15 @@ const local = {
           { userId, name: it.name },
         ],
         meetPlace: p.scenario === "dining" ? `${p.shop}門口` : p.scenario === "parking" ? scen.meetPlaces[0] : `${p.shop}門口`,
-        meetAt: Math.min(now + 5 * MIN, p.leaveAt),
+        meetAt: it.enRoute && it.etaAt ? Math.min(Math.max(it.etaAt, now + 5 * MIN), p.leaveAt) : Math.min(now + 5 * MIN, p.leaveAt),
         confirmedBy: [],
         arrived: {},
         outfits: {},
-        messages: [sysMsg("配對成功！確認見面地點同時間，到咗撳「我到咗」。")],
+        messages: [sysMsg(it.enRoute ? `配對成功！${it.name} 去緊，講咗 ${fmtHm(Math.min(Math.max(it.etaAt ?? now, now + 5 * MIN), p.leaveAt))} 前到。確認見面地點，到咗撳「我到咗」。` : "配對成功！確認見面地點同時間，到咗撳「我到咗」。")],
         status: "active",
         createdAt: now,
+        enRouteUser: it.enRoute ? userId : undefined,
+        etaAt: it.enRoute && it.etaAt ? Math.min(Math.max(it.etaAt, now + 5 * MIN), p.leaveAt) : undefined,
       };
       set({ ...state, matches: [match, ...state.matches] });
     }
@@ -458,6 +477,46 @@ const local = {
         ? { ...p, status: "open", matchId: undefined, interests: p.interests.map((i) => (i.status === "accepted" ? { ...i, status: "declined" as const } : i)) }
         : { ...p, status: "open", matchId: undefined, interests: p.interests.filter((i) => i.userId !== me) };
     });
+  },
+
+  /** 去緊嘅人到咗商場：轉做已喺場 */
+  interestOnSite(postId: string): string | undefined {
+    const me = state.user.id;
+    const p = state.posts.find((x) => x.id === postId);
+    const it = p?.interests.find((i) => i.userId === me);
+    if (!p || !it || !it.enRoute || it.status !== "pending") return;
+    patchPost(postId, (x) => ({
+      ...x,
+      interests: x.interests.map((i) => (i.userId === me ? { ...i, enRoute: false, etaAt: undefined, messages: [...i.messages, { from: me, text: "我到咗商場", at: Date.now() }] } : i)),
+    }));
+    if (p.autoAccept && p.status === "open") return local.acceptInterest(postId, me);
+  },
+
+  /** 去緊嘅人過咗講好時間 5 分鐘都未到：取消、記冇出現、重新放出 */
+  releaseLate(matchId: string): "open" | "expired" {
+    const m = state.matches.find((x) => x.id === matchId);
+    if (!m || m.status !== "active") throw new Error("match not active");
+    if (!m.enRouteUser || !m.etaAt) throw new Error("not en route");
+    if (Date.now() < m.etaAt + 5 * MIN) throw new Error("too early");
+    if (!m.arrived[state.user.id]) throw new Error("reporter has not arrived");
+    patchMatch(matchId, (x) => ({ ...x, status: "noshow", endedAt: Date.now(), messages: [...x.messages, sysMsg("對方過咗講好嘅時間都未到，配對已經取消，個 post 重新放出。")] }));
+    const p = state.posts.find((x) => x.id === m.postId);
+    const status = p && p.leaveAt > Date.now() + 2 * MIN ? "open" : "expired";
+    if (p) {
+      patchPost(p.id, (x) => ({
+        ...x,
+        status,
+        matchId: undefined,
+        interests: x.interests.map((i) =>
+          i.userId === m.enRouteUser
+            ? { ...i, status: "declined" }
+            : status === "open" && i.status === "declined" && i.messages.some((mm) => mm.text === "唔好意思，已經俾咗人")
+              ? { ...i, status: "pending", messages: [...i.messages, { from: x.authorId, text: "個着數重新放出，我再揀緊", at: Date.now() }] }
+              : i,
+        ),
+      }));
+    }
+    return status;
   },
 
   /** 有人冇出現。accusedId 係我自己就停用一個月 */
@@ -740,8 +799,16 @@ export const aah = {
     return isRemote() ? R().pinPost(id, opts.useCredit) : local.pinPost(id, opts);
   },
 
-  async expressInterest(postId: string, text: string, offer?: number): Promise<string | undefined> {
-    return isRemote() ? R().expressInterest(postId, text, offer) : local.expressInterest(postId, text, offer);
+  async expressInterest(postId: string, text: string, offer?: number, opts: InterestOpts = {}): Promise<string | undefined> {
+    return isRemote() ? R().expressInterest(postId, text, offer, opts) : local.expressInterest(postId, text, offer, opts);
+  },
+  /** 去緊嘅人到咗商場：轉做已喺場 */
+  async interestOnSite(postId: string, coords?: { lat: number; lng: number }): Promise<string | undefined> {
+    return isRemote() ? R().interestOnSite(postId, coords) : local.interestOnSite(postId);
+  },
+  /** 去緊嘅人過咗時間未到：取消並重新放出 */
+  async releaseLate(matchId: string): Promise<"open" | "expired"> {
+    return isRemote() ? R().releaseLate(matchId) : local.releaseLate(matchId);
   },
   async acceptInterest(postId: string, userId: string, price?: number): Promise<string | undefined> {
     return isRemote() ? R().acceptInterest(postId, userId, price) : local.acceptInterest(postId, userId, price);

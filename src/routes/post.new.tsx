@@ -50,6 +50,7 @@ function NewPost() {
   const [leaveMode, setLeaveMode] = useState<number | "custom">(30);
   const [customTime, setCustomTime] = useState("");
   const [autoAccept, setAutoAccept] = useState(false);
+  const [acceptEnRoute, setAcceptEnRoute] = useState(true);
   const [needCount, setNeedCount] = useState(1);
   const [regOpen, setRegOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -177,6 +178,7 @@ function NewPost() {
       verifiedOnSite: current.verified,
       pushedCount: Math.round(demoAudience(mall.id) * (user.notifyCats.length / 4 || 1)),
       autoAccept,
+      acceptEnRoute: scenario !== "groupbuy" && acceptEnRoute,
       needCount: scenario === "groupbuy" ? needCount : undefined,
     });
     toast.success("已經發佈！");
@@ -454,10 +456,24 @@ function NewPost() {
                 )}
               </Section>
 
+              {s.id !== "groupbuy" && (
+                <label className="flex items-center justify-between gap-3 bg-card rounded-2xl p-4">
+                  <div>
+                    <div className="font-semibold text-sm">接受去緊嘅人</div>
+                    <div className="text-xs text-muted-foreground">
+                      {acceptEnRoute
+                        ? "未到商場嘅人都可以接，最多 30 分鐘到；佢遲到你可以取消並重新放出"
+                        : "只限已經喺商場嘅人接；啱啱就走、等唔切就揀呢個"}
+                    </div>
+                  </div>
+                  <Switch checked={acceptEnRoute} onCheckedChange={setAcceptEnRoute} />
+                </label>
+              )}
+
               <label className="flex items-center justify-between gap-3 bg-card rounded-2xl p-4">
                 <div>
                   <div className="font-semibold text-sm">第一個有興趣嘅自動配對</div>
-                  <div className="text-xs text-muted-foreground">想快就開；唔開就由你喺名單揀人</div>
+                  <div className="text-xs text-muted-foreground">想快就開；唔開就由你喺名單揀人{s.id !== "groupbuy" && acceptEnRoute ? "。只會自動揀已喺場嘅人" : ""}</div>
                 </div>
                 <Switch checked={autoAccept} onCheckedChange={setAutoAccept} />
               </label>

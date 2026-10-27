@@ -10,7 +10,8 @@ import { BottomSheet, Chip, DemoBadge, ScenarioTag } from "@/components/aah/ui";
 import { aah, aahErrorText, useAahMode, useAahState, todayKey, CHAT_CLOSE_AFTER_MIN, BAN_DAYS } from "@/lib/aah/store";
 import { geoStore } from "@/lib/aah/geo";
 import { useAahMalls } from "@/lib/aah/malls";
-import { useCurrentMall, useNow, fmtClock } from "@/lib/aah/geo";
+import { useCurrentMall, useNow, fmtClock, fmtLeft } from "@/lib/aah/geo";
+import { LATE_GRACE_MIN } from "@/lib/aah/enroute";
 import { SCENARIOS, payLabel, authorRole } from "@/lib/aah/scenarios";
 import { ScenarioTips } from "@/components/aah/ScenarioTips";
 import type { Match } from "@/lib/aah/types";
@@ -40,6 +41,7 @@ function MatchPage() {
   const [text, setText] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [releaseAsk, setReleaseAsk] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastSent = useRef<{ text: string; at: number } | null>(null);
 
@@ -126,6 +128,23 @@ function MatchPage() {
 
   const presets = [`喺${m.meetPlace}等`, "5 分鐘到", "10 分鐘到", "等我 2 分鐘", "搵唔到你"];
 
+  // 我去緊：對方講咗幾點到
+  const enRouteName = m.enRouteUser ? m.participants.find((p) => p.userId === m.enRouteUser)?.name ?? "對方" : null;
+  const graceEnd = m.etaAt ? m.etaAt + LATE_GRACE_MIN * MIN : null;
+  const showEnRoute = active && !!m.enRouteUser && !!m.etaAt && !m.arrived[m.enRouteUser];
+
+  async function releaseLate() {
+    try {
+      const st = await aah.releaseLate(m!.id);
+      toast.success(st === "open" ? "已取消，個 post 重新放出" : "已取消（個 post 已經過咗時間）");
+      if (st === "open") navigate({ to: "/post/$postId", params: { postId: m!.postId } });
+    } catch (e) {
+      toast.error(aahErrorText(e));
+    } finally {
+      setReleaseAsk(false);
+    }
+  }
+
   return (
     <AppLayout hideNav>
       <header className="sticky top-0 z-30 bg-background/95 backdrop-blur px-4 pt-4 pb-3 border-b border-border/60">
@@ -195,6 +214,46 @@ function MatchPage() {
           ) : (
             <div className="bg-red-50 text-red-800 rounded-2xl p-4 font-bold">已記錄對方冇出現，配對已結束</div>
           ))}
+
+        {/* 我去緊：倒數，同遲到時取消並重新放出 */}
+        {showEnRoute && m.etaAt && graceEnd && (
+          m.enRouteUser === user.id ? (
+            <div className="bg-amber-50 border border-amber-200 text-amber-950 rounded-2xl p-4 space-y-1">
+              <div className="font-bold">你講咗 {fmtClock(m.etaAt)} 前到</div>
+              <div className="text-sm">
+                {now < m.etaAt ? `仲有 ${fmtLeft(m.etaAt - now)}。` : "已經過咗講好嘅時間。"}
+                到咗見面地點撳「我到咗」。過咗 {fmtClock(graceEnd)} 都未到，對方可以取消，會記你一次冇出現。
+              </div>
+            </div>
+          ) : (
+            <div className="bg-amber-50 border border-amber-200 text-amber-950 rounded-2xl p-4 space-y-2">
+              <div className="font-bold">{enRouteName} 去緊，講咗 {fmtClock(m.etaAt)} 前到</div>
+              <div className="text-sm">
+                {now < m.etaAt
+                  ? `仲有 ${fmtLeft(m.etaAt - now)}。`
+                  : now < graceEnd
+                    ? `遲咗少少。${fmtClock(graceEnd)} 都未到，你可以取消並重新放出。`
+                    : "已經過咗講好嘅時間 5 分鐘。"}
+              </div>
+              {now >= graceEnd &&
+                (!iArrived ? (
+                  <div className="text-xs">你撳咗「我到咗」之後，就可以取消並重新放出個 post。</div>
+                ) : releaseAsk ? (
+                  <div className="space-y-2">
+                    <div className="text-xs">確定？會記 {enRouteName} 一次冇出現（佢可以申訴），之前有興趣嘅人會收到通知。</div>
+                    <div className="flex gap-2">
+                      <button onClick={() => void releaseLate()} className="flex-1 h-11 rounded-2xl bg-[#1a1a1a] text-white font-bold">確定取消</button>
+                      <button onClick={() => setReleaseAsk(false)} className="flex-1 h-11 rounded-2xl border border-amber-300 font-bold">再等等</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => setReleaseAsk(true)} className="w-full h-11 rounded-2xl bg-[#1a1a1a] text-white font-bold">
+                    對方遲到・取消並重新放出
+                  </button>
+                ))}
+            </div>
+          )
+        )}
 
         {/* 見面地點時間 */}
         <div className="bg-card rounded-2xl p-4 space-y-3 shadow-[var(--shadow-card)]">
@@ -272,7 +331,9 @@ function MatchPage() {
               <div key={o.userId} className="flex items-center gap-2">
                 <div className="flex-1 text-sm font-semibold">{o.name}</div>
                 <button onClick={() => act(aah.arrive(m.id, { userId: o.userId }))} className="h-9 px-3 rounded-full bg-[#1a1a1a] text-white text-sm font-bold">到咗喇</button>
-                {m.confirmedBy.includes(o.userId) ? (
+                {o.userId === m.enRouteUser ? (
+                  <span className="text-[11px] text-muted-foreground max-w-[7rem] leading-tight">未到：用上面「取消並重新放出」</span>
+                ) : m.confirmedBy.includes(o.userId) ? (
                   <button
                     onClick={() => {
                       void act(aah.reportNoShow(m.id, o.userId), `已記錄對方冇出現，對方帳戶會停用 ${BAN_DAYS} 日；佢可以申訴。`);
