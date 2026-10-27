@@ -12,11 +12,6 @@ xcrun simctl privacy "$DEV" grant location hk.buytime.app || true
 xcrun simctl location "$DEV" set 22.29,113.948 || true
 xcrun simctl launch "$DEV" hk.buytime.app
 sleep 25
-xcrun simctl io "$DEV" screenshot ci-out/ios-1-launch.png
-for page in me terms; do
-  xcrun simctl openurl "$DEV" "hk.buytime.app://$page" || true
-  sleep 8
-  xcrun simctl io "$DEV" screenshot "ci-out/ios-$page.png"
-done
+xcrun simctl io "$DEV" screenshot ci-out/ios-me.png
 xcrun simctl spawn "$DEV" log show --last 3m --predicate 'process == "App"' 2>/dev/null | grep -iE "error|warn|console" | tail -200 > ci-out/ios-log.txt || true
 exit 0

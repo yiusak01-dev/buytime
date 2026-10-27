@@ -75,6 +75,9 @@ function RootComponent() {
   // 原生 app（iPhone／Android）：狀態列、返回掣、由連結打開 app
   useEffect(() => {
     void initNative((path) => router.history.push(path));
+    // 只限雲端打包測試：開 app 直接去指定一版影相（正式版冇設定，唔會行）
+    const ciRoute = import.meta.env.VITE_CI_ROUTE as string | undefined;
+    if (ciRoute) router.history.replace(ciRoute);
   }, [router]);
 
   // Email 連結落咗去其他頁（例如重新導向唔喺許可清單，跌返落首頁）：轉去啱嘅確認頁

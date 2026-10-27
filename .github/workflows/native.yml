@@ -71,7 +71,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run build
+      # 測試用：開 app 直接去「我的配對」，核對底部掣同 iPhone 安全區
+      - run: VITE_CI_ROUTE=/me npm run build
       - run: npx cap sync ios
       - name: Build for simulator
         run: |
