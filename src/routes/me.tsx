@@ -8,7 +8,7 @@ import { BottomSheet, Chip, DemoBadge, ScenarioTag } from "@/components/aah/ui";
 import { RegisterSheet } from "@/components/aah/RegisterSheet";
 import { MallPicker } from "@/components/aah/MallPicker";
 import { PushSettingRow } from "@/components/aah/PushPrompt";
-import { aah, aahErrorText, getSettings, useAahMode, useAahState, isBanned, DAY, BAN_DAYS } from "@/lib/aah/store";
+import { aah, aahErrorText, getSettings, testLocationAllowed, useAahMode, useAahState, isBanned, DAY, BAN_DAYS } from "@/lib/aah/store";
 import { useAahMalls } from "@/lib/aah/malls";
 import { useCurrentMall, useNow, fmtClock, fmtAgo } from "@/lib/aah/geo";
 import { SCENARIOS, SCENARIO_LIST } from "@/lib/aah/scenarios";
@@ -203,7 +203,7 @@ function MePage() {
           </label>
         </section>
 
-        {(mode === "local" || getSettings().allowTestLocation) && (
+        {testLocationAllowed(mode) && (
         <section className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3 text-sm">
           <div className="font-bold text-amber-900 flex items-center gap-1.5"><DemoBadge />{mode === "local" ? "示範設定" : "試用設定"}</div>
           <button onClick={() => setPickerOpen(true)} className="w-full h-11 rounded-xl bg-white border border-amber-300 font-semibold">

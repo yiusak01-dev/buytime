@@ -106,6 +106,7 @@ export function createRemote(host: Host) {
         phone: prof.phone ?? undefined,
         nickname: prof.nickname ?? undefined,
         nicknameChangedAt: ts(prof.nickname_changed_at),
+        reviewTester: !!prof.review_tester,
         registeredAt: ts(prof.created_at),
         points: prof.points,
         lifetimePoints: prof.lifetime_points,

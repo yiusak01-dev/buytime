@@ -704,7 +704,8 @@ export function getSettings() {
 }
 /** 可唔可以用測試位置扮自己喺商場（示範模式、或者雲端開咗試用） */
 export function testLocationAllowed(m: AahMode = mode) {
-  return m !== "remote" || settings.allowTestLocation;
+  // 審批專用帳戶（Apple／Google 審批人員）都可以用測試位置
+  return m !== "remote" || settings.allowTestLocation || !!state.user.reviewTester;
 }
 /** 置頂而家係咪免費（示範模式、或者雲端開咗免費試用） */
 export function pinIsFree(m: AahMode = mode) {

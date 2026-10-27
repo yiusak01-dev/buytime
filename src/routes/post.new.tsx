@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { AppLayout } from "@/components/AppLayout";
 import { Chip, Section, DemoBadge } from "@/components/aah/ui";
 import { RegisterSheet } from "@/components/aah/RegisterSheet";
-import { aah, aahErrorText, getSettings, useAahState, isBanned, dailyDiningCount, DINING_POSTS_PER_DAY } from "@/lib/aah/store";
+import { aah, aahErrorText, getSettings, testLocationAllowed, useAahState, isBanned, dailyDiningCount, DINING_POSTS_PER_DAY } from "@/lib/aah/store";
 import { useAahMalls, demoAudience } from "@/lib/aah/malls";
 import { useCurrentMall, fmtClock, useNow } from "@/lib/aah/geo";
 import { SCENARIOS, SCENARIO_LIST, GROUPBUY_DEALS, PAY_METHODS, authorRole, hasDiningReceipt, receiptCountNote } from "@/lib/aah/scenarios";
@@ -145,7 +145,7 @@ function NewPost() {
       setRegOpen(true);
       return;
     }
-    if (!mall || (!current.verified && !getSettings().allowTestLocation)) {
+    if (!mall || (!current.verified && !testLocationAllowed())) {
       toast.error("要喺商場先可以出 post", { description: "GPS 搵唔到你喺任何商場範圍" });
       return;
     }

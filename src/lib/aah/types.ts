@@ -127,6 +127,8 @@ export type User = {
   /** 雲端模式：已經登入（未必已建立 profile） */
   signedIn?: boolean;
   nickname?: string;
+  /** 審批專用帳戶：可以用測試位置（俾 Apple／Google 審批人員試成個流程） */
+  reviewTester?: boolean;
   /** 上次改暱稱時間（30 日只可以改一次） */
   nicknameChangedAt?: number;
   registeredAt?: number;
