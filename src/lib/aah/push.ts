@@ -27,7 +27,8 @@ function isStandalone() {
 
 export function pushSupport(): PushSupport {
   if (typeof window === "undefined") return "unsupported";
-  if (isNativeApp()) return "native";
+  // 原生 app：要裝咗推送 plugin（Firebase 設定好之後先加）先支援
+  if (isNativeApp()) return (window as any).Capacitor?.isPluginAvailable?.("PushNotifications") ? "native" : "unsupported";
   const webPush = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
   // iPhone／iPad：要「加到主畫面」再由主畫面開，先有推送
   if (isIOS() && !isStandalone()) return "ios-install";

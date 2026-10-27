@@ -13,6 +13,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { AahRuntime } from "@/components/aah/AahRuntime";
 import { SplashScreen } from "@/components/aah/BrandMark";
+import { initNative } from "@/lib/native";
 
 function NotFoundComponent() {
   return (
@@ -69,6 +70,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
+
+  // 原生 app（iPhone／Android）：狀態列、返回掣、由連結打開 app
+  useEffect(() => {
+    void initNative((path) => router.history.push(path));
+  }, [router]);
 
   // Email 連結落咗去其他頁（例如重新導向唔喺許可清單，跌返落首頁）：轉去啱嘅確認頁
   useEffect(() => {

@@ -16,6 +16,50 @@ function setGeo(next: GeoState) {
   listeners.forEach((l) => l());
 }
 
+function isNativePlatform(): boolean {
+  return typeof window !== "undefined" && !!(window as any).Capacitor?.isNativePlatform?.();
+}
+
+/**
+ * 原生 app：用系統定位（唔會彈網頁式「localhost 想用你位置」），
+ * 問一次權限，之後持續追蹤。
+ */
+let nativeWatch: string | null = null;
+async function startNative(): Promise<GeoStatus> {
+  if (nativeWatch) return geo.status;
+  try {
+    const { Geolocation } = await import("@capacitor/geolocation");
+    let perm = await Geolocation.checkPermissions();
+    if (perm.location !== "granted" && perm.coarseLocation !== "granted") perm = await Geolocation.requestPermissions();
+    if (perm.location !== "granted" && perm.coarseLocation !== "granted") {
+      setGeo({ status: "denied" });
+      return "denied";
+    }
+    setGeo({ ...geo, status: geo.status === "ok" ? "ok" : "locating" });
+    return await new Promise<GeoStatus>((resolve) => {
+      let resolved = false;
+      void Geolocation.watchPosition({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }, (pos, err) => {
+        if (pos) {
+          setGeo({ status: "ok", lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy, at: Date.now() });
+          if (!resolved) {
+            resolved = true;
+            resolve("ok");
+          }
+        } else if (err && !resolved) {
+          resolved = true;
+          setGeo({ status: "unavailable" });
+          resolve("unavailable");
+        }
+      }).then((id) => {
+        nativeWatch = id;
+      });
+    });
+  } catch {
+    setGeo({ status: "unavailable" });
+    return "unavailable";
+  }
+}
+
 export const geoStore = {
   get: () => geo,
   subscribe(fn: () => void) {
@@ -26,6 +70,7 @@ export const geoStore = {
   },
   /** 開始追蹤位置（會觸發系統權限視窗） */
   start(): Promise<GeoStatus> {
+    if (isNativePlatform()) return startNative();
     return new Promise((resolve) => {
       if (typeof navigator === "undefined" || !navigator.geolocation) {
         setGeo({ status: "unavailable" });

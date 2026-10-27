@@ -1,0 +1,124 @@
+# 原生 app 打包同試開（唔使 Mac）：
+#  - push 去 native-build 分支就會行
+#  - Android：打包測試 APK，喺模擬器開，影相；APK 放喺 GitHub Release「android-test」
+#  - iOS：打包模擬器版本，喺 iPhone 模擬器開，影相
+#  - 結果（截圖、log）放喺 ci-results 分支
+name: native
+
+on:
+  push:
+    branches: [native-build]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: native
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync android
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon 2>&1 | tee ../android-build.log
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run on emulator and take screenshots
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: bash scripts/ci/android-shots.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android-build.log
+            ci-out/
+          if-no-files-found: ignore
+
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync ios
+      - name: Build for simulator
+        run: |
+          set -o pipefail
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath build CODE_SIGNING_ALLOWED=NO 2>&1 | tee ios-build.log | tail -40
+      - name: Run on simulator and take screenshots
+        run: bash scripts/ci/ios-shots.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios
+          path: |
+            ios-build.log
+            ci-out/
+          if-no-files-found: ignore
+
+  publish:
+    needs: [android, ios]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: art
+      - name: Android test APK -> release android-test
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          APK=$(find art -name app-debug.apk | head -1)
+          if [ -n "$APK" ]; then
+            cp "$APK" buytime-android-test.apk
+            gh release view android-test >/dev/null 2>&1 || gh release create android-test --title "Android 測試版" --notes "測試用 APK（未上架）。用 Android 電話打開呢版，下載 buytime-android-test.apk 安裝。" --prerelease
+            gh release upload android-test buytime-android-test.apk --clobber
+          fi
+      - name: Results -> ci-results branch
+        run: |
+          mkdir -p out
+          cp -r art/* out/ 2>/dev/null || true
+          find out -name '*.apk' -delete
+          echo "sha=${GITHUB_SHA} run=${GITHUB_RUN_ID} android=${{ needs.android.result }} ios=${{ needs.ios.result }} at=$(date -u +%FT%TZ)" > out/STATUS.txt
+          cd out
+          git init -q
+          git config user.name "native-ci"
+          git config user.email "native-ci@users.noreply.github.com"
+          git checkout -q -b ci-results
+          git add -A
+          git commit -q -m "native results ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-results
