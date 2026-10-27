@@ -21,9 +21,9 @@ export async function initNative(go: (path: string) => void) {
       import("@capacitor/splash-screen"),
       import("@capacitor/app"),
     ]);
-    // 黃色頂部配深色字
+    // 白底深色字
     await StatusBar.setStyle({ style: Style.Light }).catch(() => {});
-    if (nativePlatform() === "android") await StatusBar.setBackgroundColor({ color: "#F5C518" }).catch(() => {});
+    await StatusBar.setBackgroundColor({ color: "#FFFFFF" }).catch(() => {});
     await SplashScreen.hide().catch(() => {});
 
     // Android 返回掣：有上一版就返上一版，冇就收埋 app

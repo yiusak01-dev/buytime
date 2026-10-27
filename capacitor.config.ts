@@ -26,7 +26,8 @@ const config: CapacitorConfig = {
     },
     StatusBar: {
       style: "LIGHT",
-      backgroundColor: "#F5C518",
+      // 狀態列白底深色字（iPhone 同 Android 一致）
+      backgroundColor: "#FFFFFF",
       overlaysWebView: false,
     },
     FirebaseMessaging: {
