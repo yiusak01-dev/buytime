@@ -11,6 +11,8 @@ const config: CapacitorConfig = {
   backgroundColor: "#FBF6EA",
   ios: {
     contentInset: "always",
+    // 狀態列後面嘅底色（同首頁黃色頂部夾）
+    backgroundColor: "#F5C518",
   },
   android: {
     allowMixedContent: false,
