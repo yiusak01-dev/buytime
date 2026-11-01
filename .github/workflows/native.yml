@@ -115,6 +115,8 @@ jobs:
           cp -r art/* out/ 2>/dev/null || true
           find out -name '*.apk' -delete
           echo "sha=${GITHUB_SHA} run=${GITHUB_RUN_ID} android=${{ needs.android.result }} ios=${{ needs.ios.result }} at=$(date -u +%FT%TZ)" > out/STATUS.txt
+          # 呢條 branch 淨係放截圖同紀錄，唔係網站：叫 Vercel 唔好 build（唔係會寄「Preview deployment failed」email）
+          echo '{"git":{"deploymentEnabled":false}}' > out/vercel.json
           cd out
           git init -q
           git config user.name "native-ci"
