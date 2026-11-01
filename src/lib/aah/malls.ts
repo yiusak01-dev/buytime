@@ -40,7 +40,8 @@ export function useAahMalls() {
           radius: 200,
           // 「holiday」= 星期六日及公眾假期
           condWeekday: r.weekday_parking_cond ?? null,
-          condWeekend: r.holiday_parking_cond ?? r.weekday_parking_cond ?? null,
+          // Excel 有時假日欄寫「同左」＝同平日一樣
+          condWeekend: (r.holiday_parking_cond && !/^\s*同(左|上|平日)\s*$/.test(r.holiday_parking_cond) ? r.holiday_parking_cond : r.weekday_parking_cond) ?? null,
           rateWeekday: r.hourly_rate_weekday_num != null ? Number(r.hourly_rate_weekday_num) : null,
           rateWeekend: r.hourly_rate_holiday_num != null ? Number(r.hourly_rate_holiday_num) : r.hourly_rate_weekend != null ? Number(r.hourly_rate_weekend) : null,
           stacking: r.supports_stacking ?? null,

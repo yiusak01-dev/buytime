@@ -40,7 +40,9 @@ export function dayInfo(ts: number): DayInfo {
 /** 統一唔同寫法：「$200/1hr」→「$200=1hr」（「@$5/hr」呢類優惠價唔會被改） */
 export function normalizeCond(cond: string | null | undefined): string | null {
   if (!cond) return null;
-  return cond.replace(/\$\s*(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)\s*hr/gi, "$$$1=$2hr");
+  return cond
+    .replace(/(\d),(\d{3})/g, "$1$2") // 「$1,000」→「$1000」，唔係會讀成 $0
+    .replace(/\$\s*(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)\s*hr/gi, "$$$1=$2hr");
 }
 
 /** 領展等商場：「全部@$5/hr」即係換到嘅鐘數按每小時 $5 收，唔係免費 */
