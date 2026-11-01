@@ -1,4 +1,4 @@
-import { calcParkingHours, diningExtraHours } from "@/lib/parking-rules";
+import { calcParkingHours, diningExtraHours, firstDiningTier, hasDiningTier } from "@/lib/parking-rules";
 import type { AahMall } from "./types";
 
 /**
@@ -65,6 +65,19 @@ export function mallDiningExtra(mall: AahMall | null | undefined): number | null
   return diningExtraHours(mall.condWeekday) ?? diningExtraHours(mall.condWeekend);
 }
 
+/** 呢個商場有冇任何同食肆單有關嘅規則（額外加鐘，或者某一級要包括食肆單） */
+export function mallHasDiningRule(mall: AahMall | null | undefined): boolean {
+  if (!mall) return false;
+  if (mallDiningExtra(mall) != null) return true;
+  return hasDiningTier(normalizeCond(mall.condWeekday)) || hasDiningTier(normalizeCond(mall.condWeekend));
+}
+
+/** 今日（平日／假期）邊一級要包括食肆單，例如 { threshold: 400, hours: 2 } */
+export function diningTierToday(mall: AahMall | null | undefined, ts: number): { threshold: number; hours: number } | null {
+  if (!mall) return null;
+  return firstDiningTier(rulesFor(mall, ts).cond);
+}
+
 export type ParkingQuote = {
   hours: number;
   rate: number | null;
@@ -83,12 +96,15 @@ export type ParkingQuote = {
   diningExtra: number | null;
   /** 今次計咗食肆單額外加幾多個鐘 */
   extraApplied: number;
+  /** 如果入面有食肆單，可以換幾多個鐘（用嚟提示「有食肆單可以換多啲」） */
+  hoursIfDining: number;
 };
 
 /** 賣家：張收據可以換幾多個鐘、慳幾多；dining = 係咪食肆單 */
 export function quoteParkingReceipt(mall: AahMall, receiptAmount: number, ts: number, opts: { dining?: boolean } = {}): ParkingQuote {
   const { day, cond, rate, perHour, disc } = rulesFor(mall, ts);
   const r = calcParkingHours(cond, receiptAmount, { dining: opts.dining });
+  const withDining = opts.dining ? r : calcParkingHours(cond, receiptAmount, { dining: true });
   const saving = perHour != null ? Math.round(r.hours * perHour) : null;
   return {
     hours: r.hours,
@@ -103,6 +119,7 @@ export function quoteParkingReceipt(mall: AahMall, receiptAmount: number, ts: nu
     copay: disc != null ? Math.round(r.hours * disc) : null,
     diningExtra: diningExtraHours(cond),
     extraApplied: r.extraHours,
+    hoursIfDining: withDining.hours,
   };
 }
 

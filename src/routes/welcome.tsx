@@ -3,11 +3,9 @@ import { useState } from "react";
 import { ShieldCheck, TimerOff, Sparkles } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { aah, useAahState } from "@/lib/aah/store";
-import { geoStore, useCurrentMall } from "@/lib/aah/geo";
-import { useAahMalls } from "@/lib/aah/malls";
+import { geoStore } from "@/lib/aah/geo";
 import { SCENARIOS, SCENARIO_LIST } from "@/lib/aah/scenarios";
 import { Chip } from "@/components/aah/ui";
-import { MallPicker } from "@/components/aah/MallPicker";
 
 export const Route = createFileRoute("/welcome")({
   head: () => ({ meta: [{ title: "歡迎 · 啱啱好" }] }),
@@ -17,12 +15,9 @@ export const Route = createFileRoute("/welcome")({
 function Welcome() {
   const navigate = useNavigate();
   const { user } = useAahState();
-  const { malls } = useAahMalls();
-  const current = useCurrentMall(malls);
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2>(1);
   const [gpsResult, setGpsResult] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
 
   function finish() {
     aah.updateUser({ onboarded: true });
@@ -130,41 +125,13 @@ function Welcome() {
                 <Switch checked={user.notifyPromotions} onCheckedChange={(v) => aah.updateUser({ notifyPromotions: v })} />
               </label>
             </div>
-            <button onClick={() => (current.mall ? finish() : setStep(3))} className="w-full py-3.5 rounded-2xl bg-[#1a1a1a] text-white font-bold">
-              下一步
+            {/* 唔喺商場都直接入首頁：首頁有「揀商場」同附近商場，唔使喺呢度逼人揀測試位置 */}
+            <button onClick={finish} className="w-full py-3.5 rounded-2xl bg-[#1a1a1a] text-white font-bold">
+              開始用
             </button>
           </>
         )}
 
-        {step === 3 && (
-          <>
-            <div>
-              <h1 className="text-2xl font-black leading-snug">你而家唔喺任何商場</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                示範期間可以揀一個商場做測試位置，試吓出 post、配對、見面成個流程。
-              </p>
-            </div>
-            <button onClick={() => setPickerOpen(true)} className="w-full py-3.5 rounded-2xl bg-[#1a1a1a] text-white font-bold">
-              揀測試位置
-            </button>
-            <button onClick={finish} className="w-full py-3 rounded-2xl border border-border font-semibold">
-              淨係睇住先
-            </button>
-            <MallPicker
-              open={pickerOpen}
-              onClose={() => setPickerOpen(false)}
-              malls={malls}
-              currentVerified={false}
-              hasTest={!!user.testMallId}
-              onPick={(m) => {
-                aah.updateUser({ testMallId: m.id });
-                setPickerOpen(false);
-                finish();
-              }}
-              onClear={() => aah.updateUser({ testMallId: null })}
-            />
-          </>
-        )}
       </div>
     </div>
   );

@@ -11,8 +11,10 @@ export type FieldDef = {
   required?: boolean;
   /** 只喺某個方向顯示 */
   onlyFor?: Direction[];
-  /** 只喺商場有「食肆單額外加鐘」規則先顯示 */
+  /** 只喺商場有食肆單規則（額外加鐘，或者某一級要包括食肆單）先顯示 */
   onlyIfDiningRule?: boolean;
+  /** 金額可以有小數（例如收據 $627.6） */
+  decimal?: boolean;
 };
 
 export type ScenarioDef = {
@@ -51,7 +53,7 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
     shopLabel: null,
     shopSuggestions: [],
     fields: [
-      { key: "receiptAmount", label: "收據消費金額", type: "number", placeholder: "例如 520", suffix: "元", required: true, onlyFor: ["have"] },
+      { key: "receiptAmount", label: "收據消費金額", type: "number", placeholder: "例如 520 或 627.6", suffix: "元", required: true, onlyFor: ["have"], decimal: true },
       { key: "receiptCount", label: "幾多張單？", type: "choice", options: ["1 張", "2 張", "3 張或以上"], required: true, onlyFor: ["have"] },
       { key: "receiptType", label: "收據類型", type: "choice", options: ["紙單", "電子單"], required: true, onlyFor: ["have"] },
       { key: "receiptCategory", label: "入面有冇食肆（餐廳）單？", type: "choice", options: ["有食肆單", "冇食肆單"], required: true, onlyFor: ["have"], onlyIfDiningRule: true },
@@ -119,7 +121,7 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
     shopSuggestions: ["百佳", "惠康", "屈臣氏", "萬寧", "UNIQLO", "H&M"],
     fields: [
       { key: "title", label: "優惠內容", type: "text", placeholder: "例如 $50 現金券", required: true },
-      { key: "faceValue", label: "面值（冇就留空）", type: "number", placeholder: "例如 50", suffix: "元", onlyFor: ["have"] },
+      { key: "faceValue", label: "面值（冇就留空）", type: "number", placeholder: "例如 50", suffix: "元", onlyFor: ["have"], decimal: true },
     ],
     hasPrice: true,
     timeQuestion: "你大約幾點離開商場？",
@@ -213,6 +215,21 @@ export function keyInfo(s: ScenarioId, dir: Direction, f: Record<string, string 
 /** 泊車收據入面有冇食肆單（「食肆單」係舊寫法） */
 export function hasDiningReceipt(f: Record<string, string | number | undefined>): boolean {
   return f.receiptCategory === "有食肆單" || f.receiptCategory === "食肆單";
+}
+
+/** 計鐘用：有食肆單 → true；講明冇 → false；冇揀 → undefined（唔知就照計要食肆單嗰級） */
+export function diningFlag(f: Record<string, string | number | undefined>): boolean | undefined {
+  if (hasDiningReceipt(f)) return true;
+  if (f.receiptCategory === "冇食肆單") return false;
+  return undefined;
+}
+
+/** 金額輸入：淨係收數字同一個小數點，最多兩個位小數 */
+export function cleanMoneyInput(v: string, maxInt = 6): string {
+  const s = v.replace(/[^\d.]/g, "");
+  const dot = s.indexOf(".");
+  if (dot < 0) return s.slice(0, maxInt);
+  return `${s.slice(0, dot).slice(0, maxInt)}.${s.slice(dot + 1).replace(/\./g, "").slice(0, 2)}`;
 }
 
 /**

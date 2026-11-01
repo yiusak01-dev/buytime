@@ -9,11 +9,11 @@ import { RegisterSheet } from "@/components/aah/RegisterSheet";
 import { aah, aahErrorText, getSettings, testLocationAllowed, useAahState, isBanned, dailyDiningCount, DINING_POSTS_PER_DAY } from "@/lib/aah/store";
 import { useAahMalls, demoAudience } from "@/lib/aah/malls";
 import { useCurrentMall, fmtClock, useNow } from "@/lib/aah/geo";
-import { SCENARIOS, SCENARIO_LIST, GROUPBUY_DEALS, PAY_METHODS, authorRole, hasDiningReceipt, receiptCountNote } from "@/lib/aah/scenarios";
+import { SCENARIOS, SCENARIO_LIST, GROUPBUY_DEALS, PAY_METHODS, authorRole, diningFlag, receiptCountNote, cleanMoneyInput } from "@/lib/aah/scenarios";
 import { ScenarioTips } from "@/components/aah/ScenarioTips";
-import { quoteParkingReceipt, quoteParkingWant, quoteOffer, mallDiningExtra } from "@/lib/aah/pricing";
+import { quoteParkingReceipt, quoteParkingWant, quoteOffer, mallDiningExtra, mallHasDiningRule, diningTierToday } from "@/lib/aah/pricing";
 import type { FieldDef } from "@/lib/aah/scenarios";
-import { readAmountFromImage } from "@/lib/aah/ocr";
+import { readAmountsFromImage, fmtAmount } from "@/lib/aah/ocr";
 import type { Direction, PayMethod, ScenarioId } from "@/lib/aah/types";
 import { cn } from "@/lib/utils";
 
@@ -56,11 +56,15 @@ function NewPost() {
   const [submitting, setSubmitting] = useState(false);
   const [ocrBusy, setOcrBusy] = useState(false);
   const [ocrNote, setOcrNote] = useState("");
+  /** 張相讀到嘅幾個金額，俾用戶撳嚟揀 */
+  const [ocrOptions, setOcrOptions] = useState<number[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const s = scenario ? SCENARIOS[scenario] : null;
   const diningExtra = mallDiningExtra(mall);
-  const fieldShown = (f: FieldDef) => (!f.onlyFor || f.onlyFor.includes(direction)) && (!f.onlyIfDiningRule || diningExtra != null);
+  const hasDiningRule = mallHasDiningRule(mall);
+  const diningTier = diningTierToday(mall, now);
+  const fieldShown = (f: FieldDef) => (!f.onlyFor || f.onlyFor.includes(direction)) && (!f.onlyIfDiningRule || hasDiningRule);
 
   function pickScenario(id: ScenarioId) {
     setScenario(id);
@@ -71,6 +75,7 @@ function NewPost() {
     setPrice("");
     setFree(false);
     setOcrNote("");
+    setOcrOptions([]);
   }
 
   const leaveAt = useMemo(() => {
@@ -89,12 +94,12 @@ function NewPost() {
     if (s.id === "parking" && direction === "have") {
       const amt = Number(fields.receiptAmount);
       if (!amt) return null;
-      const dining = hasDiningReceipt(fields);
+      const dining = diningFlag(fields);
       const q = quoteParkingReceipt(mall, amt, now, { dining });
       if (q.belowThreshold) return { text: `按今日（${q.dayLabel}）規則，要消費滿 $${q.minThreshold} 先換到泊車。`, max: null, hours: 0, warn: true };
       const hoursText = `可以換 ${q.hours} 個鐘${q.extraApplied ? `（有食肆單額外 +${q.extraApplied}）` : ""}`;
       const copayText = q.discRate != null ? `，每個鐘 $${q.discRate}，共俾停車場 $${q.copay}` : "";
-      const moreText = q.diningExtra && !dining && q.hours > 0 ? ` 如果入面有食肆單，可以多換 ${q.diningExtra} 個鐘。` : "";
+      const moreText = !dining && q.hoursIfDining > q.hours ? ` 如果入面有食肆單，可以換到 ${q.hoursIfDining} 個鐘。` : "";
       if (q.saving == null) return { text: `${hoursText}${copayText}（呢個商場未有時租資料）。${moreText}`, max: null, hours: q.hours };
       return {
         text: `按今日（${q.dayLabel}）收費計，${hoursText}${copayText}，比正價慳 $${q.saving}。${moreText}`,
@@ -126,13 +131,15 @@ function NewPost() {
     if (s.shopLabel && !shop.trim()) return "填舖頭";
     for (const f of s.fields) {
       if (!fieldShown(f)) continue;
-      if (f.required && !String(fields[f.key] ?? "").trim()) return `${f.type === "choice" ? "揀" : "填"}「${f.label}」`;
+      const v = String(fields[f.key] ?? "").trim();
+      if (f.required && !v) return `${f.type === "choice" ? "揀" : "填"}「${f.label}」`;
+      if (f.type === "number" && v && !(Number(v) > 0)) return `填啱「${f.label}」`;
     }
     if (s.hasPrice && priceNum == null) return "填價錢（可以揀免費）";
     if (s.hasPrice && priceNum != null && priceNum > 0 && pay.length === 0) return "揀收款方式";
     if (!leaveAt) return "揀時間";
     return null;
-  }, [s, shop, fields, direction, priceNum, pay, leaveAt, diningExtra]);
+  }, [s, shop, fields, direction, priceNum, pay, leaveAt, hasDiningRule]);
 
   async function submit() {
     if (!s || !scenario || missing || !leaveAt || submitting) return;
@@ -194,12 +201,18 @@ function NewPost() {
     if (!file) return;
     setOcrBusy(true);
     setOcrNote("");
+    setOcrOptions([]);
     try {
-      const amt = await readAmountFromImage(file);
-      if (amt) {
+      const { best, options } = await readAmountsFromImage(file);
+      if (best != null) {
         const key = scenario === "offer" ? "faceValue" : "receiptAmount";
-        setFields((x) => ({ ...x, [key]: String(amt) }));
-        setOcrNote(`讀到 $${amt}，唔啱可以自己改。`);
+        setFields((x) => ({ ...x, [key]: fmtAmount(best) }));
+        setOcrOptions(options);
+        setOcrNote(
+          options.length > 1
+            ? `讀到 $${fmtAmount(best)}。唔啱就撳下面另一個金額，或者自己改（填實際俾咗嘅總數）。`
+            : `讀到 $${fmtAmount(best)}，唔啱可以自己改。`,
+        );
       } else {
         setOcrNote("讀唔到金額，請自己填。");
       }
@@ -315,6 +328,19 @@ function NewPost() {
                     {ocrBusy ? "讀緊張相…" : s.id === "parking" ? "影收據，自動填金額" : "影優惠券，自動填面值"}
                   </button>
                   {ocrNote && <div className="text-xs text-muted-foreground mt-1.5">{ocrNote}</div>}
+                  {ocrOptions.length > 1 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {ocrOptions.map((n) => {
+                        const key = s.id === "offer" ? "faceValue" : "receiptAmount";
+                        const v = fmtAmount(n);
+                        return (
+                          <Chip key={n} active={fields[key] === v} onClick={() => setFields((x) => ({ ...x, [key]: v }))}>
+                            ${v}
+                          </Chip>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -345,14 +371,16 @@ function NewPost() {
                     title={f.label}
                     hint={
                       f.key === "receiptAmount"
-                        ? "幾張單加埋計就填總數（有冇得合併睇商場條款）"
+                        ? "填實際俾咗嘅總數（扣咗折扣、包埋加一）；幾張單就填加埋嘅數（有冇得合併睇商場條款）"
                         : f.key === "receiptCount"
                           ? "好多商場最多合併 2 張，有啲唔收合併"
                         : f.key === "receiptType"
                           ? "有啲商場只收電子單或者只收紙單，講清楚免得對方白行一趟"
                           : f.key === "receiptCategory" && diningExtra
                             ? `呢個商場只要其中一張係食肆單，可以額外多換 ${diningExtra} 個鐘`
-                            : undefined
+                            : f.key === "receiptCategory" && diningTier
+                              ? `呢個商場今日消費滿 $${diningTier.threshold} 要其中一張係食肆（餐飲）單，先換到 ${diningTier.hours} 個鐘`
+                              : undefined
                     }
                   >
                     {f.type === "choice" ? (
@@ -371,9 +399,19 @@ function NewPost() {
                     ) : (
                     <div className="flex items-center gap-2 h-12 px-4 rounded-2xl border border-border bg-card">
                       <input
-                        inputMode={f.type === "number" ? "numeric" : "text"}
+                        inputMode={f.type === "number" ? (f.decimal ? "decimal" : "numeric") : "text"}
                         value={fields[f.key] ?? ""}
-                        onChange={(e) => setFields({ ...fields, [f.key]: f.type === "number" ? e.target.value.replace(/[^\d]/g, "").slice(0, 6) : e.target.value.slice(0, 40) })}
+                        onChange={(e) =>
+                          setFields({
+                            ...fields,
+                            [f.key]:
+                              f.type !== "number"
+                                ? e.target.value.slice(0, 40)
+                                : f.decimal
+                                  ? cleanMoneyInput(e.target.value)
+                                  : e.target.value.replace(/[^\d]/g, "").slice(0, 6),
+                          })
+                        }
                         placeholder={f.placeholder}
                         className="flex-1 bg-transparent outline-none"
                       />

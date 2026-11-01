@@ -29,12 +29,46 @@ export function diningExtraHours(cond: string | null | undefined): number | null
   return m ? Number(m[1]) : null;
 }
 
+/** 一級「$X=Nhr」換泊條件；needsDining = 呢級要包括食肆（餐廳）單先得，例如「$400=2hr（須包括食肆單）」 */
+type Tier = { threshold: number; hours: number; needsDining: boolean };
+
+const NEEDS_DINING = /(須|需|要|必須|其中一張)[^|｜/／,，;；\n]{0,8}(食肆|餐飲|餐廳)/;
+
+function parseTiers(text: string): Tier[] {
+  const tierRegex = /\$?\s*(\d+(?:\.\d+)?)\s*=\s*(\d+(?:\.\d+)?)\s*hr/gi;
+  const found: { threshold: number; hours: number; end: number; start: number }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = tierRegex.exec(text)) !== null) {
+    found.push({ threshold: Number(m[1]), hours: Number(m[2]), start: m.index, end: m.index + m[0].length });
+  }
+  return found.map((t, i) => {
+    // 只睇呢級後面、下一個分隔符號（| / , ; 換行）之前嘅字
+    const after = text.slice(t.end, i + 1 < found.length ? found[i + 1].start : undefined);
+    const seg = after.split(/[|｜/／,，;；\n]/)[0] ?? "";
+    return { threshold: t.threshold, hours: t.hours, needsDining: NEEDS_DINING.test(seg) };
+  });
+}
+
+/** 有冇某一級要包括食肆單（例如新港城中心 $400=2hr 要有餐飲單） */
+export function hasDiningTier(cond: string | null | undefined): boolean {
+  return !!cond && parseTiers(String(cond)).some((t) => t.needsDining);
+}
+
+/** 最低一級要包括食肆單嘅條件，例如 { threshold: 400, hours: 2 }；冇就 null */
+export function firstDiningTier(cond: string | null | undefined): { threshold: number; hours: number } | null {
+  if (!cond) return null;
+  const t = parseTiers(String(cond))
+    .filter((x) => x.needsDining)
+    .sort((a, b) => a.threshold - b.threshold)[0];
+  return t ? { threshold: t.threshold, hours: t.hours } : null;
+}
+
 export function calcParkingHours(
   cond: string | null | undefined,
   amount: number,
   opts: { dining?: boolean } = {},
 ): ParkingRuleResult {
-  const base = calcBaseHours(cond, amount);
+  const base = calcBaseHours(cond, amount, opts.dining);
   const extra = opts.dining ? diningExtraHours(cond) : null;
   if (!extra || base.belowThreshold || base.hours <= 0) return base;
   const maxHours = parseMaxHours(String(cond));
@@ -42,7 +76,7 @@ export function calcParkingHours(
   return { ...base, hours: total, extraHours: total - base.hours };
 }
 
-function calcBaseHours(cond: string | null | undefined, amount: number): ParkingRuleResult {
+function calcBaseHours(cond: string | null | undefined, amount: number, dining?: boolean): ParkingRuleResult {
   if (!cond || !amount || amount <= 0) return EMPTY;
   const text = String(cond).trim();
   const maxHours = parseMaxHours(text);
@@ -62,12 +96,8 @@ function calcBaseHours(cond: string | null | undefined, amount: number): Parking
   }
 
   // Tier pattern: collect all "$THRESHOLD=Nhr" occurrences.
-  const tierRegex = /\$?\s*(\d+(?:\.\d+)?)\s*=\s*(\d+(?:\.\d+)?)\s*hr/gi;
-  const tiers: { threshold: number; hours: number }[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = tierRegex.exec(text)) !== null) {
-    tiers.push({ threshold: Number(m[1]), hours: Number(m[2]) });
-  }
+  // 明確話冇食肆單（dining === false）就唔計要食肆單嗰幾級
+  const tiers = parseTiers(text).filter((t) => dining !== false || !t.needsDining);
   if (tiers.length === 0) return EMPTY;
   tiers.sort((a, b) => a.threshold - b.threshold);
   const minThreshold = tiers[0].threshold;
