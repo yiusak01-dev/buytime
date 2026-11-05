@@ -44,6 +44,68 @@ export function AahRuntime() {
   const leftSince = useRef<number | null>(null);
   const leaveWarned = useRef(false);
 
+  // 雲端模式：開住 app 嘅時候，有新興趣、配對、訊息即時彈提示（原生 app 未接推送都唔會錯過）
+  const seen = useRef({
+    ready: false,
+    interests: new Set<string>(),
+    imsgs: new Map<string, number>(),
+    matches: new Map<string, string>(),
+    mmsgs: new Map<string, number>(),
+  });
+  useEffect(() => {
+    const t = setTimeout(() => (seen.current.ready = true), 4000);
+    return () => clearTimeout(t);
+  }, []);
+  useEffect(() => {
+    if (mode !== "remote" || !user.registered) return;
+    const s = seen.current;
+    const alerts: (() => void)[] = [];
+    const goPost = (postId: string) => () => navigate({ to: "/post/$postId", params: { postId } });
+    const goMatch = (matchId: string) => () => navigate({ to: "/match/$matchId", params: { matchId } });
+    for (const p of posts) {
+      const iAmAuthor = p.authorId === user.id;
+      const onPage = pathname === `/post/${p.id}`;
+      for (const it of p.interests) {
+        if (!iAmAuthor && it.userId !== user.id) continue;
+        const key = `${p.id}:${it.userId}`;
+        if (iAmAuthor && it.status === "pending" && !s.interests.has(key)) {
+          s.interests.add(key);
+          if (s.ready && !onPage)
+            alerts.push(() => toast(`${it.name} 對你嘅 post 有興趣`, { description: `${p.shop}・${p.mallName}`, action: { label: "去睇", onClick: goPost(p.id) } }));
+        }
+        const fromOthers = it.messages.filter((m) => m.from !== user.id);
+        const prev = s.imsgs.get(key);
+        s.imsgs.set(key, fromOthers.length);
+        if (s.ready && prev != null && fromOthers.length > prev && !onPage) {
+          const last = fromOthers[fromOthers.length - 1];
+          const who = iAmAuthor ? it.name : p.authorName;
+          alerts.push(() => toast(`${who}：${last.text}`, { description: p.shop, action: { label: "去睇", onClick: goPost(p.id) } }));
+        }
+      }
+    }
+    for (const m of matches) {
+      if (!m.participants.some((x) => x.userId === user.id)) continue;
+      const onPage = pathname === `/match/${m.id}`;
+      const prevStatus = s.matches.get(m.id);
+      s.matches.set(m.id, m.status);
+      if (s.ready && !onPage) {
+        if (prevStatus == null && m.status === "active" && m.authorId !== user.id)
+          alerts.push(() => toast.success("配對成功！", { description: `${m.shop}・${m.mallName}`, action: { label: "去睇", onClick: goMatch(m.id) } }));
+        else if (prevStatus === "active" && m.status === "cancelled")
+          alerts.push(() => toast("配對已取消", { description: `${m.shop}・${m.mallName}`, action: { label: "去睇", onClick: goMatch(m.id) } }));
+      }
+      const fromOthers = m.messages.filter((x) => x.from !== user.id && x.from !== "system");
+      const prev = s.mmsgs.get(m.id);
+      s.mmsgs.set(m.id, fromOthers.length);
+      if (s.ready && prev != null && fromOthers.length > prev && !onPage && m.status === "active") {
+        const last = fromOthers[fromOthers.length - 1];
+        const who = m.participants.find((x) => x.userId === last.from)?.name ?? "對方";
+        alerts.push(() => toast(`${who}：${last.text}`, { description: m.shop, action: { label: "去睇", onClick: goMatch(m.id) } }));
+      }
+    }
+    alerts.slice(0, 3).forEach((f) => f());
+  }, [posts, matches, mode, user.registered, user.id, pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // 我去緊：GPS 確認咗到咗嗰個商場，就自動話對方知（轉做已喺場；自動配對嘅 post 會即刻配對）
   const onSiteTried = useRef<Map<string, number>>(new Map());
   useEffect(() => {

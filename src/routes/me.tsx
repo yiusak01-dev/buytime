@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ChevronRight, KeyRound, LogOut, Pencil, ShieldAlert, Trash2 } from "lucide-react";
+import { Ban, ChevronRight, KeyRound, LogOut, Pencil, ShieldAlert, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { AppLayout } from "@/components/AppLayout";
@@ -8,6 +8,7 @@ import { BottomSheet, Chip, DemoBadge, ScenarioTag } from "@/components/aah/ui";
 import { RegisterSheet } from "@/components/aah/RegisterSheet";
 import { MallPicker } from "@/components/aah/MallPicker";
 import { PushSettingRow } from "@/components/aah/PushPrompt";
+import { BlockListSheet } from "@/components/aah/ReportBlockSheet";
 import { aah, aahErrorText, getSettings, testLocationAllowed, useAahMode, useAahState, isBanned, DAY, BAN_DAYS } from "@/lib/aah/store";
 import { useAahMalls } from "@/lib/aah/malls";
 import { useCurrentMall, useNow, fmtClock, fmtAgo } from "@/lib/aah/geo";
@@ -27,6 +28,7 @@ function MePage() {
   const current = useCurrentMall(malls);
   const now = useNow(30000);
   const [regOpen, setRegOpen] = useState(false);
+  const [blocksOpen, setBlocksOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [appealText, setAppealText] = useState("");
   const [nickOpen, setNickOpen] = useState(false);
@@ -203,6 +205,20 @@ function MePage() {
           </label>
         </section>
 
+        {/* 安全：封鎖名單（舉報／封鎖喺 post 同配對畫面右上角） */}
+        {user.registered && (
+          <section className="bg-card rounded-2xl px-4 py-1">
+            <button onClick={() => setBlocksOpen(true)} className="w-full flex items-center gap-3 py-3 text-left">
+              <Ban className="w-4 h-4 text-muted-foreground" />
+              <span className="flex-1">
+                <span className="text-sm block">封鎖名單</span>
+                <span className="text-[11px] text-muted-foreground block">喺 post 或者配對畫面撳旗仔，可以舉報或者封鎖用戶</span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </button>
+          </section>
+        )}
+
         {testLocationAllowed(mode) && (
         <section className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3 text-sm">
           <div className="font-bold text-amber-900 flex items-center gap-1.5"><DemoBadge />{mode === "local" ? "示範設定" : "試用設定"}</div>
@@ -278,6 +294,7 @@ function MePage() {
       </div>
 
       <RegisterSheet open={regOpen} onClose={() => setRegOpen(false)} onDone={() => setRegOpen(false)} />
+      <BlockListSheet open={blocksOpen} onClose={() => setBlocksOpen(false)} />
       <BottomSheet open={delOpen} onClose={() => !delBusy && setDelOpen(false)} title="刪除帳戶">
         <div className="space-y-3 pb-2">
           <div className="bg-red-50 text-red-900 rounded-2xl p-4 text-sm space-y-1.5">

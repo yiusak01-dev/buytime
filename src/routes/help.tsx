@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { LegalPage, Bullets, type LegalSection } from "@/components/aah/LegalPage";
+import { isNativeApp } from "@/lib/aah/push";
 
 export const Route = createFileRoute("/help")({
   head: () => ({
@@ -11,7 +12,7 @@ export const Route = createFileRoute("/help")({
   component: HelpPage,
 });
 
-const SECTIONS: LegalSection[] = [
+const sections = (native: boolean): LegalSection[] => [
   {
     title: "啱啱好係咩？",
     body: (
@@ -63,7 +64,20 @@ const SECTIONS: LegalSection[] = [
         items={[
           "見面先俾錢，唔好預先轉數。",
           "收錢嗰位要睇自己電話嘅收款通知，唔好只睇對方截圖。",
-          "唔好喺對話留電話或者地址；遇到可疑用戶，可以喺配對畫面舉報或者封鎖。",
+          "唔好喺對話留電話或者地址；遇到可疑用戶，可以舉報或者封鎖（見下面）。",
+        ]}
+      />
+    ),
+  },
+  {
+    title: "點樣舉報或者封鎖？",
+    body: (
+      <Bullets
+        items={[
+          "喺 post、有興趣名單或者配對畫面，撳右上角嘅旗仔，揀原因舉報，或者淨係封鎖。",
+          "舉報會交俾我哋人手審核，24 小時內處理；違規內容會被移除，嚴重或者重犯會被停用帳戶。",
+          "封鎖之後，你哋唔會再見到對方嘅 post，亦唔可以再互動；進行中嘅配對會即刻取消，唔會罰你。",
+          "去「我的配對」→「封鎖名單」可以解除封鎖。",
         ]}
       />
     ),
@@ -73,8 +87,12 @@ const SECTIONS: LegalSection[] = [
     body: (
       <Bullets
         items={[
-          "去「我的配對」打開「推送通知」。",
-          "iPhone 要先喺 Safari 撳分享 →「加至主畫面」，再由主畫面個「啱」字開 app，先收到通知。",
+          ...(native
+            ? ["開住 app 嘅時候，有人有興趣、配對成功、對方傳訊息都會即時彈出提示。"]
+            : [
+                "去「我的配對」打開「推送通知」。",
+                "iPhone 要先喺 Safari 撳分享 →「加至主畫面」，再由主畫面個「啱」字開 app，先收到通知。",
+              ]),
           "檢查手機設定有冇封鎖咗啱啱好嘅通知，或者開咗專注模式。",
         ]}
       />
@@ -82,7 +100,7 @@ const SECTIONS: LegalSection[] = [
   },
   {
     title: "點樣刪除帳戶？",
-    body: <p>去「我的配對」→「帳戶」→「刪除帳戶」。有進行中嘅配對要先完成或者取消。</p>,
+    body: <p>去「我的配對」→「帳戶」→「刪除帳戶」。有進行中嘅配對要先完成或者取消。已經刪咗 app 都可以電郵 support@buytime.hk 要求刪除（見私隱政策）。</p>,
   },
   {
     title: "聯絡我哋",
@@ -97,5 +115,5 @@ const SECTIONS: LegalSection[] = [
 ];
 
 function HelpPage() {
-  return <LegalPage title="常見問題" version="啱啱好 BuyTime" sections={SECTIONS} />;
+  return <LegalPage title="常見問題" version="啱啱好 BuyTime" sections={sections(isNativeApp())} />;
 }

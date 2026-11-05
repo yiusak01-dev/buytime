@@ -1,12 +1,17 @@
 import { useRouter } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
-export type LegalSection = { title: string; body: ReactNode };
+export type LegalSection = { title: string; body: ReactNode; /** 錨點，例如 privacy#delete-account */ id?: string };
 
 /** 服務條款／私隱政策共用版面 */
 export function LegalPage({ title, version, intro, sections }: { title: string; version: string; intro?: ReactNode; sections: LegalSection[] }) {
   const router = useRouter();
+  // 由外面連結打開 #錨點（例如 /privacy#delete-account）：載入完捲去嗰段
+  useEffect(() => {
+    const id = typeof window !== "undefined" ? decodeURIComponent(window.location.hash.slice(1)) : "";
+    if (id) setTimeout(() => document.getElementById(id)?.scrollIntoView({ block: "start" }), 50);
+  }, []);
   const back = () => {
     if (typeof window !== "undefined" && window.history.length > 1) router.history.back();
     else router.navigate({ to: "/me" });
@@ -25,7 +30,7 @@ export function LegalPage({ title, version, intro, sections }: { title: string; 
       <main className="max-w-lg mx-auto px-4 py-5 space-y-4">
         {intro && <div className="text-sm text-muted-foreground leading-relaxed">{intro}</div>}
         {sections.map((s) => (
-          <section key={s.title} className="bg-card rounded-2xl p-4 shadow-[var(--shadow-card)]">
+          <section key={s.title} id={s.id} className="bg-card rounded-2xl p-4 shadow-[var(--shadow-card)] scroll-mt-20">
             <h2 className="text-sm font-bold text-foreground mb-2">{s.title}</h2>
             <div className="text-sm text-muted-foreground leading-relaxed space-y-2">{s.body}</div>
           </section>

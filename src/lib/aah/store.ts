@@ -872,13 +872,31 @@ export const aah = {
   async reportNoShow(matchId: string, accusedId: string) {
     return isRemote() ? R().reportNoShow(matchId, accusedId) : local.reportNoShow(matchId, accusedId);
   },
-  async report(matchId: string, accusedId: string, kind: string, note: string) {
+  /**
+   * 舉報用戶（連住配對或者 post），之後自動封鎖對方：
+   * 雙方唔會再見到對方 post、唔可以再互動；進行中配對即刻取消（唔罰）
+   */
+  async report(opts: { accusedId: string; kind: string; note?: string; matchId?: string; postId?: string; block?: boolean }) {
     if (isRemote()) {
-      await R().report(matchId, accusedId, kind, note);
-      await R().cancelMatch(matchId, "（已舉報並封鎖）").catch(() => {});
+      await R().report(opts);
+      if (opts.block !== false) await R().blockUser(opts.accusedId);
       return;
     }
-    local.cancelMatch(matchId, "（已舉報並封鎖）");
+    if (opts.block !== false) localBlock(opts.accusedId);
+  },
+  /** 封鎖用戶 */
+  async blockUser(userId: string) {
+    if (isRemote()) return R().blockUser(userId);
+    localBlock(userId);
+  },
+  async unblockUser(userId: string) {
+    if (isRemote()) return R().unblockUser(userId);
+    writeLocalBlocks(readLocalBlocks().filter((b) => b.userId !== userId));
+  },
+  /** 我封鎖咗邊個 */
+  async myBlocks(): Promise<{ userId: string; nickname: string }[]> {
+    if (isRemote()) return R().myBlocks();
+    return readLocalBlocks();
   },
   async rateMatch(matchId: string, rating: "up" | "down") {
     return isRemote() ? R().rateMatch(matchId, rating) : local.rateMatch(matchId, rating);
@@ -921,6 +939,37 @@ export const aah = {
 export { aahErrorText } from "./remote";
 
 /** 回傳成個 state（參照穩定）；要篩選就喺 component 用 useMemo */
+// 示範模式嘅封鎖名單（淨係存喺呢部機）
+const LOCAL_BLOCKS_KEY = "aah:blocks";
+function readLocalBlocks(): { userId: string; nickname: string }[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(LOCAL_BLOCKS_KEY) ?? "[]");
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
+function writeLocalBlocks(list: { userId: string; nickname: string }[]) {
+  try {
+    localStorage.setItem(LOCAL_BLOCKS_KEY, JSON.stringify(list));
+  } catch {
+    /* 私密瀏覽：唔記得都冇問題 */
+  }
+}
+function localBlock(userId: string) {
+  const name =
+    state.posts.find((p) => p.authorId === userId)?.authorName ??
+    state.matches.flatMap((m) => m.participants).find((p) => p.userId === userId)?.name ??
+    "用戶";
+  const list = readLocalBlocks().filter((b) => b.userId !== userId);
+  writeLocalBlocks([{ userId, nickname: name }, ...list]);
+  for (const m of state.matches) {
+    if (m.status === "active" && m.participants.some((p) => p.userId === userId)) local.cancelMatch(m.id, "配對已取消。");
+  }
+  state = { ...state, posts: state.posts.filter((p) => !(p.authorId === userId && p.status === "open")) };
+  listeners.forEach((l) => l());
+}
+
 export function useAahState() {
   return useSyncExternalStore(aah.subscribe, aah.get, aah.get);
 }

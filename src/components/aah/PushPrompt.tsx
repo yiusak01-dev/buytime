@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Bell, Share } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
-import { usePush } from "@/lib/aah/push";
+import { isNativeApp, usePush } from "@/lib/aah/push";
 import { useAahMode, useAahState } from "@/lib/aah/store";
 
 const DISMISS_KEY = "aah:pushPromptDismissedAt";
@@ -86,6 +86,8 @@ export function PushSettingRow() {
   const { user } = useAahState();
   const p = usePush();
   if (mode !== "remote" || !user.registered) return null;
+  // 原生 app 未接推送：唔顯示（開住 app 時一樣會即時彈提示）
+  if (isNativeApp() && p.support === "unsupported") return null;
 
   const hint =
     p.support === "ios-install"

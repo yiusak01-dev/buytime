@@ -339,8 +339,25 @@ export function AahReportsTab() {
       const { data: all } = await sb().from("aah_reports").select("accused_id").in("accused_id", accusedIds);
       for (const x of all ?? []) counts.set(x.accused_id, (counts.get(x.accused_id) ?? 0) + 1);
     }
-    return { reports: reports ?? [], profiles, counts };
+    // 被舉報嘅 post（唔使有配對都舉報得）
+    const postIds = Array.from(new Set((reports ?? []).map((r: any) => r.post_id).filter(Boolean)));
+    const posts = new Map<string, any>();
+    if (postIds.length) {
+      const { data: ps } = await sb().from("aah_posts").select("id, shop, mall_name, fields, status, author_name").in("id", postIds);
+      for (const x of ps ?? []) posts.set(x.id, x);
+    }
+    return { reports: reports ?? [], profiles, counts, posts };
   }, [filter]);
+
+  async function removePost(reportId: string, postId: string) {
+    if (!window.confirm("移除呢個 post？會收埋 post 同清走備注，並通知發 post 嘅人。")) return;
+    setBusy(reportId);
+    const { error: e } = await sb().rpc("aah_admin_remove_post", { p_post: postId, p_note: null });
+    setBusy(null);
+    if (e) return void toast.error(friendlyError(e));
+    toast.success("已移除 post");
+    void reload();
+  }
 
   async function decide(id: string, action: string, note: string) {
     setBusy(id);
@@ -370,6 +387,27 @@ export function AahReportsTab() {
             <UserLine p={data.profiles.get(r.accused_id)} label={`被舉報（共被舉報 ${data.counts.get(r.accused_id) ?? 1} 次）`} />
             <UserLine p={data.profiles.get(r.reporter_id)} label="舉報人" />
             {r.note && <div className="text-sm bg-accent/50 rounded-lg p-3">「{r.note}」</div>}
+            {r.post_id && (() => {
+              const p = data.posts.get(r.post_id);
+              if (!p) return <div className="text-xs text-muted-foreground">被舉報嘅 post 已經唔存在</div>;
+              const removed = p.status === "cancelled" && !p.fields?.remark && !p.fields?.deal;
+              return (
+                <div className="text-sm border border-border rounded-lg p-3 space-y-1">
+                  <div className="font-semibold">被舉報嘅 post：{p.shop}・{p.mall_name}（{p.status}）</div>
+                  {p.fields?.deal && <div>優惠：{String(p.fields.deal)}</div>}
+                  {p.fields?.remark && <div>備注：{String(p.fields.remark)}</div>}
+                  {!removed && (
+                    <button
+                      disabled={busy === r.id}
+                      onClick={() => removePost(r.id, r.post_id)}
+                      className="mt-1 h-9 px-3 rounded-lg bg-destructive text-destructive-foreground text-xs font-bold disabled:opacity-50"
+                    >
+                      移除呢個 post
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
             {r.match_id && (
               <Expand title="睇配對時間線同對話">
                 {() => <LazyMatch matchId={r.match_id} extra={[{ at: r.created_at, text: `${nameOf(data.profiles, r.reporter_id)} 舉報：${KIND_LABEL[r.kind] ?? r.kind}`, tone: "bad" }]} />}

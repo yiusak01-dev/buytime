@@ -512,9 +512,32 @@ export function createRemote(host: Host) {
       await rpc("aah_report_no_show", { p_match: matchId, p_accused: accusedId });
     },
 
-    async report(matchId: string, accusedId: string, kind: string, note: string) {
-      const { error } = await sb().from("aah_reports").insert({ match_id: matchId, reporter_id: uid, accused_id: accusedId, kind, note });
+    /** 舉報用戶：可以連住配對或者 post（唔使有配對） */
+    async report(opts: { accusedId: string; kind: string; note?: string; matchId?: string; postId?: string }) {
+      await rpc("aah_report_user", {
+        p_accused: opts.accusedId,
+        p_kind: opts.kind,
+        p_note: opts.note ?? null,
+        p_post: opts.postId ?? null,
+        p_match: opts.matchId ?? null,
+      });
+    },
+
+    /** 封鎖：雙方唔會再見到對方 post、唔可以再互動；進行中配對即刻取消 */
+    async blockUser(userId: string) {
+      await rpc("aah_block_user", { p_user: userId });
+      scheduleRefresh();
+    },
+
+    async unblockUser(userId: string) {
+      await rpc("aah_unblock_user", { p_user: userId });
+      scheduleRefresh();
+    },
+
+    async myBlocks(): Promise<{ userId: string; nickname: string }[]> {
+      const { data, error } = await sb().rpc("aah_my_blocks");
       if (error) throw error;
+      return (data ?? []).map((r: any) => ({ userId: String(r.user_id), nickname: String(r.nickname ?? "用戶") }));
     },
 
     async rateMatch(matchId: string, rating: "up" | "down") {
@@ -648,6 +671,9 @@ function rowToMatch(m: any, parts: any[], msgs: any[], uid: string, prefs: Local
 export function aahErrorText(e: unknown): string {
   const msg = String((e as any)?.message ?? e ?? "");
   const map: [RegExp, string][] = [
+    [/objectionable/, "內容有唔適合嘅字眼，改一改再試"],
+    [/blocked/, "你哋其中一方封鎖咗對方，唔可以再互動"],
+    [/bad kind|bad user|bad post/, "舉報唔到，請再試"],
     [/banned/, "你嘅帳戶停用緊，可以喺「我的配對」申訴"],
     [/not registered/, "要先註冊"],
     [/post closed/, "呢個 post 已經結束"],

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Eye, Send, Pin, Minus, Plus, Clock } from "lucide-react";
+import { ArrowLeft, Eye, Send, Pin, Minus, Plus, Clock, Flag } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
 import { PushPrompt } from "@/components/aah/PushPrompt";
@@ -29,6 +29,7 @@ import { acceptsEnRoute, etaChoices, fmtKm, sortInterests, suggestedInterest, LA
 import type { InterestOpts } from "@/lib/aah/remote";
 import { SCENARIOS, keyInfo, payLabel, authorRole, receiptCountNote } from "@/lib/aah/scenarios";
 import { ScenarioTips } from "@/components/aah/ScenarioTips";
+import { ReportBlockSheet } from "@/components/aah/ReportBlockSheet";
 import { buyerParkingSaving } from "@/lib/aah/pricing";
 import type { Post } from "@/lib/aah/types";
 import { cn } from "@/lib/utils";
@@ -62,14 +63,19 @@ function PostPage() {
   return post.authorId === user.id ? <MyPostView post={post} /> : <PostDetailView post={post} />;
 }
 
-function TopBar({ title }: { title: string }) {
+function TopBar({ title, onReport }: { title: string; onReport?: () => void }) {
   const navigate = useNavigate();
   return (
     <header className="sticky top-0 z-30 bg-background/95 backdrop-blur px-4 pt-4 pb-3 flex items-center gap-3 border-b border-border/60">
       <button onClick={() => (window.history.length > 1 ? window.history.back() : navigate({ to: "/" }))} aria-label="返回" className="w-9 h-9 grid place-items-center rounded-full hover:bg-accent">
         <ArrowLeft className="w-5 h-5" />
       </button>
-      <div className="font-black text-lg">{title}</div>
+      <div className="font-black text-lg flex-1">{title}</div>
+      {onReport && (
+        <button onClick={onReport} aria-label="舉報或封鎖" className="w-9 h-9 grid place-items-center rounded-full hover:bg-accent text-muted-foreground">
+          <Flag className="w-4 h-4" />
+        </button>
+      )}
     </header>
   );
 }
@@ -126,6 +132,7 @@ function PostDetailView({ post }: { post: Post }) {
   const [eta, setEta] = useState<number | null>(null);
 
   const mine = post.interests.find((i) => i.userId === user.id);
+  const [reportOpen, setReportOpen] = useState(false);
   const lastSent = useRef<{ text: string; at: number } | null>(null);
 
   // 自己傳咗訊息或者對方覆：捲落對話度（唔好俾底部嗰排掣遮住）
@@ -214,7 +221,14 @@ function PostDetailView({ post }: { post: Post }) {
 
   return (
     <AppLayout hideNav>
-      <TopBar title="着數詳情" />
+      <TopBar title="着數詳情" onReport={() => setReportOpen(true)} />
+      <ReportBlockSheet
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        targets={[{ userId: post.authorId, name: post.authorName }]}
+        postId={post.id}
+        onBlocked={() => navigate({ to: "/", replace: true })}
+      />
       <div className="px-4 pt-4 pb-40 space-y-4">
         <PostSummary post={post} now={now} />
 
@@ -371,6 +385,7 @@ function MyPostView({ post }: { post: Post }) {
   const mall = malls.find((m) => m.id === post.mallId);
   const pinned = (post.pinnedUntil ?? 0) > now;
   const pending = sortInterests(post.interests.filter((i) => i.status === "pending"));
+  const [reportTarget, setReportTarget] = useState<{ userId: string; name: string } | null>(null);
   const suggested = pending.length > 1 ? suggestedInterest(pending) : undefined;
   const age = now - post.createdAt;
   const showPinPrompt = post.status === "open" && !pinned && post.interests.length === 0 && age >= PIN_PROMPT_AFTER_MIN * 60000;
@@ -403,6 +418,12 @@ function MyPostView({ post }: { post: Post }) {
   return (
     <AppLayout hideNav>
       <TopBar title="你嘅 post" />
+      <ReportBlockSheet
+        open={!!reportTarget}
+        onClose={() => setReportTarget(null)}
+        targets={reportTarget ? [reportTarget] : []}
+        postId={post.id}
+      />
       <div className="px-4 pt-4 pb-10 space-y-4">
         {/* 狀態 */}
         {post.status === "open" ? (
@@ -496,7 +517,16 @@ function MyPostView({ post }: { post: Post }) {
                         {(it.noShows ?? 0) > 0 && <span className="font-semibold text-destructive">冇出現 {it.noShows} 次</span>}
                       </div>
                     </div>
-                    <div className="text-xs text-muted-foreground shrink-0">{fmtAgo(it.at, now)}</div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="text-xs text-muted-foreground">{fmtAgo(it.at, now)}</span>
+                      <button
+                        onClick={() => setReportTarget({ userId: it.userId, name: it.name })}
+                        aria-label={`舉報或封鎖 ${it.name}`}
+                        className="w-8 h-8 -mr-1 grid place-items-center rounded-full hover:bg-accent text-muted-foreground"
+                      >
+                        <Flag className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-1.5">
                     {it.messages.map((m, i) => (

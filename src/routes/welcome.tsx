@@ -4,6 +4,7 @@ import { ShieldCheck, TimerOff, Sparkles } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { aah, useAahState } from "@/lib/aah/store";
 import { geoStore } from "@/lib/aah/geo";
+import { isNativeApp } from "@/lib/aah/push";
 import { SCENARIOS, SCENARIO_LIST } from "@/lib/aah/scenarios";
 import { Chip } from "@/components/aah/ui";
 
@@ -75,7 +76,7 @@ function Welcome() {
                 const r = await geoStore.start();
                 setAsking(false);
                 if (r === "ok") setStep(2);
-                else setGpsResult(r === "denied" ? "你冇俾定位權限。冇定位都可以睇，但唔可以出 post 同接 post；可以之後喺瀏覽器或者手機設定再開。" : "搵唔到你嘅位置，可以遲啲再試。");
+                else setGpsResult(r === "denied" ? `你冇俾定位權限。冇定位都可以睇，但唔可以出 post 同接 post；可以之後喺${isNativeApp() ? "手機設定" : "瀏覽器或者手機設定"}再開。` : "搵唔到你嘅位置，可以遲啲再試。");
               }}
               className="w-full h-13 py-3.5 rounded-2xl bg-[#1a1a1a] text-white font-bold disabled:opacity-50"
             >

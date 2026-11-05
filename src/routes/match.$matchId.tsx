@@ -13,6 +13,7 @@ import { useAahMalls } from "@/lib/aah/malls";
 import { useCurrentMall, useNow, fmtClock, fmtLeft } from "@/lib/aah/geo";
 import { LATE_GRACE_MIN, CANCEL_GRACE_MIN, cancelIsLate } from "@/lib/aah/enroute";
 import { SCENARIOS, payLabel, authorRole } from "@/lib/aah/scenarios";
+import { ReportBlockSheet } from "@/components/aah/ReportBlockSheet";
 import { ScenarioTips } from "@/components/aah/ScenarioTips";
 import type { Match } from "@/lib/aah/types";
 import { cn } from "@/lib/utils";
@@ -169,7 +170,7 @@ function MatchPage() {
               {m.shop}・{m.price == null ? "夾單" : m.price === 0 ? "免費" : `$${m.price}`}
             </div>
           </div>
-          {active && (
+          {others.length > 0 && (
             <button onClick={() => setReportOpen(true)} aria-label="舉報或封鎖" className="w-9 h-9 grid place-items-center rounded-full hover:bg-accent text-muted-foreground">
               <Flag className="w-4 h-4" />
             </button>
@@ -517,25 +518,12 @@ function MatchPage() {
         </div>
       </BottomSheet>
 
-      <BottomSheet open={reportOpen} onClose={() => setReportOpen(false)} title="舉報／封鎖">
-        <div className="space-y-2 pb-2">
-          {["對方要求預先轉數", "對方騷擾我", "收據／飛／券係假嘅", "其他"].map((t) => (
-            <button
-              key={t}
-              onClick={() => {
-                setReportOpen(false);
-                const accused = others[0]?.userId;
-                const kind = ({ 對方要求預先轉數: "prepay", 對方騷擾我: "harass", "收據／飛／券係假嘅": "fake", 其他: "other" } as Record<string, string>)[t] ?? "other";
-                if (accused) void act(aah.report(m.id, accused, kind, t), "已收到舉報，我哋會人手跟進");
-              }}
-              className="w-full h-12 rounded-2xl border border-border font-semibold text-left px-4"
-            >
-              {t}
-            </button>
-          ))}
-          {mode === "local" && <p className="text-[11px] text-muted-foreground flex items-center gap-1.5"><DemoBadge />示範版只會取消配對；正式版會送去人手審核。</p>}
-        </div>
-      </BottomSheet>
+      <ReportBlockSheet
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        targets={others.map((o) => ({ userId: o.userId, name: o.name }))}
+        matchId={m.id}
+      />
     </AppLayout>
   );
 }
