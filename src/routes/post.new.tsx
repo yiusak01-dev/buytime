@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Camera, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -9,16 +9,30 @@ import { RegisterSheet } from "@/components/aah/RegisterSheet";
 import { aah, aahErrorText, getSettings, testLocationAllowed, useAahState, isBanned, dailyDiningCount, DINING_POSTS_PER_DAY } from "@/lib/aah/store";
 import { useAahMalls, demoAudience } from "@/lib/aah/malls";
 import { useCurrentMall, fmtClock, useNow } from "@/lib/aah/geo";
-import { SCENARIOS, SCENARIO_LIST, GROUPBUY_DEALS, PAY_METHODS, authorRole, diningFlag, receiptCountNote, cleanMoneyInput } from "@/lib/aah/scenarios";
+import { SCENARIOS, SCENARIO_LIST, GROUPBUY_DEALS, PAY_METHODS, authorRole, diningFlag, receiptCountNote, cleanMoneyInput, payLabel } from "@/lib/aah/scenarios";
 import { ScenarioTips } from "@/components/aah/ScenarioTips";
 import { quoteParkingReceipt, quoteParkingWant, quoteOffer, mallDiningExtra, mallHasDiningRule, diningTierToday } from "@/lib/aah/pricing";
 import type { FieldDef } from "@/lib/aah/scenarios";
 import { readAmountsFromImage, fmtAmount } from "@/lib/aah/ocr";
+import { takePendingPhoto } from "@/lib/aah/pendingPhoto";
 import type { Direction, PayMethod, ScenarioId } from "@/lib/aah/types";
 import { cn } from "@/lib/utils";
 
+/** 首頁快捷掣：直接入去某個場景，用最常見嘅預設，填少啲就發得 */
+export type QuickKind = "receipt" | "want" | "dining" | "offer" | "groupbuy";
+const QUICK_KINDS: QuickKind[] = ["receipt", "want", "dining", "offer", "groupbuy"];
+const QUICK_SETUP: Record<QuickKind, { scenario: ScenarioId; direction: Direction }> = {
+  receipt: { scenario: "parking", direction: "have" },
+  want: { scenario: "parking", direction: "want" },
+  dining: { scenario: "dining", direction: "have" },
+  offer: { scenario: "offer", direction: "have" },
+  groupbuy: { scenario: "groupbuy", direction: "join" },
+};
+
 export const Route = createFileRoute("/post/new")({
   head: () => ({ meta: [{ title: "出 post · 啱啱好" }] }),
+  validateSearch: (s: Record<string, unknown>): { quick?: QuickKind } =>
+    QUICK_KINDS.includes(s.quick as QuickKind) ? { quick: s.quick as QuickKind } : {},
   component: NewPost,
 });
 
@@ -66,10 +80,19 @@ function NewPost() {
   const diningTier = diningTierToday(mall, now);
   const fieldShown = (f: FieldDef) => (!f.onlyFor || f.onlyFor.includes(direction)) && (!f.onlyIfDiningRule || hasDiningRule);
 
-  function pickScenario(id: ScenarioId) {
+  /** 最常見嘅選擇做預設（用戶睇到、可以改），慳返幾下撳 */
+  function defaultFields(id: ScenarioId, dir: Direction): Record<string, string> {
+    if (id === "groupbuy") return { deal: GROUPBUY_DEALS[1] };
+    if (id === "parking" && dir === "have") return { receiptCount: "1 張", receiptType: "紙單" };
+    if (id === "parking" && dir === "want") return { hours: "2" };
+    if (id === "dining") return { partySize: "2" };
+    return {};
+  }
+
+  function pickScenario(id: ScenarioId, dir: Direction = SCENARIOS[id].directions[0]) {
     setScenario(id);
-    setDirection(SCENARIOS[id].directions[0]);
-    setFields(id === "groupbuy" ? { deal: GROUPBUY_DEALS[1] } : {});
+    setDirection(dir);
+    setFields(defaultFields(id, dir));
     setRemark("");
     setShop(id === "parking" ? "停車場" : "");
     setPrice("");
@@ -77,6 +100,27 @@ function NewPost() {
     setOcrNote("");
     setOcrOptions([]);
   }
+
+  // 由首頁快捷掣入嚟：直接揀好場景；「影收據」就即刻讀張相
+  const { quick } = Route.useSearch();
+  const quickDone = useRef(false);
+  useEffect(() => {
+    if (!quick || quickDone.current) return;
+    quickDone.current = true;
+    const q = QUICK_SETUP[quick];
+    pickScenario(q.scenario, q.direction);
+    if (quick === "receipt") {
+      const photo = takePendingPhoto();
+      if (photo) void onPhoto(photo, "receiptAmount");
+    }
+  }, [quick]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 商場有食肆單規則：預設「冇食肆單」（保守計鐘），計數卡會提你有食肆單可以換多啲
+  useEffect(() => {
+    if (scenario === "parking" && direction === "have" && hasDiningRule && !fields.receiptCategory) {
+      setFields((x) => (x.receiptCategory ? x : { ...x, receiptCategory: "冇食肆單" }));
+    }
+  }, [scenario, direction, hasDiningRule, fields.receiptCategory]);
 
   const leaveAt = useMemo(() => {
     if (leaveMode !== "custom") return now + leaveMode * MIN;
@@ -172,6 +216,19 @@ function NewPost() {
 
   const priceNum = free ? 0 : price === "" ? null : Number(price);
 
+  // 一撳發佈：用戶未填價錢時用嘅價（泊車、有面值嘅優惠用建議價；食飯飛、冇面值嘅優惠用免費）
+  // 只會喺用戶撳發佈掣先用，掣上面寫明係幾多錢
+  const quickPrice = useMemo((): number | null => {
+    if (!s || !s.hasPrice || free || price !== "") return null;
+    if (s.id === "parking") return suggestion?.max != null && suggestion.max > 0 ? suggestion.max : null;
+    if (s.id === "offer") return suggestion?.max != null && suggestion.max > 0 ? suggestion.max : 0;
+    if (s.id === "dining") return 0;
+    return null;
+  }, [s, free, price, suggestion]);
+  const effPrice = priceNum ?? quickPrice;
+  /** 自己冇揀收款方式就用現金（掣上面會寫） */
+  const effPay: PayMethod[] = pay.length ? pay : ["cash"];
+
   const missing = useMemo(() => {
     if (!s) return "揀一個場景";
     if (s.shopLabel && !shop.trim()) return "填舖頭";
@@ -181,11 +238,11 @@ function NewPost() {
       if (f.required && !v) return `${f.type === "choice" ? "揀" : "填"}「${f.label}」`;
       if (f.type === "number" && v && !(Number(v) > 0)) return `填啱「${f.label}」`;
     }
-    if (s.hasPrice && priceNum == null) return "填價錢（可以揀免費）";
+    if (s.hasPrice && effPrice == null) return "填價錢（可以揀免費）";
     if (s.hasPrice && priceNum != null && priceNum > 0 && pay.length === 0) return "揀收款方式";
     if (!leaveAt) return "揀時間";
     return null;
-  }, [s, shop, fields, direction, priceNum, pay, leaveAt, hasDiningRule]);
+  }, [s, shop, fields, direction, priceNum, effPrice, pay, leaveAt, hasDiningRule]);
 
   async function submit() {
     if (!s || !scenario || missing || !leaveAt || submitting) return;
@@ -225,8 +282,8 @@ function NewPost() {
       mallName: mall.name,
       shop: shop.trim() || "停車場",
       fields: f,
-      price: s.hasPrice ? priceNum : null,
-      payMethods: s.hasPrice && priceNum && priceNum > 0 ? pay : [],
+      price: s.hasPrice ? effPrice : null,
+      payMethods: s.hasPrice && effPrice && effPrice > 0 ? effPay : [],
       leaveAt,
       verifiedOnSite: current.verified,
       pushedCount: Math.round(demoAudience(mall.id) * (user.notifyCats.length / 4 || 1)),
@@ -243,7 +300,7 @@ function NewPost() {
     }
   }
 
-  async function onPhoto(file: File | undefined) {
+  async function onPhoto(file: File | undefined, keyOverride?: string) {
     if (!file) return;
     setOcrBusy(true);
     setOcrNote("");
@@ -251,7 +308,7 @@ function NewPost() {
     try {
       const { best, options } = await readAmountsFromImage(file);
       if (best != null) {
-        const key = scenario === "offer" ? "faceValue" : "receiptAmount";
+        const key = keyOverride ?? (scenario === "offer" ? "faceValue" : "receiptAmount");
         setFields((x) => ({ ...x, [key]: fmtAmount(best) }));
         setOcrOptions(options);
         setOcrNote(
@@ -272,10 +329,33 @@ function NewPost() {
   const overSuggest = suggestion?.max != null && priceNum != null && priceNum > suggestion.max;
   const timeWord = scenario === "dining" ? "叫號" : "走";
 
+  // 發佈掣上面嗰行：一眼睇到會發咩出去
+  const summary = useMemo(() => {
+    if (!s || missing || !leaveAt) return null;
+    const parts: string[] = [];
+    if (s.id === "parking" && direction === "have" && suggestion?.hours) parts.push(`可換 ${suggestion.hours} 個鐘`);
+    if (s.id === "parking" && direction === "want" && fields.hours) parts.push(`要 ${fields.hours} 個鐘`);
+    if (s.id === "dining" && fields.queueNo) parts.push(`${fields.queueNo}・${fields.partySize} 位`);
+    if (s.id === "groupbuy") parts.push(`${fields.deal}・搵 ${needCount} 個人`);
+    if (s.hasPrice) parts.push(effPrice && effPrice > 0 ? `$${effPrice}・${payLabel(effPay)}` : "免費");
+    parts.push(`${fmtClock(leaveAt)} 前有效`);
+    return parts.join("・");
+  }, [s, missing, leaveAt, direction, suggestion, fields, needCount, effPrice, effPay]);
+
+  const submitLabel = submitting
+    ? "發佈緊…"
+    : missing
+      ? `仲要${missing}`
+      : s?.hasPrice && priceNum == null && quickPrice != null
+        ? quickPrice > 0
+          ? `用建議價 $${quickPrice} 即刻發佈`
+          : "免費即刻發佈"
+        : "發佈";
+
   return (
     <AppLayout hideNav>
       <header className="sticky top-0 z-30 bg-background/95 backdrop-blur px-4 pt-4 pb-3 flex items-center gap-3 border-b border-border/60">
-        <button onClick={() => (scenario ? setScenario(null) : navigate({ to: "/" }))} aria-label="返回" className="w-9 h-9 grid place-items-center rounded-full hover:bg-accent">
+        <button onClick={() => (scenario && !quick ? setScenario(null) : navigate({ to: "/" }))} aria-label="返回" className="w-9 h-9 grid place-items-center rounded-full hover:bg-accent">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
@@ -328,6 +408,7 @@ function NewPost() {
                         onClick={() => {
                           setDirection(d);
                           setPrice("");
+                          setFields((x) => ({ ...defaultFields(s.id, d), ...x }));
                         }}
                         className={cn("h-14 rounded-2xl border-2 font-bold", direction === d ? "border-[#1a1a1a] bg-[#1a1a1a] text-white" : "border-border bg-card")}
                       >
@@ -508,13 +589,13 @@ function NewPost() {
                     >
                       建議唔好超過 <b className="text-sm">${suggestion.max}</b>
                       {suggestion.basis && <span>（{suggestion.basis}）</span>}
-                      {overSuggest ? "。而家高過建議價，可能較難有人接。" : "。價錢由你自己定。"}
+                      {overSuggest ? "。而家高過建議價，可能較難有人接。" : price === "" ? "。唔填就用建議價，想改自己填。" : "。價錢由你自己定。"}
                     </div>
                   )}
                 </Section>
               )}
 
-              {s.hasPrice && !free && (
+              {s.hasPrice && !free && !(price === "" && quickPrice === 0) && (
                 <Section title="收款方式" hint="下次會自動記住">
                   <div className="flex flex-wrap gap-2">
                     {PAY_METHODS.map((p) => {
@@ -594,12 +675,19 @@ function NewPost() {
       {scenario && (
         <div className="fixed bottom-0 inset-x-0 z-30">
           <div className="max-w-lg mx-auto px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 bg-gradient-to-t from-background via-background to-transparent">
+            {summary && (
+              <div className="flex justify-center pb-2">
+                <div data-testid="publish-summary" className="max-w-full truncate bg-card border border-border rounded-full px-3 py-1 text-xs font-semibold text-[#1a1a1a]/75 shadow-sm">
+                  {summary}
+                </div>
+              </div>
+            )}
             <button
               onClick={submit}
               disabled={!!missing || submitting}
               className="w-full h-14 rounded-2xl bg-[#F5C518] text-[#1a1a1a] font-black text-base shadow-lg disabled:opacity-50"
             >
-              {submitting ? "發佈緊…" : missing ? `仲要${missing}` : "發佈"}
+              {submitLabel}
             </button>
           </div>
         </div>

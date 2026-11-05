@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MapPin, ChevronDown, Bell, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
@@ -11,6 +11,8 @@ import { useAahMalls, nearbyMalls, distanceM, nearestMalls, hotMalls, useLiveCou
 import { useCurrentMall, useGeo, useNow } from "@/lib/aah/geo";
 import { SCENARIOS, SCENARIO_LIST } from "@/lib/aah/scenarios";
 import type { ScenarioId } from "@/lib/aah/types";
+import { setPendingPhoto } from "@/lib/aah/pendingPhoto";
+import type { QuickKind } from "./post.new";
 
 type HomeSearch = { cat?: ScenarioId };
 
@@ -168,6 +170,8 @@ function Home() {
           </div>
         )}
 
+        <QuickActions />
+
         {mall && (
           <div className="flex items-end justify-between">
             <h1 className="text-xl font-black">
@@ -251,5 +255,53 @@ function Home() {
         hasTest={!!user.testMallId}
       />
     </AppLayout>
+  );
+}
+
+/**
+ * 首頁快捷掣：一撳直接去做嗰件事（唔使先揀場景）。
+ * 「影收據」即刻開相機，影完去出 post 頁自動讀金額、計建議價，再撳一下就發佈。
+ */
+const QUICK_ACTIONS: { kind: QuickKind; emoji: string; label: string; color: string }[] = [
+  { kind: "receipt", emoji: "📸", label: "影收據", color: SCENARIOS.parking.color },
+  { kind: "want", emoji: "🚗", label: "我要泊車", color: SCENARIOS.parking.color },
+  { kind: "dining", emoji: "🍜", label: "轉讓飛", color: SCENARIOS.dining.color },
+  { kind: "offer", emoji: "🎟", label: "轉優惠券", color: SCENARIOS.offer.color },
+  { kind: "groupbuy", emoji: "🛍", label: "搵人夾單", color: SCENARIOS.groupbuy.color },
+];
+
+function QuickActions() {
+  const navigate = useNavigate();
+  const fileRef = useRef<HTMLInputElement>(null);
+  return (
+    <div className="grid grid-cols-5 gap-2" role="group" aria-label="快捷出 post">
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        data-testid="quick-receipt-input"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (!f) return;
+          setPendingPhoto(f);
+          navigate({ to: "/post/new", search: { quick: "receipt" } });
+        }}
+      />
+      {QUICK_ACTIONS.map((a) => (
+        <button
+          key={a.kind}
+          onClick={() => (a.kind === "receipt" ? fileRef.current?.click() : navigate({ to: "/post/new", search: { quick: a.kind } }))}
+          className="bg-card rounded-2xl py-2.5 flex flex-col items-center gap-1 shadow-sm active:scale-[0.97] transition-transform"
+        >
+          <span className="w-9 h-9 rounded-full grid place-items-center text-lg" style={{ background: `${a.color}1f` }} aria-hidden="true">
+            {a.emoji}
+          </span>
+          <span className="text-[11px] font-bold leading-tight whitespace-nowrap">{a.label}</span>
+        </button>
+      ))}
+    </div>
   );
 }
