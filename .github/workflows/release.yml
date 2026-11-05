@@ -1,0 +1,189 @@
+# 上架版本（唔使 Mac）：喺 GitHub 撳「Actions → release → Run workflow」
+#  - iOS：打包，用 App Store Connect API 鎖匙自動簽名，直接上載到 App Store Connect（TestFlight 會見到）
+#  - Android：打包簽咗名嘅 AAB，喺呢個 run 嘅 Artifacts 下載，再上載去 Google Play Console
+# 要用嘅 secrets（Settings → Secrets and variables → Actions），由你自己加，唔好貼俾任何人：
+#  iOS：APPLE_TEAM_ID、ASC_KEY_ID、ASC_ISSUER_ID、ASC_KEY_P8（.p8 檔全部內容，鎖匙要 Admin 權限）
+#  Android：ANDROID_KEYSTORE_PASSWORD（自己諗一個長密碼）
+#           第一次行會自動整一條上載鎖匙，放喺 Artifacts「android-upload-key」（1 日後自動刪除）：
+#           打開入面 ANDROID_KEYSTORE_B64.txt，全部複製，加做 secret ANDROID_KEYSTORE_B64；upload.jks 自己收好
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 邊個平台
+        type: choice
+        options: [both, android, ios]
+        default: both
+      dry_run:
+        description: 淨係試打包（唔用你嘅鎖匙、唔上載）
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  android:
+    if: inputs.platform != 'ios'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      BUILD_NUMBER: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync android
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Upload key
+        env:
+          KEY_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KEY_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/key"
+          KS="$RUNNER_TEMP/key/upload.jks"
+          if [ "$DRY_RUN" = "true" ]; then
+            KEY_PASS="$(openssl rand -hex 24)"
+            echo "::add-mask::$KEY_PASS"
+            keytool -genkeypair -storetype PKCS12 -keystore "$KS" -alias upload -keyalg RSA -keysize 4096 -validity 10000 \
+              -storepass "$KEY_PASS" -keypass "$KEY_PASS" -dname "CN=BuyTime test, C=HK" >/dev/null
+            echo "NEW_KEY=0" >> "$GITHUB_ENV"
+          else
+            if [ -z "$KEY_PASS" ]; then
+              echo "::error::未設定 secret ANDROID_KEYSTORE_PASSWORD（Settings → Secrets and variables → Actions → New repository secret）"
+              exit 1
+            fi
+            if [ -n "$KEY_B64" ]; then
+              printf '%s' "$KEY_B64" | base64 -d > "$KS"
+              echo "NEW_KEY=0" >> "$GITHUB_ENV"
+            else
+              keytool -genkeypair -storetype PKCS12 -keystore "$KS" -alias upload -keyalg RSA -keysize 4096 -validity 10000 \
+                -storepass "$KEY_PASS" -keypass "$KEY_PASS" -dname "CN=BuyTime, O=BuyTime, C=HK" >/dev/null
+              base64 -w0 "$KS" > "$RUNNER_TEMP/key/ANDROID_KEYSTORE_B64.txt"
+              echo "NEW_KEY=1" >> "$GITHUB_ENV"
+            fi
+          fi
+          echo "ANDROID_KEYSTORE_PATH=$KS" >> "$GITHUB_ENV"
+          echo "ANDROID_KEYSTORE_PASSWORD=$KEY_PASS" >> "$GITHUB_ENV"
+      - name: Build signed AAB
+        working-directory: android
+        run: ./gradlew bundleRelease --no-daemon
+      - name: Check signature
+        run: |
+          set -euo pipefail
+          AAB=android/app/build/outputs/bundle/release/app-release.aab
+          jarsigner -verify "$AAB" | tee /dev/stderr | grep -q "jar verified"
+          unzip -l "$AAB" | grep -q "base/assets/public/index.html"
+          mkdir -p out && cp "$AAB" "out/buytime-${BUILD_NUMBER}.aab"
+          echo "### Android AAB 準備好（versionCode ${BUILD_NUMBER}）" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: inputs.dry_run != true
+        with:
+          name: android-aab
+          path: out/*.aab
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: inputs.dry_run != true && env.NEW_KEY == '1'
+        with:
+          name: android-upload-key
+          path: |
+            ${{ runner.temp }}/key/upload.jks
+            ${{ runner.temp }}/key/ANDROID_KEYSTORE_B64.txt
+          retention-days: 1
+      - name: Remind to save the new key
+        if: inputs.dry_run != true && env.NEW_KEY == '1'
+        run: |
+          echo "### ⚠️ 新整咗上載鎖匙" >> "$GITHUB_STEP_SUMMARY"
+          echo "下載 Artifacts「android-upload-key」，打開 ANDROID_KEYSTORE_B64.txt 全部複製，加做 secret **ANDROID_KEYSTORE_B64**；upload.jks 自己收好。呢個檔 1 日後自動刪除。" >> "$GITHUB_STEP_SUMMARY"
+
+  ios:
+    if: inputs.platform != 'android'
+    runs-on: macos-15
+    timeout-minutes: 50
+    env:
+      BUILD_NUMBER: ${{ github.run_number }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync ios
+      - name: Check secrets
+        if: inputs.dry_run != true
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          missing=""
+          for v in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8; do
+            if [ -z "${!v}" ]; then echo "::error::未設定 secret $v"; missing=1; fi
+          done
+          [ -z "$missing" ] || exit 1
+          printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
+      # 唔簽名咁打包；上載嗰步由 App Store Connect 雲端簽名（唔使喺 Mac 裝證書）
+      - name: Archive
+        run: |
+          set -o pipefail
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO CURRENT_PROJECT_VERSION="$BUILD_NUMBER" ${APPLE_TEAM_ID:+DEVELOPMENT_TEAM=$APPLE_TEAM_ID} \
+            archive 2>&1 | tee ios-archive.log | tail -25
+          test -d "$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app"
+          test -f "$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app/PrivacyInfo.xcprivacy"
+      - name: Sign and upload to App Store Connect
+        if: inputs.dry_run != true
+        run: |
+          set -o pipefail
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+            <key>uploadSymbols</key><true/>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict>
+          </plist>
+          EOF
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            2>&1 | tee ios-upload.log | tail -40
+          echo "### iOS 已上載 App Store Connect（build ${BUILD_NUMBER}），處理完會喺 TestFlight 出現" >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/AuthKey.p8"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-logs
+          path: |
+            ios-archive.log
+            ios-upload.log
+          if-no-files-found: ignore
+          retention-days: 7
