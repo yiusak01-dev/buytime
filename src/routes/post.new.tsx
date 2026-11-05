@@ -88,22 +88,53 @@ function NewPost() {
     return target > now ? target : null;
   }, [leaveMode, customTime, now]);
 
-  // 建議價
-  const suggestion = useMemo(() => {
+  // 計數同建議價：
+  // - 計數（換幾多個鐘、慳幾多）即刻顯示喺用戶輸入嗰格下面（field）
+  // - 建議價（慳到嘅一半）顯示喺價錢格下面，只係提示，唔會幫用戶填
+  type Suggestion = {
+    field: string;
+    headline: string | null;
+    saving: number | null;
+    detail: string | null;
+    warn?: boolean;
+    max: number | null;
+    basis: string | null;
+    hours: number;
+  };
+  const suggestion = useMemo((): Suggestion | null => {
     if (!s || !mall) return null;
     if (s.id === "parking" && direction === "have") {
       const amt = Number(fields.receiptAmount);
       if (!amt) return null;
       const dining = diningFlag(fields);
       const q = quoteParkingReceipt(mall, amt, now, { dining });
-      if (q.belowThreshold) return { text: `按今日（${q.dayLabel}）規則，要消費滿 $${q.minThreshold} 先換到泊車。`, max: null, hours: 0, warn: true };
-      const hoursText = `可以換 ${q.hours} 個鐘${q.extraApplied ? `（有食肆單額外 +${q.extraApplied}）` : ""}`;
-      const copayText = q.discRate != null ? `，每個鐘 $${q.discRate}，共俾停車場 $${q.copay}` : "";
-      const moreText = !dining && q.hoursIfDining > q.hours ? ` 如果入面有食肆單，可以換到 ${q.hoursIfDining} 個鐘。` : "";
-      if (q.saving == null) return { text: `${hoursText}${copayText}（呢個商場未有時租資料）。${moreText}`, max: null, hours: q.hours };
+      if (q.belowThreshold) {
+        return {
+          field: "receiptAmount",
+          headline: "今日換唔到泊車",
+          saving: null,
+          detail: `按今日（${q.dayLabel}）規則，要消費滿 $${q.minThreshold} 先換到。`,
+          warn: true,
+          max: null,
+          basis: null,
+          hours: 0,
+        };
+      }
+      const detail = [
+        q.rate != null ? `按今日（${q.dayLabel}）時租 $${q.rate}` : `按今日（${q.dayLabel}）規則；呢個商場未有時租資料`,
+        q.extraApplied ? `已計食肆單額外 ${q.extraApplied} 個鐘` : null,
+        q.discRate != null ? `換到嘅鐘數每個鐘仲要俾停車場 $${q.discRate}（共 $${q.copay}）` : null,
+        !dining && q.hoursIfDining > q.hours ? `如果入面有食肆單，可以換到 ${q.hoursIfDining} 個鐘` : null,
+      ]
+        .filter(Boolean)
+        .join("；");
       return {
-        text: `按今日（${q.dayLabel}）收費計，${hoursText}${copayText}，比正價慳 $${q.saving}。${moreText}`,
+        field: "receiptAmount",
+        headline: `可以換 ${q.hours} 個鐘`,
+        saving: q.saving,
+        detail: `${detail}。`,
         max: q.suggestMax,
+        basis: q.saving != null ? `慳到 $${q.saving} 嘅一半` : null,
         hours: q.hours,
       };
     }
@@ -112,14 +143,29 @@ function NewPost() {
       if (!h) return null;
       const q = quoteParkingWant(mall, h, now);
       if (q.fee == null) return null;
-      const text =
-        q.discRate != null && q.full != null
-          ? `按今日（${q.dayLabel}）收費，泊 ${h} 個鐘正價 $${q.full}；用收據換（每個鐘 $${q.discRate}，共 $${q.copay}）慳 $${q.fee}。`
-          : `按今日（${q.dayLabel}）收費，泊 ${h} 個鐘要 $${q.fee}。`;
-      return { text, max: q.suggestMax, hours: h };
+      return {
+        field: "hours",
+        headline: `用收據泊 ${h} 個鐘`,
+        saving: q.fee,
+        detail:
+          q.discRate != null && q.full != null
+            ? `按今日（${q.dayLabel}）正價 $${q.full}；用收據換之後每個鐘仲要俾 $${q.discRate}（共 $${q.copay}）。`
+            : `按今日（${q.dayLabel}）時租 $${q.rate}。`,
+        max: q.suggestMax,
+        basis: `慳到 $${q.fee} 嘅一半`,
+        hours: h,
+      };
     }
     if (s.id === "offer" && direction === "have" && Number(fields.faceValue)) {
-      return { text: `面值 $${fields.faceValue}。`, max: quoteOffer(Number(fields.faceValue)).suggestMax, hours: 0 };
+      return {
+        field: "faceValue",
+        headline: null,
+        saving: null,
+        detail: null,
+        max: quoteOffer(Number(fields.faceValue)).suggestMax,
+        basis: `面值 $${fields.faceValue} 嘅一半`,
+        hours: 0,
+      };
     }
     return null;
   }, [s, mall, direction, fields, now]);
@@ -418,6 +464,24 @@ function NewPost() {
                       {f.suffix && <span className="text-sm text-muted-foreground">{f.suffix}</span>}
                     </div>
                     )}
+                    {suggestion?.field === f.key && suggestion.headline && (
+                      <div
+                        data-testid="calc-card"
+                        className={cn(
+                          "rounded-xl px-3 py-2.5 border",
+                          suggestion.warn ? "bg-amber-50 text-amber-900 border-amber-200" : "bg-[#E3F5EC] text-[#1d6b47] border-[#c5e8d5]",
+                        )}
+                      >
+                        <div className="flex items-baseline justify-between gap-3">
+                          <span className="font-bold text-sm">{suggestion.headline}</span>
+                          {suggestion.saving != null && suggestion.saving > 0 && (
+                            <span className="font-black text-lg leading-none whitespace-nowrap">慳 ${suggestion.saving}</span>
+                          )}
+                        </div>
+                        {suggestion.detail && <div className="text-xs mt-1 leading-relaxed opacity-90">{suggestion.detail}</div>}
+                        {mall?.source === "sample" && <div className="mt-1"><DemoBadge /></div>}
+                      </div>
+                    )}
                   </Section>
                 ))}
 
@@ -437,14 +501,16 @@ function NewPost() {
                     </div>
                     <Chip active={free} onClick={() => setFree(!free)}>免費</Chip>
                   </div>
-                  {suggestion && (
-                    <div className={cn("text-xs rounded-xl px-3 py-2", suggestion.warn ? "bg-amber-50 text-amber-800" : "bg-[#E3F5EC] text-[#1d6b47]")}>
-                      {suggestion.text}
-                      {suggestion.max != null && <b> 建議唔好超過 ${suggestion.max}。</b>}
-                      {mall?.source === "sample" && <span className="ml-1"><DemoBadge /></span>}
+                  {suggestion?.max != null && suggestion.max > 0 && (
+                    <div
+                      data-testid="price-hint"
+                      className={cn("text-xs rounded-xl px-3 py-2", overSuggest ? "bg-amber-50 text-amber-800" : "bg-[#E3F5EC] text-[#1d6b47]")}
+                    >
+                      建議唔好超過 <b className="text-sm">${suggestion.max}</b>
+                      {suggestion.basis && <span>（{suggestion.basis}）</span>}
+                      {overSuggest ? "。而家高過建議價，可能較難有人接。" : "。價錢由你自己定。"}
                     </div>
                   )}
-                  {overSuggest && <div className="text-xs text-amber-700">高過建議價，可能較難有人接。</div>}
                 </Section>
               )}
 
