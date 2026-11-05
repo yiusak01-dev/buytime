@@ -45,3 +45,5 @@ begin
     execute v_def;
   end if;
 end $$;
+
+alter function public.aah__review_bot() set search_path = public;
