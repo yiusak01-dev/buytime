@@ -131,9 +131,10 @@ export function createRemote(host: Host) {
     const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
     const queries: Promise<any>[] = [];
     if (feedMalls.length) {
-      queries.push(
-        sb().from("aah_posts").select("*").in("mall_id", feedMalls).eq("status", "open").gt("leave_at", new Date(Date.now() - 60000).toISOString()).order("created_at", { ascending: false }).limit(200),
-      );
+      // "*" = 唔喺任何商場：讀全港最新（未去商場都睇到有咩着數）
+      let q = sb().from("aah_posts").select("*");
+      if (!feedMalls.includes("*")) q = q.in("mall_id", feedMalls);
+      queries.push(q.eq("status", "open").gt("leave_at", new Date(Date.now() - 60000).toISOString()).order("created_at", { ascending: false }).limit(200));
     }
     if (me) {
       queries.push(sb().from("aah_posts").select("*").eq("author_id", me).gt("created_at", since).order("created_at", { ascending: false }).limit(50));

@@ -232,6 +232,15 @@ function PostDetailView({ post }: { post: Post }) {
       <div className="px-4 pt-4 pb-40 space-y-4">
         <PostSummary post={post} now={now} />
 
+        {/* 第一次用（例如朋友傳 link 嚟）：一句講明發生咩事 */}
+        {!user.registered && post.authorId !== user.id && (
+          <div className="text-sm rounded-2xl px-4 py-3 bg-[#FFF7D6] text-[#1a1a1a]">
+            {post.direction === "want"
+              ? `${post.authorName} 想要呢樣嘢。你有就撳「有興趣」，喺商場見面交收，你收返錢。`
+              : `${post.authorName} 用唔着，你啱用就撳「${post.scenario === "groupbuy" ? "我夾" : "有興趣"}」，喺商場見面，一手交錢一手交貨。`}
+          </div>
+        )}
+
         {post.scenario === "parking" && post.direction === "have" && receiptCountNote(post.fields.receiptCount, "taker", mall?.stacking) && (
           <div className="text-xs rounded-xl px-3 py-2.5 bg-amber-50 text-amber-900 border border-amber-200">
             ⚠️ {receiptCountNote(post.fields.receiptCount, "taker", mall?.stacking)}
@@ -329,9 +338,22 @@ function PostDetailView({ post }: { post: Post }) {
               )}
             </div>
           ) : !inRange ? (
-            <div className="text-center text-sm bg-card rounded-2xl p-4">
-              要喺 {post.mallName}{s.pushNearby ? " 或者附近商場" : ""} 先可以接呢個 post
-              {current.test && !testLocationAllowed() ? "（GPS 確認咗你喺度就得）" : !enRouteOk && post.scenario !== "groupbuy" ? "（出 post 嘅人揀咗只限喺場）" : ""}
+            <div className="text-center text-sm bg-card rounded-2xl p-4 space-y-3 shadow-lg">
+              <div>
+                去到 {post.mallName}{s.pushNearby ? " 或者附近商場" : ""} 就撳得「{joinWord}」
+                {current.test && !testLocationAllowed() ? "（GPS 確認咗你喺度就得）" : !enRouteOk && post.scenario !== "groupbuy" ? "（對方揀咗只限喺場嘅人）" : ""}
+              </div>
+              {geo.status !== "ok" && (
+                <button
+                  onClick={() => {
+                    if (!user.onboarded) aah.updateUser({ onboarded: true });
+                    void geoStore.start();
+                  }}
+                  className="w-full h-12 rounded-2xl bg-[#F5C518] text-[#1a1a1a] font-black"
+                >
+                  我已經喺度：用定位確認
+                </button>
+              )}
             </div>
           ) : (
             <>

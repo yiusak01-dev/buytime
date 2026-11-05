@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useAahState } from "@/lib/aah/store";
 
-/** 三個 tab：睇着數／出 post／我的配對 */
+/** 三個 tab：搵／放／我的配對（同首頁兩個大掣一致） */
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { matches, user } = useAahState();
@@ -22,13 +22,13 @@ export function BottomNav() {
         <div className="relative border-t border-border bg-card/95 backdrop-blur-md h-16 grid grid-cols-3 pb-[env(safe-area-inset-bottom)]">
           <Link to="/" className={cn("flex flex-col items-center justify-center gap-0.5 text-[11px]", homeActive ? "text-[#1a1a1a] dark:text-white font-bold" : "text-muted-foreground")}>
             <Search className="w-5 h-5" strokeWidth={homeActive ? 2.6 : 2} />
-            睇着數
+            搵
           </Link>
           <Link to="/post/new" className="flex flex-col items-center justify-start -mt-5 gap-1 text-[11px] font-semibold text-foreground">
             <span className="w-14 h-14 rounded-full bg-[#F5C518] text-[#1a1a1a] grid place-items-center shadow-lg ring-4 ring-background">
               <Plus className="w-7 h-7" strokeWidth={2.6} />
             </span>
-            出 post
+            放
           </Link>
           <Link to="/me" className={cn("flex flex-col items-center justify-center gap-0.5 text-[11px]", meActive ? "text-[#1a1a1a] dark:text-white font-bold" : "text-muted-foreground")}>
             <span className="relative">

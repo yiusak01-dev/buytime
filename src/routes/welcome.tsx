@@ -1,27 +1,31 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ShieldCheck, TimerOff, Sparkles } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { aah, useAahState } from "@/lib/aah/store";
+import { aah } from "@/lib/aah/store";
 import { geoStore } from "@/lib/aah/geo";
-import { isNativeApp } from "@/lib/aah/push";
-import { SCENARIOS, SCENARIO_LIST } from "@/lib/aah/scenarios";
-import { Chip } from "@/components/aah/ui";
+import { SCENARIOS } from "@/lib/aah/scenarios";
+import { GIVE_CATS, TAGLINE } from "@/lib/aah/copy";
+import type { ScenarioId } from "@/lib/aah/types";
 
 export const Route = createFileRoute("/welcome")({
   head: () => ({ meta: [{ title: "歡迎 · 啱啱好" }] }),
   component: Welcome,
 });
 
+const EXAMPLES: ScenarioId[] = ["parking", "dining", "offer"];
+
+/**
+ * 第一次開 app（例如睇完 IG 廣告）：一頁講明係咩、兩邊有咩着數，撳「開始用」就入去。
+ * 「開始用」順手問定位（用嚟搵附近商場）；唔俾都入得去，可以先睇全港。
+ */
 function Welcome() {
   const navigate = useNavigate();
-  const { user } = useAahState();
-  const [step, setStep] = useState<1 | 2>(1);
-  const [gpsResult, setGpsResult] = useState<string | null>(null);
-  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  function finish() {
+  async function start() {
+    setBusy(true);
     aah.updateUser({ onboarded: true });
+    // 唔等定位：問咗就入首頁，結果出咗會自動更新
+    void geoStore.start();
     navigate({ to: "/", replace: true });
   }
 
@@ -32,107 +36,41 @@ function Welcome() {
           <span className="text-3xl font-black tracking-tight">啱啱好</span>
           <span className="w-2 h-2 rounded-full bg-[#E8642A] -mt-4" />
         </div>
-        <div className="mt-2 text-sm font-semibold text-[#1a1a1a]/70">啱時間・啱地方・啱啱好</div>
+        <h1 className="mt-4 text-[26px] font-black leading-snug">
+          {TAGLINE.split("，").map((part, i, arr) => (
+            <span key={i} className="block">
+              {part}
+              {i < arr.length - 1 ? "，" : ""}
+            </span>
+          ))}
+        </h1>
       </div>
 
-      <div className="flex-1 bg-background text-foreground rounded-t-[32px] px-6 pt-7 pb-10 space-y-6">
-        {step === 1 && (
-          <>
-            <div>
-              <h1 className="text-2xl font-black leading-snug">啱啱好要用你嘅位置</h1>
-              <p className="text-sm text-muted-foreground mt-1">咁先可以將同一個商場、同一時間嘅人即時配對。</p>
-            </div>
-            <ul className="space-y-4">
-              <li className="flex gap-3">
-                <ShieldCheck className="w-6 h-6 text-[#2E9E6A] shrink-0" />
-                <div>
-                  <div className="font-bold">證明你真係喺度</div>
-                  <div className="text-sm text-muted-foreground">對方見到「已確認喺場」，先放心同你約。</div>
-                </div>
-              </li>
-              <li className="flex gap-3">
-                <TimerOff className="w-6 h-6 text-[#3D7BE0] shrink-0" />
-                <div>
-                  <div className="font-bold">你走咗，post 自動取消</div>
-                  <div className="text-sm text-muted-foreground">唔會有人白行一趟。</div>
-                </div>
-              </li>
-              <li className="flex gap-3">
-                <Sparkles className="w-6 h-6 text-[#E8642A] shrink-0" />
-                <div>
-                  <div className="font-bold">一到商場就話你知</div>
-                  <div className="text-sm text-muted-foreground">附近有咩着數，即刻知。</div>
-                </div>
-              </li>
-            </ul>
-            <p className="text-[11px] text-muted-foreground">
-              對方只會見到你喺邊個商場，唔會見到你嘅確實位置。位置紀錄用完就刪。
-            </p>
-            {gpsResult && <p className="text-sm text-destructive">{gpsResult}</p>}
-            <button
-              disabled={asking}
-              onClick={async () => {
-                setAsking(true);
-                const r = await geoStore.start();
-                setAsking(false);
-                if (r === "ok") setStep(2);
-                else setGpsResult(r === "denied" ? `你冇俾定位權限。冇定位都可以睇，但唔可以出 post 同接 post；可以之後喺${isNativeApp() ? "手機設定" : "瀏覽器或者手機設定"}再開。` : "搵唔到你嘅位置，可以遲啲再試。");
-              }}
-              className="w-full h-13 py-3.5 rounded-2xl bg-[#1a1a1a] text-white font-bold disabled:opacity-50"
-            >
-              {asking ? "搵緊你嘅位置…" : "開啟定位"}
-            </button>
-            {gpsResult && (
-              <button onClick={() => setStep(2)} className="w-full py-3 rounded-2xl border border-border font-semibold">
-                住先，淨係睇
-              </button>
-            )}
-          </>
-        )}
+      <div className="flex-1 bg-background text-foreground rounded-t-[32px] px-6 pt-7 pb-10 flex flex-col gap-6">
+        <ul className="space-y-3">
+          {EXAMPLES.map((id) => (
+            <li key={id} className="flex items-center gap-3 bg-card rounded-2xl p-4">
+              <span className="w-11 h-11 rounded-full grid place-items-center text-xl shrink-0" style={{ background: SCENARIOS[id].soft }} aria-hidden="true">
+                {SCENARIOS[id].emoji}
+              </span>
+              <span className="min-w-0">
+                <span className="block font-black leading-snug">{GIVE_CATS[id].head}</span>
+                <span className="block text-sm text-muted-foreground">{GIVE_CATS[id].sub}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
 
-        {step === 2 && (
-          <>
-            <div>
-              <h1 className="text-2xl font-black leading-snug">想收邊類通知？</h1>
-              <p className="text-sm text-muted-foreground mt-1">之後可以喺「我的配對」改。</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {SCENARIO_LIST.map((id) => {
-                const on = user.notifyCats.includes(id);
-                return (
-                  <Chip
-                    key={id}
-                    active={on}
-                    onClick={() => aah.updateUser({ notifyCats: on ? user.notifyCats.filter((c) => c !== id) : [...user.notifyCats, id] })}
-                  >
-                    {SCENARIOS[id].emoji} {SCENARIOS[id].label}
-                  </Chip>
-                );
-              })}
-            </div>
-            <div className="space-y-3 bg-card rounded-2xl p-4">
-              <label className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="font-semibold text-sm">着數通知</div>
-                  <div className="text-xs text-muted-foreground">到商場時話你知附近有咩着數</div>
-                </div>
-                <Switch checked={user.notifyOpportunities} onCheckedChange={(v) => aah.updateUser({ notifyOpportunities: v })} />
-              </label>
-              <label className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="font-semibold text-sm">推廣通知</div>
-                  <div className="text-xs text-muted-foreground">商戶優惠同廣告，要你另外同意先會收到</div>
-                </div>
-                <Switch checked={user.notifyPromotions} onCheckedChange={(v) => aah.updateUser({ notifyPromotions: v })} />
-              </label>
-            </div>
-            {/* 唔喺商場都直接入首頁：首頁有「揀商場」同附近商場，唔使喺呢度逼人揀測試位置 */}
-            <button onClick={finish} className="w-full py-3.5 rounded-2xl bg-[#1a1a1a] text-white font-bold">
-              開始用
-            </button>
-          </>
-        )}
+        <p className="text-sm text-muted-foreground">喺商場見面交收，一手交錢一手交貨，平台唔經手錢。</p>
 
+        <div className="mt-auto space-y-2">
+          <button onClick={start} disabled={busy} className="w-full py-4 rounded-2xl bg-[#1a1a1a] text-white font-black text-base disabled:opacity-60">
+            開始用
+          </button>
+          <p className="text-[11px] text-muted-foreground text-center">
+            會問你攞定位，用嚟搵附近商場；對方只會見到你喺邊個商場。唔俾都可以先睇。
+          </p>
+        </div>
       </div>
     </div>
   );

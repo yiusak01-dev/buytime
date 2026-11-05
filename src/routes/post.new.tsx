@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Camera, Loader2 } from "lucide-react";
+import { ArrowLeft, Camera, ChevronDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { AppLayout } from "@/components/AppLayout";
@@ -15,28 +15,34 @@ import { quoteParkingReceipt, quoteParkingWant, quoteOffer, mallDiningExtra, mal
 import type { FieldDef } from "@/lib/aah/scenarios";
 import { readAmountsFromImage, fmtAmount } from "@/lib/aah/ocr";
 import { takePendingPhoto } from "@/lib/aah/pendingPhoto";
+import { GIVE_CATS } from "@/lib/aah/copy";
 import type { Direction, PayMethod, ScenarioId } from "@/lib/aah/types";
 import { cn } from "@/lib/utils";
 
-/** 首頁快捷掣：直接入去某個場景，用最常見嘅預設，填少啲就發得 */
-export type QuickKind = "receipt" | "want" | "dining" | "offer" | "groupbuy";
-const QUICK_KINDS: QuickKind[] = ["receipt", "want", "dining", "offer", "groupbuy"];
+/** 直接入去某個場景（例如「搵」唔到時「話人知你要泊車」），用最常見嘅預設，填少啲就發得 */
+export type QuickKind = "receipt" | "want" | "dining" | "offer" | "offerwant" | "groupbuy";
+const QUICK_KINDS: QuickKind[] = ["receipt", "want", "dining", "offer", "offerwant", "groupbuy"];
 const QUICK_SETUP: Record<QuickKind, { scenario: ScenarioId; direction: Direction }> = {
   receipt: { scenario: "parking", direction: "have" },
   want: { scenario: "parking", direction: "want" },
   dining: { scenario: "dining", direction: "have" },
   offer: { scenario: "offer", direction: "have" },
+  offerwant: { scenario: "offer", direction: "want" },
   groupbuy: { scenario: "groupbuy", direction: "join" },
 };
 
 export const Route = createFileRoute("/post/new")({
-  head: () => ({ meta: [{ title: "出 post · 啱啱好" }] }),
+  head: () => ({ meta: [{ title: "放出去 · 啱啱好" }] }),
   validateSearch: (s: Record<string, unknown>): { quick?: QuickKind } =>
     QUICK_KINDS.includes(s.quick as QuickKind) ? { quick: s.quick as QuickKind } : {},
   component: NewPost,
 });
 
 const MIN = 60000;
+/** 「更多設定」入面嘅欄位（有預設，唔改都得） */
+const MORE_KEYS = new Set(["receiptCount", "receiptType", "receiptCategory", "calling", "note"]);
+/** 類別色（深少少，白字睇得清） */
+const GIVE_TILE_COLOR: Record<ScenarioId, string> = { parking: "#1E7F52", dining: "#2F62C9", offer: "#B8336A", groupbuy: "#C2531A" };
 const REMARK_MAX = 80;
 const REMARK_PLACEHOLDER: Record<ScenarioId, string> = {
   parking: "例如：一張餐廳單加一張超市單，喺停車場繳費處等",
@@ -73,6 +79,8 @@ function NewPost() {
   /** 張相讀到嘅幾個金額，俾用戶撳嚟揀 */
   const [ocrOptions, setOcrOptions] = useState<number[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+  const pickFileRef = useRef<HTMLInputElement>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const s = scenario ? SCENARIOS[scenario] : null;
   const diningExtra = mallDiningExtra(mall);
@@ -256,7 +264,7 @@ function NewPost() {
       return;
     }
     if (!mall || (!current.verified && !testLocationAllowed())) {
-      toast.error("要喺商場先可以出 post", { description: "GPS 搵唔到你喺任何商場範圍" });
+      toast.error("去到商場先放得", { description: "對方會即刻嚟搵你見面交收，所以要 GPS 確認你喺商場" });
       return;
     }
     if (scenario === "dining" && dailyDiningCount(posts, user.id) >= DINING_POSTS_PER_DAY) {
@@ -352,80 +360,174 @@ function NewPost() {
           : "免費即刻發佈"
         : "發佈";
 
+  // 「更多設定」入面揀咗咩：收埋都睇到
+  const moreSummary = useMemo(() => {
+    if (!s) return "";
+    const parts: string[] = [];
+    if (s.id === "parking" && direction === "have") parts.push(`${fields.receiptCount ?? "1 張"}${fields.receiptType ?? ""}`);
+    if (s.id === "groupbuy") parts.push(`搵 ${needCount} 個人`);
+    if (s.hasPrice && effPrice && effPrice > 0) parts.push(payLabel(effPay));
+    if (leaveAt) parts.push(`${fmtClock(leaveAt)} ${timeWord}`);
+    if (s.id !== "groupbuy") parts.push(acceptEnRoute ? "去緊嘅人都接" : "只限喺場嘅人");
+    if (autoAccept) parts.push("自動配對");
+    return parts.join("・");
+  }, [s, direction, fields, needCount, effPrice, effPay, leaveAt, timeWord, acceptEnRoute, autoAccept]);
+
+  const essentialField = (f: FieldDef) => !MORE_KEYS.has(f.key);
+  const shownFields = s ? s.fields.filter((f) => fieldShown(f) && !(s.id === "groupbuy" && f.key === "deal")) : [];
+
+  function renderField(f: FieldDef) {
+    return (
+      <Section
+        key={f.key}
+        title={f.label}
+        hint={
+          f.key === "receiptAmount"
+            ? "實際俾咗嘅總數；幾張單就加埋"
+            : f.key === "receiptCount"
+              ? "好多商場最多合併 2 張，有啲唔收合併"
+              : f.key === "receiptType"
+                ? "有啲商場只收電子單或者只收紙單"
+                : f.key === "receiptCategory" && diningExtra
+                  ? `呢個商場只要其中一張係食肆單，可以額外多換 ${diningExtra} 個鐘`
+                  : f.key === "receiptCategory" && diningTier
+                    ? `呢個商場今日消費滿 $${diningTier.threshold} 要其中一張係食肆（餐飲）單，先換到 ${diningTier.hours} 個鐘`
+                    : undefined
+        }
+      >
+        {f.type === "choice" ? (
+          <>
+            <div className="flex flex-wrap gap-2">
+              {(f.options ?? []).map((o) => (
+                <Chip key={o} active={fields[f.key] === o} onClick={() => setFields({ ...fields, [f.key]: o })}>{o}</Chip>
+              ))}
+            </div>
+            {f.key === "receiptCount" && receiptCountNote(fields.receiptCount, "giver", mall?.stacking) && (
+              <div className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900 border border-amber-200">
+                {receiptCountNote(fields.receiptCount, "giver", mall?.stacking)}
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="flex items-center gap-2 h-12 px-4 rounded-2xl border border-border bg-card">
+            <input
+              inputMode={f.type === "number" ? (f.decimal ? "decimal" : "numeric") : "text"}
+              value={fields[f.key] ?? ""}
+              onChange={(e) =>
+                setFields({
+                  ...fields,
+                  [f.key]:
+                    f.type !== "number"
+                      ? e.target.value.slice(0, 40)
+                      : f.decimal
+                        ? cleanMoneyInput(e.target.value)
+                        : e.target.value.replace(/[^\d]/g, "").slice(0, 6),
+                })
+              }
+              placeholder={f.placeholder}
+              aria-label={f.label}
+              className="flex-1 bg-transparent outline-none"
+            />
+            {f.suffix && <span className="text-sm text-muted-foreground">{f.suffix}</span>}
+          </div>
+        )}
+        {suggestion?.field === f.key && suggestion.headline && (
+          <div
+            data-testid="calc-card"
+            className={cn(
+              "rounded-xl px-3 py-2.5 border",
+              suggestion.warn ? "bg-amber-50 text-amber-900 border-amber-200" : "bg-[#E3F5EC] text-[#1d6b47] border-[#c5e8d5]",
+            )}
+          >
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="font-bold text-sm">{suggestion.headline}</span>
+              {suggestion.saving != null && suggestion.saving > 0 && (
+                <span className="font-black text-lg leading-none whitespace-nowrap">慳 ${suggestion.saving}</span>
+              )}
+            </div>
+            {suggestion.detail && <div className="text-xs mt-1 leading-relaxed opacity-90">{suggestion.detail}</div>}
+            {s?.id === "parking" && direction === "have" && hasDiningRule && (
+              <button
+                type="button"
+                onClick={() => setFields((x) => ({ ...x, receiptCategory: diningFlag(x) ? "冇食肆單" : "有食肆單" }))}
+                className={cn(
+                  "mt-2 h-8 px-3 rounded-full text-xs font-bold border",
+                  diningFlag(fields) ? "bg-[#1d6b47] text-white border-[#1d6b47]" : "bg-white border-[#c5e8d5]",
+                )}
+              >
+                {diningFlag(fields) ? "✓ 入面有食肆單" : "入面有食肆單？撳呢度"}
+              </button>
+            )}
+            {mall?.source === "sample" && <div className="mt-1"><DemoBadge /></div>}
+          </div>
+        )}
+      </Section>
+    );
+  }
+
+  const wantMode = direction === "want";
+  const catName = s ? (wantMode ? `我要${s.id === "parking" ? "泊車" : "優惠"}` : GIVE_CATS[s.id].name) : "";
+
   return (
     <AppLayout hideNav>
+      {/* 揀類別嗰陣用：泊車收據一撳就開相機 */}
+      <input
+        ref={pickFileRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        data-testid="give-receipt-input"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (f) void onPhoto(f, "receiptAmount");
+        }}
+      />
       <header className="sticky top-0 z-30 bg-background/95 backdrop-blur px-4 pt-4 pb-3 flex items-center gap-3 border-b border-border/60">
         <button onClick={() => (scenario && !quick ? setScenario(null) : navigate({ to: "/" }))} aria-label="返回" className="w-9 h-9 grid place-items-center rounded-full hover:bg-accent">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <div className="font-black text-lg leading-tight">出 post</div>
-          <div className="text-[11px] text-muted-foreground">{mall ? `📍 ${mall.name}${current.test ? "（測試位置）" : ""}` : "要喺商場先可以出 post"}</div>
+          <div className="font-black text-lg leading-tight">{wantMode && scenario ? "話人知你要" : "放出去"}</div>
+          <div className="text-[11px] text-muted-foreground">{mall ? `📍 ${mall.name}${current.test ? "（測試位置）" : ""}` : "未喺商場：可以先睇吓點放"}</div>
         </div>
       </header>
 
       <div className="px-4 pt-4 pb-32 space-y-6">
         {!scenario ? (
-          <Section title="你想做咩？">
-            <div className="grid grid-cols-2 gap-3">
-              {SCENARIO_LIST.map((id) => {
-                const d = SCENARIOS[id];
-                return (
-                  <button
-                    key={id}
-                    onClick={() => pickScenario(id)}
-                    className="rounded-2xl p-4 text-left h-28 flex flex-col justify-between text-white active:scale-[0.98] transition-transform"
-                    style={{ background: d.color }}
-                  >
-                    <span className="text-3xl">{d.emoji}</span>
-                    <span>
-                      <span className="block font-black text-lg">{d.label}</span>
-                      <span className="block text-[11px] opacity-90">
-                        {id === "parking" ? "收據轉俾人／搵收據" : id === "dining" ? "候位飛轉俾人" : id === "offer" ? "即時優惠轉俾人" : "搵人一齊夾優惠"}
-                      </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </Section>
+          <div className="space-y-3">
+            <h1 className="text-xl font-black">放咩出去？</h1>
+            {SCENARIO_LIST.map((id) => (
+              <button
+                key={id}
+                onClick={() => {
+                  pickScenario(id);
+                  if (id === "parking") pickFileRef.current?.click();
+                }}
+                className="w-full flex items-center gap-3 rounded-3xl p-4 text-left text-white active:scale-[0.99] transition-transform"
+                style={{ background: GIVE_TILE_COLOR[id] }}
+              >
+                <span className="text-3xl shrink-0" aria-hidden="true">{SCENARIOS[id].emoji}</span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[11px] font-bold opacity-90">{GIVE_CATS[id].name}</span>
+                  <span className="block font-black text-lg leading-snug">{GIVE_CATS[id].head}</span>
+                  <span className="block text-xs opacity-90">{GIVE_CATS[id].sub}</span>
+                </span>
+                {id === "parking" && <Camera className="w-5 h-5 shrink-0 opacity-90" aria-label="影相" />}
+              </button>
+            ))}
+            {!mall && <p className="text-xs text-muted-foreground px-1">放出去要喺商場先發佈得，因為對方會即刻嚟搵你見面交收。可以先睇吓點放。</p>}
+          </div>
         ) : (
           s && (
             <>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-bold px-3 py-1.5 rounded-full text-white" style={{ background: s.color }}>
-                  {s.emoji} {s.label}
+                <span className="text-sm font-bold px-3 py-1.5 rounded-full text-white" style={{ background: GIVE_TILE_COLOR[s.id] }}>
+                  {s.emoji} {catName}
                 </span>
-                <button onClick={() => setScenario(null)} className="text-xs text-muted-foreground underline">換場景</button>
+                {!quick && <button onClick={() => setScenario(null)} className="text-xs text-muted-foreground underline">換類別</button>}
               </div>
-
-              {s.directions.length > 1 ? (
-                <Section title="你係？">
-                  <div className="grid grid-cols-2 gap-2">
-                    {s.directions.map((d) => (
-                      <button
-                        key={d}
-                        onClick={() => {
-                          setDirection(d);
-                          setPrice("");
-                          setFields((x) => ({ ...defaultFields(s.id, d), ...x }));
-                        }}
-                        className={cn("h-14 rounded-2xl border-2 font-bold", direction === d ? "border-[#1a1a1a] bg-[#1a1a1a] text-white" : "border-border bg-card")}
-                      >
-                        {d === "have" ? `我有${s.id === "parking" ? "收據" : ""}` : `我要${s.id === "parking" ? "泊車" : ""}`}
-                      </button>
-                    ))}
-                  </div>
-                </Section>
-              ) : s.id === "groupbuy" ? (
-                <Section title="仲要幾多個人一齊夾？" hint="買二送一就揀 2 個人；夠人先算配對成功">
-                  <div className="flex gap-2">
-                    {[1, 2, 3].map((n) => (
-                      <Chip key={n} active={needCount === n} onClick={() => setNeedCount(n)}>{n} 個人</Chip>
-                    ))}
-                  </div>
-                </Section>
-              ) : null}
 
               {s.shopLabel && (
                 <Section title={s.shopLabel}>
@@ -433,6 +535,7 @@ function NewPost() {
                     value={shop}
                     onChange={(e) => setShop(e.target.value.slice(0, 30))}
                     placeholder="輸入舖頭名"
+                    aria-label={s.shopLabel}
                     className="w-full h-12 px-4 rounded-2xl border border-border bg-card outline-none"
                   />
                   <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-1 scrollbar-hide">
@@ -446,14 +549,23 @@ function NewPost() {
               {((s.id === "parking" && direction === "have") || (s.id === "offer" && direction === "have")) && (
                 <div>
                   <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => onPhoto(e.target.files?.[0])} />
-                  <button
-                    onClick={() => fileRef.current?.click()}
-                    disabled={ocrBusy}
-                    className="w-full h-14 rounded-2xl border-2 border-dashed border-border bg-card flex items-center justify-center gap-2 font-bold"
-                  >
-                    {ocrBusy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
-                    {ocrBusy ? "讀緊張相…" : s.id === "parking" ? "影收據，自動填金額" : "影優惠券，自動填面值"}
-                  </button>
+                  {s.id === "parking" && !fields.receiptAmount && !ocrBusy ? (
+                    <button
+                      onClick={() => fileRef.current?.click()}
+                      className="w-full h-16 rounded-2xl border-2 border-dashed border-[#1E7F52] bg-[#E3F5EC] text-[#1d6b47] flex items-center justify-center gap-2 font-black"
+                    >
+                      <Camera className="w-5 h-5" /> 影收據，自動計晒
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => fileRef.current?.click()}
+                      disabled={ocrBusy}
+                      className="h-10 px-4 rounded-full border border-border bg-card inline-flex items-center gap-2 text-sm font-semibold"
+                    >
+                      {ocrBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                      {ocrBusy ? "讀緊張相…" : s.id === "parking" ? "再影過" : "影券，自動讀面值"}
+                    </button>
+                  )}
                   {ocrNote && <div className="text-xs text-muted-foreground mt-1.5">{ocrNote}</div>}
                   {ocrOptions.length > 1 && (
                     <div className="flex flex-wrap gap-2 mt-2">
@@ -472,7 +584,7 @@ function NewPost() {
               )}
 
               {s.id === "groupbuy" && (
-                <Section title="咩優惠？" hint="揀一個，或者自己寫">
+                <Section title="咩優惠？">
                   <div className="flex flex-wrap gap-2">
                     {GROUPBUY_DEALS.map((d) => (
                       <Chip key={d} active={fields.deal === d} onClick={() => setFields({ ...fields, deal: d })}>{d}</Chip>
@@ -490,81 +602,7 @@ function NewPost() {
                 </Section>
               )}
 
-              {s.fields
-                .filter((f) => fieldShown(f) && !(s.id === "groupbuy" && f.key === "deal"))
-                .map((f) => (
-                  <Section
-                    key={f.key}
-                    title={f.label}
-                    hint={
-                      f.key === "receiptAmount"
-                        ? "填實際俾咗嘅總數（扣咗折扣、包埋加一）；幾張單就填加埋嘅數（有冇得合併睇商場條款）"
-                        : f.key === "receiptCount"
-                          ? "好多商場最多合併 2 張，有啲唔收合併"
-                        : f.key === "receiptType"
-                          ? "有啲商場只收電子單或者只收紙單，講清楚免得對方白行一趟"
-                          : f.key === "receiptCategory" && diningExtra
-                            ? `呢個商場只要其中一張係食肆單，可以額外多換 ${diningExtra} 個鐘`
-                            : f.key === "receiptCategory" && diningTier
-                              ? `呢個商場今日消費滿 $${diningTier.threshold} 要其中一張係食肆（餐飲）單，先換到 ${diningTier.hours} 個鐘`
-                              : undefined
-                    }
-                  >
-                    {f.type === "choice" ? (
-                      <>
-                        <div className="flex flex-wrap gap-2">
-                          {(f.options ?? []).map((o) => (
-                            <Chip key={o} active={fields[f.key] === o} onClick={() => setFields({ ...fields, [f.key]: o })}>{o}</Chip>
-                          ))}
-                        </div>
-                        {f.key === "receiptCount" && receiptCountNote(fields.receiptCount, "giver", mall?.stacking) && (
-                          <div className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900 border border-amber-200">
-                            {receiptCountNote(fields.receiptCount, "giver", mall?.stacking)}
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                    <div className="flex items-center gap-2 h-12 px-4 rounded-2xl border border-border bg-card">
-                      <input
-                        inputMode={f.type === "number" ? (f.decimal ? "decimal" : "numeric") : "text"}
-                        value={fields[f.key] ?? ""}
-                        onChange={(e) =>
-                          setFields({
-                            ...fields,
-                            [f.key]:
-                              f.type !== "number"
-                                ? e.target.value.slice(0, 40)
-                                : f.decimal
-                                  ? cleanMoneyInput(e.target.value)
-                                  : e.target.value.replace(/[^\d]/g, "").slice(0, 6),
-                          })
-                        }
-                        placeholder={f.placeholder}
-                        className="flex-1 bg-transparent outline-none"
-                      />
-                      {f.suffix && <span className="text-sm text-muted-foreground">{f.suffix}</span>}
-                    </div>
-                    )}
-                    {suggestion?.field === f.key && suggestion.headline && (
-                      <div
-                        data-testid="calc-card"
-                        className={cn(
-                          "rounded-xl px-3 py-2.5 border",
-                          suggestion.warn ? "bg-amber-50 text-amber-900 border-amber-200" : "bg-[#E3F5EC] text-[#1d6b47] border-[#c5e8d5]",
-                        )}
-                      >
-                        <div className="flex items-baseline justify-between gap-3">
-                          <span className="font-bold text-sm">{suggestion.headline}</span>
-                          {suggestion.saving != null && suggestion.saving > 0 && (
-                            <span className="font-black text-lg leading-none whitespace-nowrap">慳 ${suggestion.saving}</span>
-                          )}
-                        </div>
-                        {suggestion.detail && <div className="text-xs mt-1 leading-relaxed opacity-90">{suggestion.detail}</div>}
-                        {mall?.source === "sample" && <div className="mt-1"><DemoBadge /></div>}
-                      </div>
-                    )}
-                  </Section>
-                ))}
+              {shownFields.filter(essentialField).map(renderField)}
 
               {s.hasPrice && (
                 <Section title={direction === "want" ? "你願意俾幾多？" : "價錢"} hint="見面交收時直接俾，唔經平台">
@@ -577,6 +615,7 @@ function NewPost() {
                         disabled={free}
                         onChange={(e) => setPrice(e.target.value.replace(/[^\d]/g, "").slice(0, 5))}
                         placeholder={free ? "免費" : "自己填"}
+                        aria-label="價錢"
                         className="flex-1 min-w-0 w-full bg-transparent outline-none text-lg font-bold"
                       />
                     </div>
@@ -595,73 +634,105 @@ function NewPost() {
                 </Section>
               )}
 
-              {s.hasPrice && !free && !(price === "" && quickPrice === 0) && (
-                <Section title="收款方式" hint="下次會自動記住">
-                  <div className="flex flex-wrap gap-2">
-                    {PAY_METHODS.map((p) => {
-                      const on = pay.includes(p.id);
-                      return (
-                        <Chip key={p.id} active={on} onClick={() => setPay(on ? pay.filter((x) => x !== p.id) : [...pay, p.id])}>
-                          {p.label}
-                        </Chip>
-                      );
-                    })}
+              {/* 更多設定：有預設，唔改都得 */}
+              <div className="bg-card rounded-2xl">
+                <button
+                  type="button"
+                  onClick={() => setMoreOpen(!moreOpen)}
+                  aria-expanded={moreOpen}
+                  className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left"
+                >
+                  <span className="min-w-0">
+                    <span className="block font-bold text-sm">更多設定（唔改都得）</span>
+                    <span className="block text-xs text-muted-foreground truncate">{moreSummary}</span>
+                  </span>
+                  <ChevronDown className={cn("w-4 h-4 shrink-0 text-muted-foreground transition-transform", moreOpen && "rotate-180")} />
+                </button>
+                {moreOpen && (
+                  <div className="px-4 pb-4 space-y-6">
+                    {s.id === "groupbuy" && (
+                      <Section title="仲要幾多個人一齊夾？" hint="買二送一就揀 2 個人；夠人先算配對成功">
+                        <div className="flex gap-2">
+                          {[1, 2, 3].map((n) => (
+                            <Chip key={n} active={needCount === n} onClick={() => setNeedCount(n)}>{n} 個人</Chip>
+                          ))}
+                        </div>
+                      </Section>
+                    )}
+
+                    {shownFields.filter((f) => !essentialField(f)).map(renderField)}
+
+                    {s.hasPrice && !free && !(price === "" && quickPrice === 0) && (
+                      <Section title="收款方式" hint="下次會自動記住">
+                        <div className="flex flex-wrap gap-2">
+                          {PAY_METHODS.map((p) => {
+                            const on = pay.includes(p.id);
+                            return (
+                              <Chip key={p.id} active={on} onClick={() => setPay(on ? pay.filter((x) => x !== p.id) : [...pay, p.id])}>
+                                {p.label}
+                              </Chip>
+                            );
+                          })}
+                        </div>
+                      </Section>
+                    )}
+
+                    <Section title={s.timeQuestion} hint={leaveAt ? `大約 ${fmtClock(leaveAt)} ${timeWord}，到時個 post 會自動過期` : undefined}>
+                      <div className="flex flex-wrap gap-2">
+                        {[15, 30, 60].map((m) => (
+                          <Chip key={m} active={leaveMode === m} onClick={() => setLeaveMode(m)}>
+                            {m === 60 ? "1 個鐘後" : `${m} 分鐘後`}
+                          </Chip>
+                        ))}
+                        <Chip active={leaveMode === "custom"} onClick={() => setLeaveMode("custom")}>自己揀時間</Chip>
+                      </div>
+                      {leaveMode === "custom" && (
+                        <input
+                          type="time"
+                          value={customTime}
+                          onChange={(e) => setCustomTime(e.target.value)}
+                          aria-label="時間"
+                          className="h-12 px-4 rounded-2xl border border-border bg-card outline-none"
+                        />
+                      )}
+                    </Section>
+
+                    <Section title="備注（可以唔填）" hint="所有人都睇到；唔好寫電話或者個人資料">
+                      <textarea
+                        value={remark}
+                        onChange={(e) => setRemark(e.target.value.slice(0, REMARK_MAX))}
+                        rows={2}
+                        placeholder={REMARK_PLACEHOLDER[s.id]}
+                        aria-label="備注"
+                        className="w-full px-4 py-3 rounded-2xl border border-border bg-background outline-none resize-none text-[15px]"
+                      />
+                      {remark.length > 0 && <div className="text-[11px] text-muted-foreground text-right">{remark.length}/{REMARK_MAX}</div>}
+                    </Section>
+
+                    {s.id !== "groupbuy" && (
+                      <label className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="font-semibold text-sm">接受去緊嘅人</div>
+                          <div className="text-xs text-muted-foreground">
+                            {acceptEnRoute
+                              ? "未到商場嘅人都可以接，最多 30 分鐘到。配對咗之後佢喺路上，你無故取消會記一次臨時取消；佢遲到 5 分鐘你可以取消並重新放出"
+                              : "而家只限已經喺商場嘅人接。開咗，未到商場、去緊嘅人都可以接"}
+                          </div>
+                        </div>
+                        <Switch checked={acceptEnRoute} onCheckedChange={setAcceptEnRoute} />
+                      </label>
+                    )}
+
+                    <label className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="font-semibold text-sm">第一個有興趣嘅自動配對</div>
+                        <div className="text-xs text-muted-foreground">想快就開；唔開就由你喺名單揀人{s.id !== "groupbuy" && acceptEnRoute ? "。只會自動揀已喺場嘅人" : ""}</div>
+                      </div>
+                      <Switch checked={autoAccept} onCheckedChange={setAutoAccept} />
+                    </label>
                   </div>
-                </Section>
-              )}
-
-              <Section title="備注（可以唔填）" hint="所有人都睇到；唔好寫電話或者個人資料">
-                <textarea
-                  value={remark}
-                  onChange={(e) => setRemark(e.target.value.slice(0, REMARK_MAX))}
-                  rows={2}
-                  placeholder={REMARK_PLACEHOLDER[s.id]}
-                  aria-label="備注"
-                  className="w-full px-4 py-3 rounded-2xl border border-border bg-card outline-none resize-none text-[15px]"
-                />
-                {remark.length > 0 && <div className="text-[11px] text-muted-foreground text-right">{remark.length}/{REMARK_MAX}</div>}
-              </Section>
-
-              <Section title={s.timeQuestion} hint={leaveAt ? `大約 ${fmtClock(leaveAt)} ${timeWord}，到時個 post 會自動過期` : undefined}>
-                <div className="flex flex-wrap gap-2">
-                  {[15, 30, 60].map((m) => (
-                    <Chip key={m} active={leaveMode === m} onClick={() => setLeaveMode(m)}>
-                      {m === 60 ? "1 個鐘後" : `${m} 分鐘後`}
-                    </Chip>
-                  ))}
-                  <Chip active={leaveMode === "custom"} onClick={() => setLeaveMode("custom")}>自己揀時間</Chip>
-                </div>
-                {leaveMode === "custom" && (
-                  <input
-                    type="time"
-                    value={customTime}
-                    onChange={(e) => setCustomTime(e.target.value)}
-                    className="h-12 px-4 rounded-2xl border border-border bg-card outline-none"
-                  />
                 )}
-              </Section>
-
-              {s.id !== "groupbuy" && (
-                <label className="flex items-center justify-between gap-3 bg-card rounded-2xl p-4">
-                  <div>
-                    <div className="font-semibold text-sm">接受去緊嘅人</div>
-                    <div className="text-xs text-muted-foreground">
-                      {acceptEnRoute
-                        ? "未到商場嘅人都可以接，最多 30 分鐘到。配對咗之後佢喺路上，你無故取消會記一次臨時取消；佢遲到 5 分鐘你可以取消並重新放出"
-                        : "而家只限已經喺商場嘅人接。開咗，未到商場、去緊嘅人都可以接"}
-                    </div>
-                  </div>
-                  <Switch checked={acceptEnRoute} onCheckedChange={setAcceptEnRoute} />
-                </label>
-              )}
-
-              <label className="flex items-center justify-between gap-3 bg-card rounded-2xl p-4">
-                <div>
-                  <div className="font-semibold text-sm">第一個有興趣嘅自動配對</div>
-                  <div className="text-xs text-muted-foreground">想快就開；唔開就由你喺名單揀人{s.id !== "groupbuy" && acceptEnRoute ? "。只會自動揀已喺場嘅人" : ""}</div>
-                </div>
-                <Switch checked={autoAccept} onCheckedChange={setAutoAccept} />
-              </label>
+              </div>
 
               <ScenarioTips scenario={s.id} role={authorRole(direction)} mall={mall} title="出 post 前要知" />
               <p className="text-[11px] text-muted-foreground">

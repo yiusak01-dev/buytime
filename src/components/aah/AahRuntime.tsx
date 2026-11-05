@@ -29,7 +29,11 @@ export function AahRuntime() {
   // 雲端模式：feed 讀本商場同附近商場；記錄「附近用戶」人數（唔儲存確實位置）
   useEffect(() => {
     const m = current.mall;
-    if (!m) return;
+    // 唔喺任何商場：讀全港最新，好奇打開嘅人都見到有咩着數
+    if (!m) {
+      aah.setFeedMalls(["*"]);
+      return;
+    }
     aah.setFeedMalls([m.id, ...nearbyMalls(malls, m).map((x) => x.id)]);
   }, [current.mall?.id, malls, mode]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
