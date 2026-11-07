@@ -767,7 +767,7 @@ function NewPost() {
       <RegisterSheet
         open={regOpen}
         onClose={() => setRegOpen(false)}
-        reason="出 post 要先註冊，註冊完會自動幫你發佈。"
+        reason="登記咗就即刻幫你發佈"
         onDone={() => {
           setRegOpen(false);
           setTimeout(() => void submit(), 0);

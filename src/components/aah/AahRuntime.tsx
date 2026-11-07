@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { aah, useAahMode, useAahState, LEAVE_GRACE_MIN, PIN_PROMPT_AFTER_MIN } from "@/lib/aah/store";
+import { aah, testLocationAllowed, useAahMode, useAahState, LEAVE_GRACE_MIN, PIN_PROMPT_AFTER_MIN } from "@/lib/aah/store";
 import { useAahMalls, nearbyMalls } from "@/lib/aah/malls";
 import { useAutoStartGeo, useCurrentMall, useGeo, useNow } from "@/lib/aah/geo";
 import { syncPush } from "@/lib/aah/push";
@@ -37,7 +37,8 @@ export function AahRuntime() {
     aah.setFeedMalls([m.id, ...nearbyMalls(malls, m).map((x) => x.id)]);
   }, [current.mall?.id, malls, mode]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (current.mall && user.registered) aah.touchPresence(current.mall.id);
+    // 只計真係喺場（GPS 確認）嘅人；揀商場睇吓唔算（即時人數唔可以虛報）
+    if (current.mall && user.registered && (current.verified || (current.test && testLocationAllowed()))) aah.touchPresence(current.mall.id);
   }, [current.mall?.id, user.registered, now, mode]); // eslint-disable-line react-hooks/exhaustive-deps
   // 推送：登入後確保呢部裝置登記咗；舊金鑰嘅訂閱會換走
   useEffect(() => {
@@ -148,6 +149,8 @@ export function AahRuntime() {
       .posts.filter((p) => p.mallId === m.id && p.status === "open" && p.leaveAt > Date.now() && p.authorId !== user.id && user.notifyCats.includes(p.scenario)).length;
     if (count === 0) return;
     aah.markArrivalShown(m.id);
+    // 已經喺搵／放／夾頁：列表同即時動態已經見到，唔使再彈
+    if (pathname === "/" || pathname === "/give" || pathname === "/join") return;
     toast(`啱啱好！附近有 ${count} 個着數`, {
       description: `${m.name} 而家有 ${count} 個着數，即刻睇吓`,
       action: { label: "睇吓", onClick: () => navigate({ to: "/" }) },

@@ -43,22 +43,22 @@
 }
 
 :root {
-  --radius: 0.75rem;
-  --background: oklch(0.972 0.008 247);
-  --foreground: oklch(0.208 0.042 265);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.208 0.042 265);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.208 0.042 265);
-  --primary: oklch(0.546 0.213 261);
-  --primary-foreground: oklch(0.99 0 0);
+  --radius: 1rem;
+  --background: #FFF4EC;
+  --foreground: #2B2433;
+  --card: #FFFFFF;
+  --card-foreground: #2B2433;
+  --popover: #FFFFFF;
+  --popover-foreground: #2B2433;
+  --primary: #3B2F8F;
+  --primary-foreground: #FFFFFF;
   --primary-glow: oklch(0.68 0.19 250);
-  --secondary: oklch(0.958 0.011 247);
-  --secondary-foreground: oklch(0.28 0.05 265);
-  --muted: oklch(0.958 0.011 247);
-  --muted-foreground: oklch(0.55 0.03 257);
-  --accent: oklch(0.94 0.02 250);
-  --accent-foreground: oklch(0.28 0.05 265);
+  --secondary: #F6EDE4;
+  --secondary-foreground: #2B2433;
+  --muted: #F6EDE4;
+  --muted-foreground: #5E5568;
+  --accent: #F6EDE4;
+  --accent-foreground: #2B2433;
   --destructive: oklch(0.577 0.245 27);
   --destructive-foreground: oklch(0.99 0 0);
   --success: oklch(0.55 0.14 158);
@@ -67,12 +67,12 @@
   --warning-foreground: oklch(0.99 0 0);
   --info: oklch(0.60 0.15 260);
   --info-foreground: oklch(0.99 0 0);
-  --border: oklch(0.9 0.015 255);
-  --input: oklch(0.9 0.015 255);
-  --ring: oklch(0.546 0.213 261);
+  --border: #EADFD3;
+  --input: #EADFD3;
+  --ring: #3B2F8F;
   --gradient-primary: linear-gradient(135deg, oklch(0.546 0.213 261) 0%, oklch(0.68 0.19 250) 100%);
   --gradient-receipt: linear-gradient(135deg, oklch(0.35 0.14 262) 0%, oklch(0.28 0.10 265) 100%);
-  --shadow-card: 0 1px 3px 0 oklch(0.2 0.05 265 / 0.08), 0 1px 2px -1px oklch(0.2 0.05 265 / 0.08);
+  --shadow-card: 0 6px 18px rgba(80, 40, 20, 0.06);
   --shadow-sheet: 0 -8px 30px -8px oklch(0.2 0.05 265 / 0.15);
 }
 
@@ -118,3 +118,11 @@
 @utility gradient-receipt {
   background: var(--gradient-receipt);
 }
+
+/* 即時：綠點一閃一閃 */
+@keyframes live-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(31, 164, 99, 0.55); }
+  100% { box-shadow: 0 0 0 8px rgba(31, 164, 99, 0); }
+}
+.live-dot { animation: live-pulse 1.6s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }

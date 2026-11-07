@@ -16,8 +16,10 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ChatsRouteImport } from './routes/chats'
 import { Route as ConfirmRouteImport } from './routes/confirm'
 import { Route as DiningRouteImport } from './routes/dining'
+import { Route as GiveRouteImport } from './routes/give'
 import { Route as GroupBuyRouteImport } from './routes/group-buy'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as JoinRouteImport } from './routes/join'
 import { Route as MeRouteImport } from './routes/me'
 import { Route as MyListingsRouteImport } from './routes/my-listings'
 import { Route as NotificationsRouteImport } from './routes/notifications'
@@ -72,6 +74,11 @@ const DiningRoute = DiningRouteImport.update({
   path: '/dining',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GiveRoute = GiveRouteImport.update({
+  id: '/give',
+  path: '/give',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GroupBuyRoute = GroupBuyRouteImport.update({
   id: '/group-buy',
   path: '/group-buy',
@@ -80,6 +87,11 @@ const GroupBuyRoute = GroupBuyRouteImport.update({
 const HelpRoute = HelpRouteImport.update({
   id: '/help',
   path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JoinRoute = JoinRouteImport.update({
+  id: '/join',
+  path: '/join',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MeRoute = MeRouteImport.update({
@@ -181,8 +193,10 @@ export interface FileRoutesByFullPath {
   '/chats': typeof ChatsRoute
   '/confirm': typeof ConfirmRoute
   '/dining': typeof DiningRoute
+  '/give': typeof GiveRoute
   '/group-buy': typeof GroupBuyRoute
   '/help': typeof HelpRoute
+  '/join': typeof JoinRoute
   '/me': typeof MeRoute
   '/my-listings': typeof MyListingsRoute
   '/notifications': typeof NotificationsRoute
@@ -210,8 +224,10 @@ export interface FileRoutesByTo {
   '/chats': typeof ChatsRoute
   '/confirm': typeof ConfirmRoute
   '/dining': typeof DiningRoute
+  '/give': typeof GiveRoute
   '/group-buy': typeof GroupBuyRoute
   '/help': typeof HelpRoute
+  '/join': typeof JoinRoute
   '/me': typeof MeRoute
   '/my-listings': typeof MyListingsRoute
   '/notifications': typeof NotificationsRoute
@@ -240,8 +256,10 @@ export interface FileRoutesById {
   '/chats': typeof ChatsRoute
   '/confirm': typeof ConfirmRoute
   '/dining': typeof DiningRoute
+  '/give': typeof GiveRoute
   '/group-buy': typeof GroupBuyRoute
   '/help': typeof HelpRoute
+  '/join': typeof JoinRoute
   '/me': typeof MeRoute
   '/my-listings': typeof MyListingsRoute
   '/notifications': typeof NotificationsRoute
@@ -271,8 +289,10 @@ export interface FileRouteTypes {
     | '/chats'
     | '/confirm'
     | '/dining'
+    | '/give'
     | '/group-buy'
     | '/help'
+    | '/join'
     | '/me'
     | '/my-listings'
     | '/notifications'
@@ -300,8 +320,10 @@ export interface FileRouteTypes {
     | '/chats'
     | '/confirm'
     | '/dining'
+    | '/give'
     | '/group-buy'
     | '/help'
+    | '/join'
     | '/me'
     | '/my-listings'
     | '/notifications'
@@ -329,8 +351,10 @@ export interface FileRouteTypes {
     | '/chats'
     | '/confirm'
     | '/dining'
+    | '/give'
     | '/group-buy'
     | '/help'
+    | '/join'
     | '/me'
     | '/my-listings'
     | '/notifications'
@@ -359,8 +383,10 @@ export interface RootRouteChildren {
   ChatsRoute: typeof ChatsRoute
   ConfirmRoute: typeof ConfirmRoute
   DiningRoute: typeof DiningRoute
+  GiveRoute: typeof GiveRoute
   GroupBuyRoute: typeof GroupBuyRoute
   HelpRoute: typeof HelpRoute
+  JoinRoute: typeof JoinRoute
   MeRoute: typeof MeRoute
   MyListingsRoute: typeof MyListingsRoute
   NotificationsRoute: typeof NotificationsRoute
@@ -432,6 +458,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DiningRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/give': {
+      id: '/give'
+      path: '/give'
+      fullPath: '/give'
+      preLoaderRoute: typeof GiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/group-buy': {
       id: '/group-buy'
       path: '/group-buy'
@@ -444,6 +477,13 @@ declare module '@tanstack/react-router' {
       path: '/help'
       fullPath: '/help'
       preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/join': {
+      id: '/join'
+      path: '/join'
+      fullPath: '/join'
+      preLoaderRoute: typeof JoinRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/me': {
@@ -583,8 +623,10 @@ const rootRouteChildren: RootRouteChildren = {
   ChatsRoute: ChatsRoute,
   ConfirmRoute: ConfirmRoute,
   DiningRoute: DiningRoute,
+  GiveRoute: GiveRoute,
   GroupBuyRoute: GroupBuyRoute,
   HelpRoute: HelpRoute,
+  JoinRoute: JoinRoute,
   MeRoute: MeRoute,
   MyListingsRoute: MyListingsRoute,
   NotificationsRoute: NotificationsRoute,

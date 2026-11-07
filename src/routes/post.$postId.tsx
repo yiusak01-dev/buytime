@@ -6,6 +6,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { PushPrompt } from "@/components/aah/PushPrompt";
 import { BottomSheet, Chip, DemoBadge, ScenarioTag } from "@/components/aah/ui";
 import { RegisterSheet } from "@/components/aah/RegisterSheet";
+import { LiveDot } from "@/components/aah/CatIcon";
 import { postSaving, priceLabel } from "@/components/aah/PostCard";
 import {
   aah,
@@ -108,6 +109,13 @@ function PostSummary({ post, now }: { post: Post; now: number }) {
             ⏰ {fmtClock(post.leaveAt)} 前{post.scenario === "dining" ? "叫號" : "喺度"}（{fmtLeft(post.leaveAt - now)}）
           </span>
           {post.verifiedOnSite && <span className="text-[#2E9E6A] font-semibold">📍 已確認喺場</span>}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap pt-1" data-testid="live-chips">
+          <span className="h-7 px-2.5 rounded-full bg-background text-xs font-bold inline-flex items-center gap-1.5">
+            <LiveDot />
+            {fmtAgo(post.createdAt, now)}放
+          </span>
+          {post.viewCount > 0 && <span className="h-7 px-2.5 rounded-full bg-background text-xs font-bold inline-flex items-center">{post.viewCount} 人睇過</span>}
         </div>
       </div>
     </div>
@@ -384,7 +392,7 @@ function PostDetailView({ post }: { post: Post }) {
       <RegisterSheet
         open={regOpen}
         onClose={() => setRegOpen(false)}
-        reason="接 post 同傾偈要先註冊。"
+        reason={`登記咗先撳得「${joinWord}」`}
         onDone={() => {
           setRegOpen(false);
           if (pending) void doExpress(pending.text, pending.offer, pending.opts);

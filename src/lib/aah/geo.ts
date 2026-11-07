@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { AahMall } from "./types";
-import { findMallAt } from "./malls";
+import { findMallAt, nearestMalls } from "./malls";
 import { useAahState } from "./store";
 
 export type GeoStatus = "idle" | "locating" | "ok" | "denied" | "unavailable";
@@ -141,6 +141,23 @@ export function useCurrentMall(malls: AahMall[]): CurrentMall {
     }
     return { mall: null, verified: false, test: false };
   }, [g.status, g.lat, g.lng, malls, user.testMallId]);
+}
+
+/**
+ * 睇緊邊個商場：喺商場（或者揀咗）就係嗰個；未到就自動出最近（3 公里內）嗰個；都冇就全港。
+ * 「最近」只係睇，唔代表喺場，撳有興趣照樣要 GPS 確認。
+ */
+export function useViewMall(malls: AahMall[]): CurrentMall & { nearest: boolean } {
+  const current = useCurrentMall(malls);
+  const g = useGeo();
+  return useMemo(() => {
+    if (current.mall) return { ...current, nearest: false };
+    if (g.status === "ok" && g.lat != null && g.lng != null && malls.length) {
+      const [m] = nearestMalls(malls, g.lat, g.lng, 1);
+      if (m && m.distance <= 3000) return { mall: m, verified: false, test: false, nearest: true };
+    }
+    return { ...current, nearest: false };
+  }, [current, g.status, g.lat, g.lng, malls]);
 }
 
 /** 每隔一段時間更新「而家」，倒數用 */

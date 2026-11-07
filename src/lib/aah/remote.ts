@@ -116,6 +116,9 @@ export function createRemote(host: Host) {
         notifyCats: prof.notify_cats ?? user.notifyCats,
         notifyOpportunities: prof.notify_opportunities,
         notifyPromotions: prof.notify_promotions,
+        favMalls: prof.fav_malls ?? [],
+        drives: prof.drives ?? undefined,
+        saveCats: prof.save_cats ?? [],
         defaultPayMethods: prof.default_pay_methods ?? user.defaultPayMethods,
         pinCredits: prof.pin_credits,
         appeal: appeal?.[0] ? { text: appeal[0].text, at: Date.parse(appeal[0].created_at), status: appeal[0].status } : undefined,
@@ -320,6 +323,19 @@ export function createRemote(host: Host) {
       return "confirm";
     },
 
+    /** SMS 驗證碼：新電話會自動開帳戶，舊電話就係登入 */
+    async sendPhoneOtp(phone: string) {
+      const { error } = await sb().auth.signInWithOtp({ phone });
+      if (error) throw error;
+    },
+
+    async verifyPhoneOtp(phone: string, token: string): Promise<"done" | "need_profile"> {
+      const { error } = await sb().auth.verifyOtp({ phone, token, type: "sms" });
+      if (error) throw error;
+      await refresh();
+      return host.get().user.registered ? "done" : "need_profile";
+    },
+
     async signInEmail(email: string, password: string): Promise<"done" | "need_profile"> {
       const { error } = await sb().auth.signInWithPassword({ email, password });
       if (error) throw error;
@@ -382,6 +398,9 @@ export function createRemote(host: Host) {
       if (patch.notifyOpportunities !== undefined) row.notify_opportunities = patch.notifyOpportunities;
       if (patch.notifyPromotions !== undefined) row.notify_promotions = patch.notifyPromotions;
       if (patch.defaultPayMethods) row.default_pay_methods = patch.defaultPayMethods;
+      if (patch.favMalls) row.fav_malls = patch.favMalls.slice(0, 20);
+      if (patch.drives !== undefined) row.drives = patch.drives;
+      if (patch.saveCats) row.save_cats = patch.saveCats;
       if (patch.nickname) row.nickname = patch.nickname;
       if (Object.keys(row).length === 0) return;
       const { error } = await sb().from("aah_profiles").update(row).eq("id", uid);
@@ -706,6 +725,8 @@ export function aahErrorText(e: unknown): string {
     [/already appealed/, "你已經申訴過"],
     [/no open no-show report/, "搵唔到可以申訴嘅紀錄"],
     [/match not active/, "配對已經結束"],
+    [/phone.?provider|Unsupported phone|sms_send_failed|Phone signups are disabled|phone_provider_disabled|Error sending (sms|confirmation sms)/i, "SMS 登記暫時未開通，請先用 email 登記"],
+    [/invalid.*phone|phone.*invalid/i, "電話號碼唔啱"],
     [/Invalid login credentials/i, "Email 或者密碼唔啱"],
     [/User already registered|already been registered/i, "呢個 email 已經註冊咗，請直接登入"],
     [/Email not confirmed/i, "請先去 email 撳確認連結，再返嚟登入"],

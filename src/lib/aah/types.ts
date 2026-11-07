@@ -142,6 +142,10 @@ export type User = {
   notifyCats: ScenarioId[];
   notifyOpportunities: boolean;
   notifyPromotions: boolean;
+  /** 登記後問幾樣：常去商場、揸唔揸車、想慳邊樣 */
+  favMalls?: string[];
+  drives?: "yes" | "sometimes" | "no";
+  saveCats?: ("parking" | "dining" | "shopping")[];
   defaultPayMethods: PayMethod[];
   outfitToday?: { date: string; outfit: Outfit };
   /** 測試位置：唔喺商場都可以試用 */

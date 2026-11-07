@@ -186,6 +186,8 @@ const local = {
       { ...base, id: uid("p"), scenario: "dining", direction: "have", shop: "鼎泰豐", fields: { queueNo: "A038", partySize: 2, calling: "A021" }, price: 20, payMethods: ["cash", "fps"], leaveAt: now + 30 * MIN, createdAt: now - 6 * MIN, authorId: "demo-karen", authorName: "Karen", pushedCount: 41 },
       { ...base, id: uid("p"), scenario: "groupbuy", direction: "join", shop: "Nike", fields: { deal: "第二件半價", note: "波鞋" }, price: null, payMethods: [], leaveAt: now + 40 * MIN, createdAt: now - 2 * MIN, authorId: "demo-shan", authorName: "小珊", pushedCount: 128, needCount: 1, pinnedUntil: now + 12 * MIN },
       { ...base, id: uid("p"), scenario: "offer", direction: "have", shop: "屈臣氏", fields: { title: "$50 現金券（今日到期）", faceValue: 50 }, price: 20, payMethods: ["cash", "payme", "octopus"], leaveAt: now + 20 * MIN, createdAt: now - 9 * MIN, authorId: "demo-ken", authorName: "Ken", pushedCount: 27 },
+      { ...base, id: uid("p"), scenario: "parking", direction: "have", shop: "停車場", fields: { receiptAmount: 320, hours: 1, receiptType: "電子單" }, price: 8, payMethods: ["cash", "payme"], leaveAt: now + 35 * MIN, createdAt: now - 12 * MIN, authorId: "demo-wing", authorName: "阿詠", pushedCount: 19 },
+      { ...base, id: uid("p"), scenario: "dining", direction: "have", shop: "一蘭", fields: { queueNo: "B018", partySize: 1, calling: "B009" }, price: 0, payMethods: [], leaveAt: now + 22 * MIN, createdAt: now - 15 * MIN, authorId: "demo-ho", authorName: "阿豪", pushedCount: 22 },
       { ...base, id: uid("p"), scenario: "parking", direction: "want", shop: "停車場", fields: { hours: 2 }, price: 15, payMethods: ["cash"], leaveAt: now + 15 * MIN, createdAt: now - 1 * MIN, authorId: "demo-chan", authorName: "陳生", pushedCount: 34 },
     ];
     set({ ...state, posts: [...posts, ...state.posts.filter((p) => !(p.demo && p.mallId === mall.id))] });
@@ -750,6 +752,18 @@ export const aah = {
       return "done";
     }
     return R().signUpEmail(email, password, nickname, phone);
+  },
+  /** SMS 驗證碼（示範模式唔會真係寄，任何 6 個數字都得） */
+  async sendPhoneOtp(phone: string) {
+    if (!isRemote()) return;
+    await R().sendPhoneOtp(phone);
+  },
+  async verifyPhoneOtp(phone: string, code: string): Promise<"done" | "need_profile"> {
+    if (!isRemote()) {
+      if (!/^\d{6}$/.test(code)) throw new Error("invalid otp");
+      return state.user.registered ? "done" : "need_profile";
+    }
+    return R().verifyPhoneOtp(phone, code);
   },
   async signInEmail(email: string, password: string): Promise<"done" | "need_profile"> {
     if (!isRemote()) return state.user.registered ? "done" : "need_profile";
