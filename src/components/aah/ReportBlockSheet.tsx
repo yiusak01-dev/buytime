@@ -6,7 +6,7 @@ import { aah, aahErrorText } from "@/lib/aah/store";
 
 const REASONS: { label: string; kind: string }[] = [
   { label: "冒犯、粗口或者騷擾", kind: "harass" },
-  { label: "收據／飛／券係假，或者資料唔實", kind: "fake" },
+  { label: "單據／飛／券係假，或者資料唔實", kind: "fake" },
   { label: "要求預先轉數", kind: "prepay" },
   { label: "其他", kind: "other" },
 ];

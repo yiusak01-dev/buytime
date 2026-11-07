@@ -12,10 +12,10 @@ export function rowTitle(p: Post): string {
   const f = p.fields;
   switch (p.scenario) {
     case "parking":
-      if (p.direction === "want") return `要 ${f.hours} 個鐘泊車`;
-      return f.hours ? `可換 ${f.hours} 個鐘` : `收據 $${f.receiptAmount}`;
+      if (p.direction === "want") return `想要 ${f.hours} 個鐘泊車`;
+      return f.hours ? `可換 ${f.hours} 個鐘泊車` : `單據 $${f.receiptAmount}`;
     case "dining":
-      return `${p.shop} ${f.queueNo}・${f.partySize} 位`;
+      return `${p.shop} 飛號 ${f.queueNo}・${f.partySize} 位`;
     case "offer":
       return `${p.shop} ${f.title ?? ""}`.trim();
     case "groupbuy":
@@ -53,7 +53,7 @@ export function FeedRow({
   if (post.scenario === "dining" && post.fields.calling)
     bits.push(`而家叫到 ${post.fields.calling}`);
   if (post.scenario === "groupbuy" && post.needCount) bits.push(`仲要 ${post.needCount} 人`);
-  bits.push(`${fmtAgo(post.createdAt, now)}放`);
+  bits.push(`${fmtAgo(post.createdAt, now)}放上嚟`);
   if (otherMall) bits.push(otherMall);
 
   let action;

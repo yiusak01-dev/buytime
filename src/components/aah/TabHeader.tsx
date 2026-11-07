@@ -29,8 +29,8 @@ export function TabHeader({ active }: { active: Verb }) {
   );
   const n = live.at(view.mall?.id);
   const label = view.mall
-    ? `${view.mall.name}${n ? ` ${n} 人` : ""}`
-    : `全港${live.total ? ` ${live.total} 人` : ""}`;
+    ? `${view.mall.name}${n ? ` ${n} 人喺度` : ""}`
+    : `全港${live.total ? ` ${live.total} 人用緊` : ""}`;
 
   return (
     <header className="px-4 pt-4 pb-2 space-y-3">

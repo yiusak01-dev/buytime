@@ -45,7 +45,7 @@ export type ScenarioDef = {
 export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
   parking: {
     id: "parking",
-    label: "泊車",
+    label: "泊車優惠單據",
     emoji: "🚗",
     color: "#2E9E6A",
     soft: "#E3F5EC",
@@ -53,34 +53,34 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
     shopLabel: null,
     shopSuggestions: [],
     fields: [
-      { key: "receiptAmount", label: "收據消費金額", type: "number", placeholder: "例如 520 或 627.6", suffix: "元", required: true, onlyFor: ["have"], decimal: true },
+      { key: "receiptAmount", label: "單據消費金額", type: "number", placeholder: "例如 520 或 627.6", suffix: "元", required: true, onlyFor: ["have"], decimal: true },
       { key: "receiptCount", label: "幾多張單？", type: "choice", options: ["1 張", "2 張", "3 張或以上"], required: true, onlyFor: ["have"] },
-      { key: "receiptType", label: "收據類型", type: "choice", options: ["紙單", "電子單"], required: true, onlyFor: ["have"] },
+      { key: "receiptType", label: "單據類型", type: "choice", options: ["紙單", "電子單"], required: true, onlyFor: ["have"] },
       { key: "receiptCategory", label: "入面有冇食肆（餐廳）單？", type: "choice", options: ["有食肆單", "冇食肆單"], required: true, onlyFor: ["have"], onlyIfDiningRule: true },
       { key: "hours", label: "想要幾多個鐘", type: "number", placeholder: "例如 2", suffix: "個鐘", required: true, onlyFor: ["want"] },
     ],
     hasPrice: true,
     timeQuestion: "你大約幾點離開商場？",
     meetPlaces: ["客戶服務台", "停車場繳費機", "商場正門"],
-    handoverHint: "見面交收據，一手交錢一手交收據",
+    handoverHint: "見面交單據，一手交錢一手交單據",
     tips: {
       giver: [
         "每個商場換泊車條款唔同：消費金額、換幾多個鐘、平日同假期都唔同，出 post 前睇清楚商場最新條款。",
-        "好多商場要用商場 app 或者電子收據登記先換到泊車；已經登記咗喺你會員帳戶嘅消費通常轉唔到。喺 post 講清楚係紙單定電子單。",
-        "收據一般要即日、喺同一個商場消費；好多商場最多合併 2 張單，有啲完全唔收合併、分拆，或者唔收影印本。",
-        "已經換過泊車嘅收據唔好再俾人。",
+        "好多商場要用商場 app 或者電子單據登記先換到泊車；已經登記咗喺你會員帳戶嘅消費通常轉唔到。喺 post 講清楚係紙單定電子單。",
+        "單據一般要即日、喺同一個商場消費；好多商場最多合併 2 張單，有啲完全唔收合併、分拆，或者唔收影印本。",
+        "已經換過泊車嘅單據唔好再俾人。",
       ],
       taker: [
         "接之前問清楚係紙單定電子單、幾多張單、消費金額同日期，同你要換嘅條款夾唔夾；幾張單加埋計嘅，自己同商場確認收唔收。",
         "問清楚喺邊度換（客務台、繳費機定商場 app），預留時間喺離場前換。",
-        "收據交到手、確認啱用先俾錢。",
+        "單據交到手、確認啱用先俾錢。",
       ],
     },
     pushNearby: false,
   },
   dining: {
     id: "dining",
-    label: "食飯",
+    label: "餐廳排隊飛",
     emoji: "🍜",
     color: "#3D7BE0",
     soft: "#E5EEFC",
@@ -112,7 +112,7 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
   },
   offer: {
     id: "offer",
-    label: "優惠",
+    label: "優惠券",
     emoji: "🎟",
     color: "#D9548F",
     soft: "#FBE6EF",
@@ -178,8 +178,8 @@ export const SCENARIO_LIST: ScenarioId[] = ["parking", "dining", "offer", "group
 export const GROUPBUY_DEALS = ["買一送一", "第二件半價", "買二送一", "滿額減"];
 
 export const DIRECTION_LABEL: Record<Direction, string> = {
-  have: "有",
-  want: "要",
+  have: "有人放",
+  want: "有人想要",
   join: "搵人夾",
 };
 

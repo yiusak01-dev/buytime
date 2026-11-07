@@ -13,7 +13,14 @@ import { aah, isDemoForced, useAahMode, useAahState, MAX_PINNED_PER_MALL } from 
 import { useAahMalls, nearbyMalls, distanceM } from "@/lib/aah/malls";
 import { fmtAgo, geoStore, useNow, useViewMall } from "@/lib/aah/geo";
 import { SCENARIOS } from "@/lib/aah/scenarios";
-import { CAT_STYLE, FIND_SCENARIOS, FREE_LIMIT, LIVE_TEXT, VERBS } from "@/lib/aah/theme";
+import {
+  CAT_STYLE,
+  FIND_SCENARIOS,
+  FREE_LIMIT,
+  LIVE_TEXT,
+  PARKING_EXPLAIN,
+  VERBS,
+} from "@/lib/aah/theme";
 import type { Post, ScenarioId } from "@/lib/aah/types";
 import type { QuickKind } from "./post.new";
 import { cn } from "@/lib/utils";
@@ -32,12 +39,13 @@ export const Route = createFileRoute("/")({
       { title: "啱啱好 · 啱時間 啱地方 啱啱好" },
       {
         name: "description",
-        content: "香港商場即時配對：泊車收據、餐廳飛、優惠券、夾單。用唔着嘅轉俾人，大家都有着數。",
+        content:
+          "香港商場即時配對：泊車優惠單據、餐廳排隊飛、優惠券、夾單。用唔着嘅轉俾人，大家都有着數。",
       },
       { property: "og:title", content: "啱啱好 · 用唔着嘅轉俾人，大家都有着數" },
       {
         property: "og:description",
-        content: "泊車收據、餐廳飛、優惠券、夾單：同一個商場、同一時間，即時配對。",
+        content: "泊車優惠單據、餐廳排隊飛、優惠券、夾單：同一個商場、同一時間，即時配對。",
       },
       { property: "og:type", content: "website" },
     ],
@@ -57,9 +65,9 @@ function readHowSeen(): boolean {
 /** 「2 分鐘前放：可換 2 個鐘・$23」：直接講係咩；只講最近 3 個鐘內嘅，舊嘅唔扮即時 */
 function tickerText(p: Post, now: number, showMall: boolean): string | null {
   if (now - p.createdAt > 3 * 3600 * 1000) return null;
-  const where = showMall ? `${p.mallName}・` : "";
+  const where = showMall ? `喺${p.mallName}` : "";
   const price = priceLabel(p);
-  return `${fmtAgo(p.createdAt, now)}放：${where}${CAT_STYLE[p.scenario].name} ${rowTitle(p)}${price ? `・${price}` : ""}`;
+  return `${fmtAgo(p.createdAt, now)}有人${where}放咗${CAT_STYLE[p.scenario].name}：${rowTitle(p)}${price ? `・${price}` : ""}`;
 }
 
 function Home() {
@@ -248,7 +256,7 @@ function Home() {
             <span className="text-[13px] font-black shrink-0" style={{ color: LIVE_TEXT }}>
               即時
             </span>
-            <span className="text-[13px] font-bold truncate">{ticker}</span>
+            <span className="text-[13px] font-bold line-clamp-2">{ticker}</span>
           </div>
         )}
 
@@ -267,7 +275,7 @@ function Home() {
 
         {mall && !nothingAnywhere && (
           <h1 className="text-[17px] font-black pt-1">
-            {mall.name} 而家有 {hereCount} 個
+            {mall.name} 而家有 {hereCount} 個着數
             {view.nearest ? (
               <span className="text-xs font-bold text-muted-foreground">・離你最近</span>
             ) : null}
@@ -366,14 +374,15 @@ function Coach({ onClose }: { onClose: () => void }) {
       </div>
       <div className="text-sm leading-relaxed space-y-0.5">
         <div>
-          <b className="text-[#C9C0FF] mr-3">搵</b>泊車收據、餐廳排隊飛、商場優惠券
+          <b className="text-[#C9C0FF] mr-3">搵</b>搵人放出嚟嘅泊車優惠單據、餐廳排隊飛、優惠券
         </div>
         <div>
-          <b className="text-[#FFC6A3] mr-3">放</b>你用唔着嘅收據、飛、券，換返錢
+          <b className="text-[#FFC6A3] mr-3">放</b>你用唔着嘅，放出去換錢
         </div>
         <div>
           <b className="text-[#A9E5C4] mr-3">夾</b>第二件半價、買一送一，搵人一齊買
         </div>
+        <div className="text-xs text-white/70 pt-1">泊車優惠單據：{PARKING_EXPLAIN}</div>
       </div>
     </div>
   );
@@ -489,8 +498,8 @@ function EmptyCat({ cat }: { cat?: ScenarioId }) {
 
 /** 示範例子：清楚標明唔係真 post，撳唔到 */
 const EXAMPLES: { scenario: ScenarioId; title: string; sub: string }[] = [
-  { scenario: "parking", title: "可換 3 個鐘", sub: "$30・慳 $42・APM" },
-  { scenario: "dining", title: "鼎泰豐 A052・2 位", sub: "免費・去咗第二間食・朗豪坊" },
+  { scenario: "parking", title: "可換 3 個鐘泊車", sub: "$30・慳 $42・APM" },
+  { scenario: "dining", title: "鼎泰豐 飛號 A052・2 位", sub: "免費・唔去食，張飛轉俾人・朗豪坊" },
   { scenario: "offer", title: "屈臣氏 $50 現金券", sub: "$20・慳 $30・海港城" },
 ];
 
@@ -503,7 +512,7 @@ function ColdStart() {
           啱啱開始，仲未有人放
         </div>
         <p className="text-sm text-muted-foreground">
-          呢度係真嘅即時資料，有人放就即刻出現。做第一個：用唔着嘅收據、飛、券，放出去俾啱用嘅人。
+          呢度係真嘅即時資料，有人放就即刻出現。你有用唔着嘅泊車優惠單據、餐廳排隊飛、優惠券，可以做第一個放出去。
         </p>
         <div className="flex flex-col gap-2">
           <Link

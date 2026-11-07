@@ -54,7 +54,7 @@ function Join() {
   const latest = here[0] ?? all[0];
   const ticker =
     latest && now - latest.createdAt < 3 * 3600 * 1000
-      ? `${fmtAgo(latest.createdAt, now)}有人開咗 ${latest.shop}`
+      ? `${fmtAgo(latest.createdAt, now)}有人開咗 ${latest.shop} 夾單`
       : null;
 
   return (
@@ -76,8 +76,8 @@ function Join() {
             <div className="flex items-center justify-between gap-2 pt-1">
               <h1 className="text-sm font-bold text-muted-foreground">
                 {here.length
-                  ? `${mall?.name ?? "全港"}・${here.length} 單等緊人`
-                  : `${mall?.name} 暫時未有，睇吓全港`}
+                  ? `${mall?.name ?? "全港"}有 ${here.length} 張夾單等緊人`
+                  : `${mall?.name} 暫時未有夾單，以下係全港嘅`}
               </h1>
               {ticker && (
                 <span

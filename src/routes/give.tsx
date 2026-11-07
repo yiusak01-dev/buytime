@@ -12,14 +12,18 @@ import { setPendingPhoto } from "@/lib/aah/pendingPhoto";
 import { useAahMalls } from "@/lib/aah/malls";
 import { fmtAgo, fmtLeft, useNow, useViewMall } from "@/lib/aah/geo";
 import { useLivePeople } from "@/lib/aah/live";
-import { CAT_STYLE, VERBS } from "@/lib/aah/theme";
+import { CAT_STYLE, PARKING_EXPLAIN, VERBS } from "@/lib/aah/theme";
 import type { Post, ScenarioId } from "@/lib/aah/types";
+import type { QuickKind } from "./post.new";
 
 export const Route = createFileRoute("/give")({
   head: () => ({
     meta: [
       { title: "放 · 啱啱好" },
-      { name: "description", content: "用唔着嘅泊車收據、餐廳飛、優惠券，影相放出去，換返錢。" },
+      {
+        name: "description",
+        content: "用唔着嘅泊車優惠單據、餐廳排隊飛、優惠券，影相放出去，換返錢。",
+      },
     ],
   }),
   component: Give,
@@ -86,8 +90,8 @@ function Give() {
       <div className="px-4 space-y-4">
         <div className="rounded-[28px] p-5 space-y-3.5" style={{ background: G.soft }}>
           <div className="space-y-1" style={{ color: G.text }}>
-            <h1 className="text-[21px] font-black">放你用唔着嘅收據、排隊飛、優惠券</h1>
-            <p className="text-[13px] font-bold">影相放上嚟，有人要就喺商場見面收錢</p>
+            <h1 className="text-[21px] font-black">你有用唔着嘅？放出去換錢</h1>
+            <p className="text-[13px] font-bold">揀你有邊樣，影相放上嚟，有人要就喺商場見面收錢</p>
           </div>
           {demand && (
             <span
@@ -98,48 +102,40 @@ function Give() {
               {demand}
             </span>
           )}
-          {/* 影相：直接開相機，影完自動讀總數（泊車收據） */}
-          <label
-            className="h-14 rounded-[20px] text-white text-[17px] font-black flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] transition-transform"
-            style={{ background: G.strong }}
-          >
-            <Camera className="w-5 h-5" />
-            影泊車收據
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="sr-only"
-              data-testid="give-camera"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (!f) return;
-                setPendingPhoto(f);
-                navigate({ to: "/post/new", search: { quick: "receipt" } });
-              }}
-            />
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            <Link
-              to="/post/new"
-              search={{ quick: "dining" }}
-              className="h-11 rounded-2xl bg-card text-sm font-black grid place-items-center"
+          <div className="space-y-2">
+            {/* 泊車優惠單據：一撳就開相機，影完自動讀總數 */}
+            <label
+              className="flex items-center gap-3 rounded-[20px] bg-card px-4 py-3.5 cursor-pointer active:scale-[0.99] transition-transform"
+              data-testid="give-parking"
             >
-              餐廳排隊飛
-            </Link>
-            <Link
-              to="/post/new"
-              search={{ quick: "offer" }}
-              className="h-11 rounded-2xl bg-card text-sm font-black grid place-items-center"
-            >
-              優惠券
-            </Link>
-            <Link
-              to="/post/new"
-              className="h-11 rounded-2xl bg-card text-sm font-bold grid place-items-center text-muted-foreground"
-            >
-              自己揀
-            </Link>
+              <CatIcon scenario="parking" size={44} />
+              <span className="flex-1 min-w-0">
+                <span className="block text-base font-black">{CAT_STYLE.parking.name}</span>
+                <span className="block text-xs text-muted-foreground">{PARKING_EXPLAIN}</span>
+              </span>
+              <span
+                className="h-10 px-3 rounded-xl text-white text-sm font-black flex items-center gap-1.5 shrink-0"
+                style={{ background: G.strong }}
+              >
+                <Camera className="w-4 h-4" />
+                影相
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="sr-only"
+                data-testid="give-camera"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  setPendingPhoto(f);
+                  navigate({ to: "/post/new", search: { quick: "receipt" } });
+                }}
+              />
+            </label>
+            <GiveRow scenario="dining" sub="唔去食，張飛轉俾人" quick="dining" />
+            <GiveRow scenario="offer" sub="用唔晒嘅優惠券" quick="offer" />
           </div>
         </div>
 
@@ -175,9 +171,9 @@ function Give() {
           <div className="bg-card rounded-3xl p-4 space-y-2.5">
             <div className="text-sm font-black">點樣放</div>
             {[
-              "影張收據，總數同可換幾多個鐘會自動計",
-              "揀價錢：建議價已經揀好，唔改都得",
-              "有人撳有興趣，你揀人，喺商場見面交收",
+              "影張單據，自動計可以換幾多個鐘泊車",
+              "揀價錢：已經幫你揀咗建議價，唔改都得",
+              "有人想要，你揀邊個，喺商場見面交收",
             ].map((t, i) => (
               <div key={t} className="flex items-center gap-3 text-sm">
                 <span
@@ -218,7 +214,7 @@ function MyPost({ post, now }: { post: Post; now: number }) {
             {matched
               ? "已經配對"
               : pending.length
-                ? `最新一個 ${fmtAgo(latest, now)}撳`
+                ? `最新一個 ${fmtAgo(latest, now)}撳咗有興趣`
                 : `等緊人撳有興趣・${fmtLeft(post.leaveAt - now)}`}
           </div>
         </div>
@@ -260,5 +256,35 @@ function MyPost({ post, now }: { post: Post; now: number }) {
         </Link>
       )}
     </div>
+  );
+}
+
+function GiveRow({
+  scenario,
+  sub,
+  quick,
+}: {
+  scenario: ScenarioId;
+  sub: string;
+  quick: QuickKind;
+}) {
+  return (
+    <Link
+      to="/post/new"
+      search={{ quick }}
+      className="flex items-center gap-3 rounded-[20px] bg-card px-4 py-3.5 active:scale-[0.99] transition-transform"
+    >
+      <CatIcon scenario={scenario} size={44} />
+      <span className="flex-1 min-w-0">
+        <span className="block text-base font-black">{CAT_STYLE[scenario].name}</span>
+        <span className="block text-xs text-muted-foreground">{sub}</span>
+      </span>
+      <span
+        className="h-10 px-3 rounded-xl text-sm font-black grid place-items-center shrink-0"
+        style={{ background: G.soft, color: G.text }}
+      >
+        放
+      </span>
+    </Link>
   );
 }

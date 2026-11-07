@@ -197,11 +197,11 @@ function NewPost() {
       if (q.fee == null) return null;
       return {
         field: "hours",
-        headline: `用收據泊 ${h} 個鐘`,
+        headline: `用單據泊 ${h} 個鐘`,
         saving: q.fee,
         detail:
           q.discRate != null && q.full != null
-            ? `按今日（${q.dayLabel}）正價 $${q.full}；用收據換之後每個鐘仲要俾 $${q.discRate}（共 $${q.copay}）。`
+            ? `按今日（${q.dayLabel}）正價 $${q.full}；用單據換咗之後每個鐘仲要俾 $${q.discRate}（共 $${q.copay}）。`
             : `按今日（${q.dayLabel}）時租 $${q.rate}。`,
         max: q.suggestMax,
         basis: `慳到 $${q.fee} 嘅一半`,
@@ -367,7 +367,7 @@ function NewPost() {
     if (s.id === "parking" && direction === "have") parts.push(`${fields.receiptCount ?? "1 張"}${fields.receiptType ?? ""}`);
     if (s.id === "groupbuy") parts.push(`搵 ${needCount} 個人`);
     if (s.hasPrice && effPrice && effPrice > 0) parts.push(payLabel(effPay));
-    if (leaveAt) parts.push(`${fmtClock(leaveAt)} ${timeWord}`);
+    if (leaveAt) parts.push(`${fmtClock(leaveAt)} 前有效`);
     if (s.id !== "groupbuy") parts.push(acceptEnRoute ? "去緊嘅人都接" : "只限喺場嘅人");
     if (autoAccept) parts.push("自動配對");
     return parts.join("・");
@@ -554,7 +554,7 @@ function NewPost() {
                       onClick={() => fileRef.current?.click()}
                       className="w-full h-16 rounded-2xl border-2 border-dashed border-[#1E7F52] bg-[#E3F5EC] text-[#1d6b47] flex items-center justify-center gap-2 font-black"
                     >
-                      <Camera className="w-5 h-5" /> 影收據，自動計晒
+                      <Camera className="w-5 h-5" /> 影單據，自動計晒
                     </button>
                   ) : (
                     <button
@@ -605,7 +605,7 @@ function NewPost() {
               {shownFields.filter(essentialField).map(renderField)}
 
               {s.hasPrice && (
-                <Section title={direction === "want" ? "你願意俾幾多？" : "價錢"} hint="見面交收時直接俾，唔經平台">
+                <Section title={direction === "want" ? "你願意俾幾多錢？" : "你想收幾多錢？"} hint="見面交收時直接俾，唔經平台">
                   <div className="flex items-center gap-2">
                     <div className={cn("flex-1 min-w-0 flex items-center gap-2 h-12 px-4 rounded-2xl border bg-card", overSuggest ? "border-amber-400" : "border-border")}>
                       <span className="font-bold text-muted-foreground">$</span>
@@ -734,7 +734,7 @@ function NewPost() {
                 )}
               </div>
 
-              <ScenarioTips scenario={s.id} role={authorRole(direction)} mall={mall} title="出 post 前要知" />
+              <ScenarioTips scenario={s.id} role={authorRole(direction)} mall={mall} title="放之前要知" />
               <p className="text-[11px] text-muted-foreground">
                 發佈即表示你會遵守商場同商戶嘅規則。平台只係顯示資訊同配對，唔參與交易。
               </p>

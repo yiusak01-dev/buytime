@@ -7,6 +7,7 @@ import { PushPrompt } from "@/components/aah/PushPrompt";
 import { BottomSheet, Chip, DemoBadge, ScenarioTag } from "@/components/aah/ui";
 import { RegisterSheet } from "@/components/aah/RegisterSheet";
 import { LiveDot } from "@/components/aah/CatIcon";
+import { rowTitle } from "@/components/aah/FeedRow";
 import { postSaving, priceLabel } from "@/components/aah/PostCard";
 import {
   aah,
@@ -28,7 +29,7 @@ import { useCurrentMall, useNow, fmtClock, fmtLeft, fmtAgo, useGeo, geoStore } f
 import { distanceM } from "@/lib/aah/malls";
 import { acceptsEnRoute, etaChoices, fmtKm, sortInterests, suggestedInterest, LATE_GRACE_MIN } from "@/lib/aah/enroute";
 import type { InterestOpts } from "@/lib/aah/remote";
-import { SCENARIOS, keyInfo, payLabel, authorRole, receiptCountNote } from "@/lib/aah/scenarios";
+import { SCENARIOS, payLabel, authorRole, receiptCountNote } from "@/lib/aah/scenarios";
 import { ScenarioTips } from "@/components/aah/ScenarioTips";
 import { ReportBlockSheet } from "@/components/aah/ReportBlockSheet";
 import { buyerParkingSaving } from "@/lib/aah/pricing";
@@ -81,6 +82,23 @@ function TopBar({ title, onReport }: { title: string; onReport?: () => void }) {
   );
 }
 
+/** 標題以外嘅補充資料（唔重複標題） */
+function detailLine(p: Post): string {
+  const f = p.fields;
+  switch (p.scenario) {
+    case "parking":
+      return p.direction === "have"
+        ? [f.receiptAmount ? `單據 $${f.receiptAmount}` : "", f.receiptCount && f.receiptCount !== "1 張" ? `${f.receiptCount}單` : "", f.receiptType ? String(f.receiptType) : ""].filter(Boolean).join("・")
+        : "";
+    case "dining":
+      return f.calling ? `而家叫到 ${f.calling}` : "";
+    case "offer":
+      return "";
+    case "groupbuy":
+      return [f.note ? String(f.note) : "", p.needCount ? `仲要 ${p.needCount} 人` : ""].filter(Boolean).join("・");
+  }
+}
+
 function PostSummary({ post, now }: { post: Post; now: number }) {
   const { malls } = useAahMalls();
   const mall = malls.find((m) => m.id === post.mallId);
@@ -93,9 +111,12 @@ function PostSummary({ post, now }: { post: Post; now: number }) {
           <ScenarioTag scenario={post.scenario} direction={post.direction} />
           <div className="text-xl font-black">{priceLabel(post)}</div>
         </div>
-        <div className="font-black text-lg leading-snug">{post.shop}</div>
-        <div className="text-sm text-muted-foreground">📍 {post.mallName}・{post.authorName}</div>
-        <div className="text-[15px]">{keyInfo(post.scenario, post.direction, post.fields, post.needCount)}</div>
+        <div className="font-black text-lg leading-snug">{rowTitle(post)}</div>
+        <div className="text-sm text-muted-foreground">
+          📍 {post.mallName}
+          {post.scenario === "parking" ? " 停車場" : ""}・{post.authorName}
+        </div>
+        {detailLine(post) && <div className="text-[15px]">{detailLine(post)}</div>}
         {post.fields.remark && (
           <div className="text-sm bg-muted/60 rounded-xl px-3 py-2 whitespace-pre-wrap break-words">
             <span className="font-semibold">備注：</span>
@@ -103,17 +124,17 @@ function PostSummary({ post, now }: { post: Post; now: number }) {
           </div>
         )}
         {saving != null && saving > 0 && <div className="text-2xl font-black text-[#2E9E6A]">慳 ${saving}</div>}
-        {post.payMethods.length > 0 && post.price != null && post.price > 0 && <div className="text-sm text-muted-foreground">收款：{payLabel(post.payMethods)}</div>}
+        {post.payMethods.length > 0 && post.price != null && post.price > 0 && <div className="text-sm text-muted-foreground">點俾錢：{payLabel(post.payMethods)}</div>}
         <div className="flex items-center gap-3 text-xs flex-wrap pt-1">
           <span className="text-muted-foreground">
             ⏰ {fmtClock(post.leaveAt)} 前{post.scenario === "dining" ? "叫號" : "喺度"}（{fmtLeft(post.leaveAt - now)}）
           </span>
-          {post.verifiedOnSite && <span className="text-[#2E9E6A] font-semibold">📍 已確認喺場</span>}
+          {post.verifiedOnSite && <span className="text-[#2E9E6A] font-semibold">📍 佢已確認喺商場</span>}
         </div>
         <div className="flex items-center gap-2 flex-wrap pt-1" data-testid="live-chips">
           <span className="h-7 px-2.5 rounded-full bg-background text-xs font-bold inline-flex items-center gap-1.5">
             <LiveDot />
-            {fmtAgo(post.createdAt, now)}放
+            {fmtAgo(post.createdAt, now)}放上嚟
           </span>
           {post.viewCount > 0 && <span className="h-7 px-2.5 rounded-full bg-background text-xs font-bold inline-flex items-center">{post.viewCount} 人睇過</span>}
         </div>
@@ -264,8 +285,8 @@ function PostDetailView({ post }: { post: Post }) {
         {parkingCalc && (
           <div className="bg-[#E3F5EC] text-[#1d6b47] rounded-2xl p-4 text-sm space-y-1">
             <div>你 {entry} 入場，泊咗 {parkingCalc.parked} 個鐘，按今日（{parkingCalc.dayLabel}）收費要俾 ${parkingCalc.fee}。</div>
-            <div className="font-black text-base">用呢張收據慳 ${parkingCalc.saving}{post.price ? `，扣埋 $${post.price} 淨慳 $${Math.max(0, parkingCalc.saving - post.price)}` : ""}</div>
-            {parkingCalc.payAfter > 0 && <div className="text-xs">用咗收據之後，停車場仲要俾 ${parkingCalc.payAfter}。</div>}
+            <div className="font-black text-base">用呢張單據慳 ${parkingCalc.saving}{post.price ? `，扣埋 $${post.price} 淨慳 $${Math.max(0, parkingCalc.saving - post.price)}` : ""}</div>
+            {parkingCalc.payAfter > 0 && <div className="text-xs">用咗單據之後，停車場仲要俾 ${parkingCalc.payAfter}。</div>}
             <button onClick={() => setEntry("")} className="text-xs underline">改時間</button>
           </div>
         )}
@@ -666,7 +687,7 @@ function PinSheet({
               ? nearbyNames.length
                 ? `推送俾而家喺 ${mallName} 同附近商場（${nearbyNames.slice(0, 3).join("、")}）、開咗通知嘅人`
                 : `推送俾而家喺 ${mallName}、開咗通知嘅人（附近冇其他商場）`
-              : `推送俾而家喺 ${mallName}、開咗通知嘅人（泊車收據只喺本商場用得，所以唔推去其他商場）`}
+              : `推送俾而家喺 ${mallName}、開咗通知嘅人（泊車優惠單據只喺本商場用得，所以唔推去其他商場）`}
           </li>
           <li>⏳ 配對成功、post 過期，或者你離開商場，置頂都會即刻結束</li>
         </ul>
