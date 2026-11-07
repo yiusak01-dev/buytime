@@ -15,6 +15,21 @@ import { AahRuntime } from "@/components/aah/AahRuntime";
 import { SplashScreen } from "@/components/aah/BrandMark";
 import { initNative } from "@/lib/native";
 
+/** 新版上咗線，舊頁面搵唔到舊檔案：自動重新載入一次（30 秒內唔再重複，免得死循環） */
+function reloadForNewVersion(): boolean {
+  try {
+    const key = "aah:reloadedAt";
+    const last = Number(window.sessionStorage.getItem(key) ?? 0);
+    if (Date.now() - last < 30_000) return false;
+    window.sessionStorage.setItem(key, String(Date.now()));
+  } catch {
+    /* 私隱模式：照樣重新載入 */
+  }
+  window.location.reload();
+  return true;
+}
+const STALE_CHUNK = /dynamically imported module|Importing a module script failed|error loading dynamically|Failed to fetch dynamically|MIME type/i;
+
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -34,6 +49,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
+    if (STALE_CHUNK.test(error instanceof Error ? error.message : String(error)) && reloadForNewVersion()) return;
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
@@ -71,6 +87,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
+
+  // 新版上咗線：舊頁面載入唔到檔案就自動重新載入
+  useEffect(() => {
+    const onPreloadError = (e: Event) => {
+      if (reloadForNewVersion()) e.preventDefault();
+    };
+    window.addEventListener("vite:preloadError", onPreloadError);
+    return () => window.removeEventListener("vite:preloadError", onPreloadError);
+  }, []);
 
   // 原生 app（iPhone／Android）：狀態列、返回掣、由連結打開 app
   useEffect(() => {
