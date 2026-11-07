@@ -530,7 +530,7 @@ function ColdStart() {
         {EXAMPLES.map((e) => (
           <div
             key={e.title}
-            aria-label="示範例子"
+            aria-label="例子，已過期"
             className="flex items-center gap-3 py-2.5 border-b border-[#F3ECE4] last:border-0"
           >
             <CatIcon scenario={e.scenario} />
@@ -538,8 +538,8 @@ function ColdStart() {
               <span className="block font-black text-[15px]">{e.title}</span>
               <span className="block text-xs text-muted-foreground">{e.sub}</span>
             </span>
-            <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded shrink-0">
-              示範例子
+            <span className="text-[11px] font-bold bg-[#F3ECE4] text-muted-foreground px-2 py-0.5 rounded-full shrink-0">
+              已過期
             </span>
           </div>
         ))}
