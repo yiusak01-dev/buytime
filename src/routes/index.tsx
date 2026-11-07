@@ -525,7 +525,6 @@ function ColdStart() {
           <NotifyButton />
         </div>
       </div>
-      <div className="text-xs font-bold text-muted-foreground pt-1">放出去大概係咁樣：</div>
       <div className="bg-card/70 rounded-3xl px-3.5 py-1.5 border border-dashed border-border">
         {EXAMPLES.map((e) => (
           <div
