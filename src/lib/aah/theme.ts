@@ -24,7 +24,7 @@ export const VERBS: Record<
 > = {
   find: {
     word: "搵",
-    sub: "平啲・唔使排",
+    sub: "泊車・排隊飛・優惠券",
     soft: "#E8E4FF",
     strong: "#3B2F8F",
     text: "#3B2F8F",
@@ -32,7 +32,7 @@ export const VERBS: Record<
   },
   give: {
     word: "放",
-    sub: "換返錢",
+    sub: "收據・飛・券換錢",
     soft: "#FFD9C2",
     strong: "#9A3B0E",
     text: "#6E2F0C",
@@ -40,7 +40,7 @@ export const VERBS: Record<
   },
   join: {
     word: "夾",
-    sub: "一齊買平啲",
+    sub: "搵人夾優惠",
     soft: "#D6F2E2",
     strong: "#1E5C3F",
     text: "#1E5C3F",
@@ -53,8 +53,8 @@ export const CAT_STYLE: Record<
   ScenarioId,
   { name: string; short: string; bg: string; fg: string }
 > = {
-  parking: { name: "泊車收據", short: "泊車", bg: "#E5EEFC", fg: "#2F55B5" },
-  dining: { name: "餐廳飛", short: "餐廳", bg: "#FFF0C2", fg: "#8A5A00" },
+  parking: { name: "泊車收據", short: "泊車收據", bg: "#E5EEFC", fg: "#2F55B5" },
+  dining: { name: "餐廳排隊飛", short: "排隊飛", bg: "#FFF0C2", fg: "#8A5A00" },
   offer: { name: "優惠券", short: "優惠券", bg: "#FBE6EF", fg: "#A12D5E" },
   groupbuy: { name: "夾單", short: "夾單", bg: "#D6F2E2", fg: "#1E5C3F" },
 };

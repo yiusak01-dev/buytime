@@ -86,8 +86,8 @@ function Give() {
       <div className="px-4 space-y-4">
         <div className="rounded-[28px] p-5 space-y-3.5" style={{ background: G.soft }}>
           <div className="space-y-1" style={{ color: G.text }}>
-            <h1 className="text-[21px] font-black">用唔着嘅，影相放出去</h1>
-            <p className="text-[13px] font-bold">泊車收據・餐廳飛・優惠券都得</p>
+            <h1 className="text-[21px] font-black">放你用唔着嘅收據、排隊飛、優惠券</h1>
+            <p className="text-[13px] font-bold">影相放上嚟，有人要就喺商場見面收錢</p>
           </div>
           {demand && (
             <span
@@ -125,7 +125,7 @@ function Give() {
               search={{ quick: "dining" }}
               className="h-11 rounded-2xl bg-card text-sm font-black grid place-items-center"
             >
-              餐廳飛
+              餐廳排隊飛
             </Link>
             <Link
               to="/post/new"

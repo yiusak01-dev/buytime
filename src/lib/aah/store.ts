@@ -6,7 +6,14 @@ import { quoteParkingReceipt } from "./pricing";
 import { POINTS, canEarnPoints } from "./points";
 import { cancelIsLate } from "./enroute";
 import { nicknameProblem, nextNicknameChangeAt } from "./nickname";
-import { createRemote, detectRemote, type InterestOpts, type LocalPrefs, type Remote, type RemoteSettings } from "./remote";
+import {
+  createRemote,
+  detectRemote,
+  type InterestOpts,
+  type LocalPrefs,
+  type Remote,
+  type RemoteSettings,
+} from "./remote";
 
 /**
  * 兩個模式：
@@ -63,7 +70,11 @@ function load(): State {
     const raw = window.localStorage.getItem(KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as State;
-      return { user: { ...freshUser(), ...parsed.user }, posts: parsed.posts ?? [], matches: parsed.matches ?? [] };
+      return {
+        user: { ...freshUser(), ...parsed.user },
+        posts: parsed.posts ?? [],
+        matches: parsed.matches ?? [],
+      };
     }
   } catch {
     /* 讀唔到就由頭開始 */
@@ -73,7 +84,17 @@ function load(): State {
     const prefsRaw = window.localStorage.getItem("aah:prefs");
     if (prefsRaw) {
       const p = JSON.parse(prefsRaw);
-      return { user: { ...freshUser(), onboarded: !!p.onboarded, testMallId: p.testMallId ?? null, arrivalShown: p.arrivalShown ?? {}, outfitToday: p.outfitToday }, posts: [], matches: [] };
+      return {
+        user: {
+          ...freshUser(),
+          onboarded: !!p.onboarded,
+          testMallId: p.testMallId ?? null,
+          arrivalShown: p.arrivalShown ?? {},
+          outfitToday: p.outfitToday,
+        },
+        posts: [],
+        matches: [],
+      };
     }
   } catch {
     /* 用預設 */
@@ -133,10 +154,34 @@ export function displayName(u: User) {
 /* ---------------- 示範用戶 ---------------- */
 
 const DEMO_OUTFITS: Outfit[] = [
-  { hair: "short", top: { style: "tshirt", color: "#1F2937" }, bottom: { style: "pants", color: "#1E3A8A" }, outer: { style: "none", color: "#000" }, accessories: ["cap"] },
-  { hair: "long", top: { style: "shirt", color: "#F9FAFB" }, bottom: { style: "skirt", color: "#111827" }, outer: { style: "coat", color: "#A16207" }, accessories: ["handbag"] },
-  { hair: "long", top: { style: "sweater", color: "#DC2626" }, bottom: { style: "pants", color: "#374151" }, outer: { style: "none", color: "#000" }, accessories: ["glasses", "backpack"] },
-  { hair: "short", top: { style: "shirt", color: "#2563EB" }, bottom: { style: "shorts", color: "#9CA3AF" }, outer: { style: "jacket", color: "#15803D" }, accessories: [] },
+  {
+    hair: "short",
+    top: { style: "tshirt", color: "#1F2937" },
+    bottom: { style: "pants", color: "#1E3A8A" },
+    outer: { style: "none", color: "#000" },
+    accessories: ["cap"],
+  },
+  {
+    hair: "long",
+    top: { style: "shirt", color: "#F9FAFB" },
+    bottom: { style: "skirt", color: "#111827" },
+    outer: { style: "coat", color: "#A16207" },
+    accessories: ["handbag"],
+  },
+  {
+    hair: "long",
+    top: { style: "sweater", color: "#DC2626" },
+    bottom: { style: "pants", color: "#374151" },
+    outer: { style: "none", color: "#000" },
+    accessories: ["glasses", "backpack"],
+  },
+  {
+    hair: "short",
+    top: { style: "shirt", color: "#2563EB" },
+    bottom: { style: "shorts", color: "#9CA3AF" },
+    outer: { style: "jacket", color: "#15803D" },
+    accessories: [],
+  },
 ];
 
 export const DEMO_PEOPLE = [
@@ -167,7 +212,10 @@ const local = {
   },
 
   register(phone: string, nickname: string) {
-    set({ ...state, user: { ...state.user, registered: true, phone, nickname, registeredAt: Date.now() } });
+    set({
+      ...state,
+      user: { ...state.user, registered: true, phone, nickname, registeredAt: Date.now() },
+    });
   },
 
   resetDemo() {
@@ -177,23 +225,142 @@ const local = {
   /** 確保呢個商場有示範 post（其他用戶），方便試用 */
   ensureDemoPosts(mall: AahMall) {
     const now = Date.now();
-    const alive = state.posts.some((p) => p.demo && p.mallId === mall.id && p.status === "open" && p.leaveAt > now);
+    const alive = state.posts.some(
+      (p) => p.demo && p.mallId === mall.id && p.status === "open" && p.leaveAt > now,
+    );
     if (alive) return;
     const q = quoteParkingReceipt(mall, 620, now);
-    const base = { mallId: mall.id, mallName: mall.name, verifiedOnSite: true, status: "open" as const, interests: [], viewCount: 0, autoAccept: false, demo: true };
+    const base = {
+      mallId: mall.id,
+      mallName: mall.name,
+      verifiedOnSite: true,
+      status: "open" as const,
+      interests: [],
+      viewCount: 0,
+      autoAccept: false,
+      demo: true,
+    };
     const posts: Post[] = [
-      { ...base, id: uid("p"), scenario: "parking", direction: "have", shop: "停車場", fields: { receiptAmount: 620, hours: q.hours || 2 }, price: q.suggestMax != null ? Math.max(5, q.suggestMax - 5) : 15, payMethods: ["cash", "payme"], leaveAt: now + 25 * MIN, createdAt: now - 3 * MIN, authorId: "demo-ming", authorName: "阿明", pushedCount: 34 },
-      { ...base, id: uid("p"), scenario: "dining", direction: "have", shop: "鼎泰豐", fields: { queueNo: "A038", partySize: 2, calling: "A021" }, price: 20, payMethods: ["cash", "fps"], leaveAt: now + 30 * MIN, createdAt: now - 6 * MIN, authorId: "demo-karen", authorName: "Karen", pushedCount: 41 },
-      { ...base, id: uid("p"), scenario: "groupbuy", direction: "join", shop: "Nike", fields: { deal: "第二件半價", note: "波鞋" }, price: null, payMethods: [], leaveAt: now + 40 * MIN, createdAt: now - 2 * MIN, authorId: "demo-shan", authorName: "小珊", pushedCount: 128, needCount: 1, pinnedUntil: now + 12 * MIN },
-      { ...base, id: uid("p"), scenario: "offer", direction: "have", shop: "屈臣氏", fields: { title: "$50 現金券（今日到期）", faceValue: 50 }, price: 20, payMethods: ["cash", "payme", "octopus"], leaveAt: now + 20 * MIN, createdAt: now - 9 * MIN, authorId: "demo-ken", authorName: "Ken", pushedCount: 27 },
-      { ...base, id: uid("p"), scenario: "parking", direction: "have", shop: "停車場", fields: { receiptAmount: 320, hours: 1, receiptType: "電子單" }, price: 8, payMethods: ["cash", "payme"], leaveAt: now + 35 * MIN, createdAt: now - 12 * MIN, authorId: "demo-wing", authorName: "阿詠", pushedCount: 19 },
-      { ...base, id: uid("p"), scenario: "dining", direction: "have", shop: "一蘭", fields: { queueNo: "B018", partySize: 1, calling: "B009" }, price: 0, payMethods: [], leaveAt: now + 22 * MIN, createdAt: now - 15 * MIN, authorId: "demo-ho", authorName: "阿豪", pushedCount: 22 },
-      { ...base, id: uid("p"), scenario: "parking", direction: "want", shop: "停車場", fields: { hours: 2 }, price: 15, payMethods: ["cash"], leaveAt: now + 15 * MIN, createdAt: now - 1 * MIN, authorId: "demo-chan", authorName: "陳生", pushedCount: 34 },
+      {
+        ...base,
+        id: uid("p"),
+        scenario: "parking",
+        direction: "have",
+        shop: "停車場",
+        fields: { receiptAmount: 620, hours: q.hours || 2 },
+        price: q.suggestMax != null ? Math.max(5, q.suggestMax - 5) : 15,
+        payMethods: ["cash", "payme"],
+        leaveAt: now + 25 * MIN,
+        createdAt: now - 3 * MIN,
+        authorId: "demo-ming",
+        authorName: "阿明",
+        pushedCount: 34,
+      },
+      {
+        ...base,
+        id: uid("p"),
+        scenario: "dining",
+        direction: "have",
+        shop: "鼎泰豐",
+        fields: { queueNo: "A038", partySize: 2, calling: "A021" },
+        price: 20,
+        payMethods: ["cash", "fps"],
+        leaveAt: now + 30 * MIN,
+        createdAt: now - 6 * MIN,
+        authorId: "demo-karen",
+        authorName: "Karen",
+        pushedCount: 41,
+      },
+      {
+        ...base,
+        id: uid("p"),
+        scenario: "groupbuy",
+        direction: "join",
+        shop: "Nike",
+        fields: { deal: "第二件半價", note: "波鞋" },
+        price: null,
+        payMethods: [],
+        leaveAt: now + 40 * MIN,
+        createdAt: now - 2 * MIN,
+        authorId: "demo-shan",
+        authorName: "小珊",
+        pushedCount: 128,
+        needCount: 1,
+        pinnedUntil: now + 12 * MIN,
+      },
+      {
+        ...base,
+        id: uid("p"),
+        scenario: "offer",
+        direction: "have",
+        shop: "屈臣氏",
+        fields: { title: "$50 現金券（今日到期）", faceValue: 50 },
+        price: 20,
+        payMethods: ["cash", "payme", "octopus"],
+        leaveAt: now + 20 * MIN,
+        createdAt: now - 9 * MIN,
+        authorId: "demo-ken",
+        authorName: "Ken",
+        pushedCount: 27,
+      },
+      {
+        ...base,
+        id: uid("p"),
+        scenario: "parking",
+        direction: "have",
+        shop: "停車場",
+        fields: { receiptAmount: 320, hours: 1, receiptType: "電子單" },
+        price: 8,
+        payMethods: ["cash", "payme"],
+        leaveAt: now + 35 * MIN,
+        createdAt: now - 12 * MIN,
+        authorId: "demo-wing",
+        authorName: "阿詠",
+        pushedCount: 19,
+      },
+      {
+        ...base,
+        id: uid("p"),
+        scenario: "dining",
+        direction: "have",
+        shop: "一蘭",
+        fields: { queueNo: "B018", partySize: 1, calling: "B009" },
+        price: 0,
+        payMethods: [],
+        leaveAt: now + 22 * MIN,
+        createdAt: now - 15 * MIN,
+        authorId: "demo-ho",
+        authorName: "阿豪",
+        pushedCount: 22,
+      },
+      {
+        ...base,
+        id: uid("p"),
+        scenario: "parking",
+        direction: "want",
+        shop: "停車場",
+        fields: { hours: 2 },
+        price: 15,
+        payMethods: ["cash"],
+        leaveAt: now + 15 * MIN,
+        createdAt: now - 1 * MIN,
+        authorId: "demo-chan",
+        authorName: "陳生",
+        pushedCount: 34,
+      },
     ];
-    set({ ...state, posts: [...posts, ...state.posts.filter((p) => !(p.demo && p.mallId === mall.id))] });
+    set({
+      ...state,
+      posts: [...posts, ...state.posts.filter((p) => !(p.demo && p.mallId === mall.id))],
+    });
   },
 
-  createPost(input: Omit<Post, "id" | "createdAt" | "authorId" | "authorName" | "status" | "interests" | "viewCount">) {
+  createPost(
+    input: Omit<
+      Post,
+      "id" | "createdAt" | "authorId" | "authorName" | "status" | "interests" | "viewCount"
+    >,
+  ) {
     const post: Post = {
       ...input,
       id: uid("p"),
@@ -204,7 +371,16 @@ const local = {
       interests: [],
       viewCount: 0,
     };
-    set({ ...state, posts: [post, ...state.posts], user: { ...state.user, defaultPayMethods: input.payMethods.length ? input.payMethods : state.user.defaultPayMethods } });
+    set({
+      ...state,
+      posts: [post, ...state.posts],
+      user: {
+        ...state.user,
+        defaultPayMethods: input.payMethods.length
+          ? input.payMethods
+          : state.user.defaultPayMethods,
+      },
+    });
     return post;
   },
 
@@ -219,11 +395,17 @@ const local = {
   },
 
   extendPost(id: string, minutes: number) {
-    patchPost(id, (p) => ({ ...p, status: p.status === "expired" ? "open" : p.status, leaveAt: Math.max(p.leaveAt, Date.now()) + minutes * MIN }));
+    patchPost(id, (p) => ({
+      ...p,
+      status: p.status === "expired" ? "open" : p.status,
+      leaveAt: Math.max(p.leaveAt, Date.now()) + minutes * MIN,
+    }));
   },
 
   expirePost(id: string) {
-    patchPost(id, (p) => (p.status === "open" ? { ...p, status: "expired", pinnedUntil: undefined } : p));
+    patchPost(id, (p) =>
+      p.status === "open" ? { ...p, status: "expired", pinnedUntil: undefined } : p,
+    );
   },
 
   pinPost(id: string, opts: { useCredit: boolean; extraPushed: number }) {
@@ -233,7 +415,11 @@ const local = {
       pinnedUntil: Math.min(Math.max(p.pinnedUntil ?? now, now) + PIN_MINUTES * MIN, p.leaveAt),
       pushedCount: p.pushedCount + opts.extraPushed,
     }));
-    if (opts.useCredit) set({ ...state, user: { ...state.user, pinCredits: Math.max(0, state.user.pinCredits - 1) } });
+    if (opts.useCredit)
+      set({
+        ...state,
+        user: { ...state.user, pinCredits: Math.max(0, state.user.pinCredits - 1) },
+      });
   },
 
   /** 買家撳「有興趣」；opts.etaMin = 我去緊 */
@@ -243,7 +429,8 @@ const local = {
     if (!p || p.status !== "open") return;
     const enRoute = opts.etaMin != null;
     if (enRoute) {
-      if (p.scenario === "groupbuy" || p.acceptEnRoute === false) throw new Error("en route not allowed");
+      if (p.scenario === "groupbuy" || p.acceptEnRoute === false)
+        throw new Error("en route not allowed");
       if (Date.now() + opts.etaMin! * MIN > p.leaveAt - 5 * MIN) throw new Error("eta too late");
     }
     const existing = p.interests.find((i) => i.userId === me.id);
@@ -256,10 +443,24 @@ const local = {
     if (existing) {
       patchPost(postId, (x) => ({
         ...x,
-        interests: x.interests.map((i) => (i.userId === me.id ? { ...i, ...route, offer: offer ?? i.offer, messages: [...i.messages, msg] } : i)),
+        interests: x.interests.map((i) =>
+          i.userId === me.id
+            ? { ...i, ...route, offer: offer ?? i.offer, messages: [...i.messages, msg] }
+            : i,
+        ),
       }));
     } else {
-      const it: Interest = { userId: me.id, name: displayName(me), at: Date.now(), offer, messages: [msg], status: "pending", completed: me.completed, noShows: me.noShows, ...route };
+      const it: Interest = {
+        userId: me.id,
+        name: displayName(me),
+        at: Date.now(),
+        offer,
+        messages: [msg],
+        status: "pending",
+        completed: me.completed,
+        noShows: me.noShows,
+        ...route,
+      };
       patchPost(postId, (x) => ({ ...x, interests: [...x.interests, it] }));
     }
     const fresh = state.posts.find((x) => x.id === postId)!;
@@ -275,7 +476,24 @@ const local = {
         patchPost(postId, (x) => ({
           ...x,
           interests: x.interests.map((i) =>
-            i.userId === me.id ? { ...i, messages: [...i.messages, { from: x.authorId, text: offer != null ? `OK，$${offer} 得` : SCENARIOS[x.scenario].id === "groupbuy" ? "好呀，一齊夾" : "仲喺度，嚟啦", at: Date.now() }] } : i,
+            i.userId === me.id
+              ? {
+                  ...i,
+                  messages: [
+                    ...i.messages,
+                    {
+                      from: x.authorId,
+                      text:
+                        offer != null
+                          ? `OK，$${offer} 得`
+                          : SCENARIOS[x.scenario].id === "groupbuy"
+                            ? "好呀，一齊夾"
+                            : "仲喺度，嚟啦",
+                      at: Date.now(),
+                    },
+                  ],
+                }
+              : i,
           ),
         }));
         local.acceptInterest(postId, me.id, offer);
@@ -320,16 +538,33 @@ const local = {
           { userId: p.authorId, name: authorName },
           { userId, name: it.name },
         ],
-        meetPlace: p.scenario === "dining" ? `${p.shop}門口` : p.scenario === "parking" ? scen.meetPlaces[0] : `${p.shop}門口`,
-        meetAt: it.enRoute && it.etaAt ? Math.min(Math.max(it.etaAt, now + 5 * MIN), p.leaveAt) : Math.min(now + 5 * MIN, p.leaveAt),
+        meetPlace:
+          p.scenario === "dining"
+            ? `${p.shop}門口`
+            : p.scenario === "parking"
+              ? scen.meetPlaces[0]
+              : `${p.shop}門口`,
+        meetAt:
+          it.enRoute && it.etaAt
+            ? Math.min(Math.max(it.etaAt, now + 5 * MIN), p.leaveAt)
+            : Math.min(now + 5 * MIN, p.leaveAt),
         confirmedBy: [],
         arrived: {},
         outfits: {},
-        messages: [sysMsg(it.enRoute ? `配對成功！${it.name} 去緊，講咗 ${fmtHm(Math.min(Math.max(it.etaAt ?? now, now + 5 * MIN), p.leaveAt))} 前到。確認見面地點，到咗撳「我到咗」。` : "配對成功！確認見面地點同時間，到咗撳「我到咗」。")],
+        messages: [
+          sysMsg(
+            it.enRoute
+              ? `配對成功！${it.name} 去緊，講咗 ${fmtHm(Math.min(Math.max(it.etaAt ?? now, now + 5 * MIN), p.leaveAt))} 前到。確認見面地點，到咗撳「我到咗」。`
+              : "配對成功！確認見面地點同時間，到咗撳「我到咗」。",
+          ),
+        ],
         status: "active",
         createdAt: now,
         enRouteUser: it.enRoute ? userId : undefined,
-        etaAt: it.enRoute && it.etaAt ? Math.min(Math.max(it.etaAt, now + 5 * MIN), p.leaveAt) : undefined,
+        etaAt:
+          it.enRoute && it.etaAt
+            ? Math.min(Math.max(it.etaAt, now + 5 * MIN), p.leaveAt)
+            : undefined,
       };
       set({ ...state, matches: [match, ...state.matches] });
     }
@@ -345,7 +580,14 @@ const local = {
         i.userId === userId
           ? { ...i, status: "accepted" }
           : full && i.status === "pending"
-            ? { ...i, status: "declined", messages: [...i.messages, { from: x.authorId, text: "唔好意思，已經俾咗人", at: Date.now() }] }
+            ? {
+                ...i,
+                status: "declined",
+                messages: [
+                  ...i.messages,
+                  { from: x.authorId, text: "唔好意思，已經俾咗人", at: Date.now() },
+                ],
+              }
             : i,
       ),
     }));
@@ -366,7 +608,16 @@ const local = {
     patchPost(postId, (x) => ({
       ...x,
       interests: x.interests.map((i) =>
-        i.userId === userId ? { ...i, status: "declined", messages: [...i.messages, { from: x.authorId, text: "唔好意思，已經俾咗人", at: Date.now() }] } : i,
+        i.userId === userId
+          ? {
+              ...i,
+              status: "declined",
+              messages: [
+                ...i.messages,
+                { from: x.authorId, text: "唔好意思，已經俾咗人", at: Date.now() },
+              ],
+            }
+          : i,
       ),
     }));
   },
@@ -375,12 +626,21 @@ const local = {
 
   confirmMeet(matchId: string) {
     const me = state.user.id;
-    patchMatch(matchId, (m) => ({ ...m, confirmedBy: m.confirmedBy.includes(me) ? m.confirmedBy : [...m.confirmedBy, me] }));
+    patchMatch(matchId, (m) => ({
+      ...m,
+      confirmedBy: m.confirmedBy.includes(me) ? m.confirmedBy : [...m.confirmedBy, me],
+    }));
     // 示範：對方即刻確認
     const m = state.matches.find((x) => x.id === matchId);
     if (m) {
-      const demoIds = m.participants.filter((p) => p.userId.startsWith("demo-")).map((p) => p.userId);
-      if (demoIds.length) patchMatch(matchId, (x) => ({ ...x, confirmedBy: Array.from(new Set([...x.confirmedBy, ...demoIds])) }));
+      const demoIds = m.participants
+        .filter((p) => p.userId.startsWith("demo-"))
+        .map((p) => p.userId);
+      if (demoIds.length)
+        patchMatch(matchId, (x) => ({
+          ...x,
+          confirmedBy: Array.from(new Set([...x.confirmedBy, ...demoIds])),
+        }));
     }
   },
 
@@ -392,17 +652,26 @@ const local = {
       meetAt: at,
       askedArrival: false,
       confirmedBy: [me],
-      messages: [...m.messages, sysMsg(`見面改咗：${place}・${new Date(at).toLocaleTimeString("zh-HK", { hour: "numeric", minute: "2-digit" })}`)],
+      messages: [
+        ...m.messages,
+        sysMsg(
+          `見面改咗：${place}・${new Date(at).toLocaleTimeString("zh-HK", { hour: "numeric", minute: "2-digit" })}`,
+        ),
+      ],
     }));
   },
 
   sendMessage(matchId: string, text: string, from = state.user.id) {
-    patchMatch(matchId, (m) => ({ ...m, messages: [...m.messages, { id: uid("msg"), from, text, at: Date.now() }] }));
+    patchMatch(matchId, (m) => ({
+      ...m,
+      messages: [...m.messages, { id: uid("msg"), from, text, at: Date.now() }],
+    }));
   },
 
   setOutfitToday(outfit: Outfit, matchId?: string) {
     set({ ...state, user: { ...state.user, outfitToday: { date: todayKey(), outfit } } });
-    if (matchId) patchMatch(matchId, (m) => ({ ...m, outfits: { ...m.outfits, [state.user.id]: outfit } }));
+    if (matchId)
+      patchMatch(matchId, (m) => ({ ...m, outfits: { ...m.outfits, [state.user.id]: outfit } }));
   },
 
   arrive(matchId: string, userId = state.user.id) {
@@ -412,7 +681,11 @@ const local = {
     patchMatch(matchId, (m) => ({
       ...m,
       arrived: { ...m.arrived, [userId]: Date.now() },
-      messages: [...m.messages, { id: uid("msg"), from: userId, text: "我到咗", at: Date.now() }, ...(userId === state.user.id ? [] : [sysMsg(`${name} 已經到咗`)])],
+      messages: [
+        ...m.messages,
+        { id: uid("msg"), from: userId, text: "我到咗", at: Date.now() },
+        ...(userId === state.user.id ? [] : [sysMsg(`${name} 已經到咗`)]),
+      ],
     }));
     const m = state.matches.find((x) => x.id === matchId)!;
     if (m.participants.every((p) => m.arrived[p.userId])) local.completeMatch(matchId);
@@ -423,14 +696,24 @@ const local = {
     if (!m || m.status !== "active") return;
     const me = state.user;
     const isAuthor = m.authorId === me.id;
-    const pts = m.scenario === "groupbuy" ? POINTS.groupbuy : isAuthor && m.price != null ? POINTS.giver : POINTS.taker;
+    const pts =
+      m.scenario === "groupbuy"
+        ? POINTS.groupbuy
+        : isAuthor && m.price != null
+          ? POINTS.giver
+          : POINTS.taker;
     const partner = m.participants.find((p) => p.userId !== me.id)?.userId ?? "";
     const earn = canEarnPoints(me, partner, pts);
     patchMatch(matchId, (x) => ({
       ...x,
       status: "completed",
       endedAt: Date.now(),
-      messages: [...x.messages, sysMsg(earn > 0 ? `完成！你儲到 ${earn} 分。` : "完成！（同一對人一星期內重複交易唔再計分）")],
+      messages: [
+        ...x.messages,
+        sysMsg(
+          earn > 0 ? `完成！你儲到 ${earn} 分。` : "完成！（同一對人一星期內重複交易唔再計分）",
+        ),
+      ],
     }));
     set({
       ...state,
@@ -451,14 +734,20 @@ const local = {
     const now = Date.now();
     // 臨時取消：對方已經到咗而自己未到；或者去緊嘅配對過咗頭 2 分鐘、去緊嘅人仲未到
     const late = cancelIsLate(m, me, now);
-    const otherWaiting = !m.arrived[me] && m.participants.some((p) => p.userId !== me && m.arrived[p.userId]);
+    const otherWaiting =
+      !m.arrived[me] && m.participants.some((p) => p.userId !== me && m.arrived[p.userId]);
     const msgs = [{ id: uid("msg"), from: me, text: reason, at: now }];
     if (late) {
       const log = [...(state.user.lateCancelLog ?? []), now].filter((t) => now - t < 30 * DAY);
       const ded = Math.min(30, state.user.points);
       const banned = log.length >= 2;
-      msgs.push(sysMsg(`${displayName(state.user)} ${otherWaiting ? "喺對方到咗之後取消" : m.enRouteUser === me ? "中途取消" : "喺對方去緊嘅時候取消"}，記一次臨時取消。`));
-      if (banned) msgs.push(sysMsg(`${displayName(state.user)} 30 日內第二次臨時取消，帳戶停用一個月。`));
+      msgs.push(
+        sysMsg(
+          `${displayName(state.user)} ${otherWaiting ? "喺對方到咗之後取消" : m.enRouteUser === me ? "中途取消" : "喺對方去緊嘅時候取消"}，記一次臨時取消。`,
+        ),
+      );
+      if (banned)
+        msgs.push(sysMsg(`${displayName(state.user)} 30 日內第二次臨時取消，帳戶停用一個月。`));
       set({
         ...state,
         user: {
@@ -472,15 +761,35 @@ const local = {
     } else {
       msgs.push(sysMsg("配對已取消。配對頭 2 分鐘、或者對方未到又唔係喺路上，取消唔會被罰。"));
     }
-    patchMatch(matchId, (x) => ({ ...x, status: "cancelled", endedAt: now, cancelledBy: me, lateCancel: late, messages: [...x.messages, ...msgs] }));
+    patchMatch(matchId, (x) => ({
+      ...x,
+      status: "cancelled",
+      endedAt: now,
+      cancelledBy: me,
+      lateCancel: late,
+      messages: [...x.messages, ...msgs],
+    }));
     const iAmAuthor = m.authorId === me;
     patchPost(m.postId, (p) => {
       // 出 post 嘅人臨時取消：post 唔再重新開放
-      if (late && iAmAuthor) return { ...p, status: "cancelled", matchId: undefined, pinnedUntil: undefined };
+      if (late && iAmAuthor)
+        return { ...p, status: "cancelled", matchId: undefined, pinnedUntil: undefined };
       if (p.leaveAt <= now) return p;
       return iAmAuthor
-        ? { ...p, status: "open", matchId: undefined, interests: p.interests.map((i) => (i.status === "accepted" ? { ...i, status: "declined" as const } : i)) }
-        : { ...p, status: "open", matchId: undefined, interests: p.interests.filter((i) => i.userId !== me) };
+        ? {
+            ...p,
+            status: "open",
+            matchId: undefined,
+            interests: p.interests.map((i) =>
+              i.status === "accepted" ? { ...i, status: "declined" as const } : i,
+            ),
+          }
+        : {
+            ...p,
+            status: "open",
+            matchId: undefined,
+            interests: p.interests.filter((i) => i.userId !== me),
+          };
     });
   },
 
@@ -492,7 +801,16 @@ const local = {
     if (!p || !it || !it.enRoute || it.status !== "pending") return;
     patchPost(postId, (x) => ({
       ...x,
-      interests: x.interests.map((i) => (i.userId === me ? { ...i, enRoute: false, etaAt: undefined, messages: [...i.messages, { from: me, text: "我到咗商場", at: Date.now() }] } : i)),
+      interests: x.interests.map((i) =>
+        i.userId === me
+          ? {
+              ...i,
+              enRoute: false,
+              etaAt: undefined,
+              messages: [...i.messages, { from: me, text: "我到咗商場", at: Date.now() }],
+            }
+          : i,
+      ),
     }));
     if (p.autoAccept && p.status === "open") return local.acceptInterest(postId, me);
   },
@@ -513,7 +831,12 @@ const local = {
       lateCancel: false,
       messages: [
         ...x.messages,
-        { id: uid("msg"), from: state.user.id, text: "你過咗講好嘅時間都未到，我取消咗，個 post 重新放出", at: Date.now() },
+        {
+          id: uid("msg"),
+          from: state.user.id,
+          text: "你過咗講好嘅時間都未到，我取消咗，個 post 重新放出",
+          at: Date.now(),
+        },
         sysMsg(`${lateName} 過咗講好嘅時間 5 分鐘都未到，記一次臨時取消。`),
       ],
     }));
@@ -527,8 +850,17 @@ const local = {
         interests: x.interests.map((i) =>
           i.userId === m.enRouteUser
             ? { ...i, status: "declined" }
-            : status === "open" && i.status === "declined" && i.messages.some((mm) => mm.text === "唔好意思，已經俾咗人")
-              ? { ...i, status: "pending", messages: [...i.messages, { from: x.authorId, text: "個着數重新放出，我再揀緊", at: Date.now() }] }
+            : status === "open" &&
+                i.status === "declined" &&
+                i.messages.some((mm) => mm.text === "唔好意思，已經俾咗人")
+              ? {
+                  ...i,
+                  status: "pending",
+                  messages: [
+                    ...i.messages,
+                    { from: x.authorId, text: "個着數重新放出，我再揀緊", at: Date.now() },
+                  ],
+                }
               : i,
         ),
       }));
@@ -541,9 +873,29 @@ const local = {
     // 同雲端一樣：只罰確認咗見面嘅人
     const target = state.matches.find((x) => x.id === matchId);
     if (target && !target.confirmedBy.includes(accusedId)) throw new Error("accused not confirmed");
-    patchMatch(matchId, (m) => ({ ...m, status: "noshow", endedAt: Date.now(), messages: [...m.messages, sysMsg(accusedId === state.user.id ? "對方報告你冇出現，帳戶停用一個月。可以喺 48 小時內申訴。" : "已記錄對方冇出現，對方帳戶會停用一個月。")] }));
+    patchMatch(matchId, (m) => ({
+      ...m,
+      status: "noshow",
+      endedAt: Date.now(),
+      messages: [
+        ...m.messages,
+        sysMsg(
+          accusedId === state.user.id
+            ? "對方報告你冇出現，帳戶停用一個月。可以喺 48 小時內申訴。"
+            : "已記錄對方冇出現，對方帳戶會停用一個月。",
+        ),
+      ],
+    }));
     if (accusedId === state.user.id) {
-      set({ ...state, user: { ...state.user, noShows: state.user.noShows + 1, bannedUntil: Date.now() + BAN_DAYS * DAY, points: Math.max(0, state.user.points - POINTS.noShowPenalty) } });
+      set({
+        ...state,
+        user: {
+          ...state.user,
+          noShows: state.user.noShows + 1,
+          bannedUntil: Date.now() + BAN_DAYS * DAY,
+          points: Math.max(0, state.user.points - POINTS.noShowPenalty),
+        },
+      });
     }
   },
 
@@ -565,18 +917,38 @@ const local = {
 
   redeemPin() {
     if (state.user.points < POINTS.pinCost) return false;
-    set({ ...state, user: { ...state.user, points: state.user.points - POINTS.pinCost, pinCredits: state.user.pinCredits + 1 } });
+    set({
+      ...state,
+      user: {
+        ...state.user,
+        points: state.user.points - POINTS.pinCost,
+        pinCredits: state.user.pinCredits + 1,
+      },
+    });
     return true;
   },
 
   requestVoucher() {
     if (state.user.points < POINTS.voucherCost) return false;
-    set({ ...state, user: { ...state.user, points: state.user.points - POINTS.voucherCost, voucherRequests: [...state.user.voucherRequests, { at: Date.now(), status: "pending" }] } });
+    set({
+      ...state,
+      user: {
+        ...state.user,
+        points: state.user.points - POINTS.voucherCost,
+        voucherRequests: [...state.user.voucherRequests, { at: Date.now(), status: "pending" }],
+      },
+    });
     return true;
   },
 
   markArrivalShown(mallId: string) {
-    set({ ...state, user: { ...state.user, arrivalShown: { ...state.user.arrivalShown, [`${mallId}|${todayKey()}`]: true } } });
+    set({
+      ...state,
+      user: {
+        ...state.user,
+        arrivalShown: { ...state.user.arrivalShown, [`${mallId}|${todayKey()}`]: true },
+      },
+    });
   },
 
   /* ---------- 示範控制 ---------- */
@@ -594,18 +966,25 @@ const local = {
       offer: p.price != null && p.price > 10 ? p.price - 5 : undefined,
       messages: [
         { from: person.id, text: "有興趣", at: Date.now() },
-        ...(p.price != null && p.price > 10 ? [{ from: person.id, text: `$${p.price - 5} 得唔得？`, at: Date.now() }] : [{ from: person.id, text: "你仲喺唔喺附近？", at: Date.now() }]),
+        ...(p.price != null && p.price > 10
+          ? [{ from: person.id, text: `$${p.price - 5} 得唔得？`, at: Date.now() }]
+          : [{ from: person.id, text: "你仲喺唔喺附近？", at: Date.now() }]),
       ],
       status: "pending",
     };
-    patchPost(postId, (x) => ({ ...x, interests: [...x.interests, it], viewCount: x.viewCount + 1 }));
+    patchPost(postId, (x) => ({
+      ...x,
+      interests: [...x.interests, it],
+      viewCount: x.viewCount + 1,
+    }));
     if (p.autoAccept) local.acceptInterest(postId, person.id);
   },
 
   demoPartnerArrives(matchId: string) {
     const m = state.matches.find((x) => x.id === matchId);
     if (!m) return;
-    for (const p of m.participants) if (p.userId !== state.user.id && !m.arrived[p.userId]) local.arrive(matchId, p.userId);
+    for (const p of m.participants)
+      if (p.userId !== state.user.id && !m.arrived[p.userId]) local.arrive(matchId, p.userId);
   },
 
   demoPartnerReportsMe(matchId: string) {
@@ -616,7 +995,6 @@ const local = {
     }
   },
 };
-
 
 /* ================= 模式切換 ================= */
 
@@ -663,7 +1041,26 @@ function setMode(m: AahMode) {
   modeListeners.forEach((l) => l());
 }
 
+/**
+ * 示範模式：網址加 ?demo=1 就用示範資料睇成個流程（只喺呢個分頁，唔會掂到真帳戶）；?demo=0 離開。
+ */
+export function isDemoForced(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("demo") === "1") window.sessionStorage.setItem("aah:demo", "1");
+    if (q.get("demo") === "0") window.sessionStorage.removeItem("aah:demo");
+    return window.sessionStorage.getItem("aah:demo") === "1";
+  } catch {
+    return false;
+  }
+}
+
 async function init() {
+  if (isDemoForced()) {
+    setMode("local");
+    return;
+  }
   const s = await detectRemote();
   if (!s) {
     setMode("local");
@@ -688,7 +1085,12 @@ async function init() {
 }
 
 function prefsUser(): Partial<User> {
-  return { onboarded: prefs.onboarded, testMallId: prefs.testMallId, arrivalShown: prefs.arrivalShown, outfitToday: prefs.outfitToday };
+  return {
+    onboarded: prefs.onboarded,
+    testMallId: prefs.testMallId,
+    arrivalShown: prefs.arrivalShown,
+    outfitToday: prefs.outfitToday,
+  };
 }
 
 function patchUserLocal(patch: Partial<User>) {
@@ -741,11 +1143,18 @@ export const aah = {
     for (const k of PREF_KEYS) if (k in patch) (prefPatch as any)[k] = (patch as any)[k];
     if (Object.keys(prefPatch).length) savePrefs(prefPatch);
     patchUserLocal(patch);
-    void R().updateProfile(patch).catch((e) => console.warn("[aah] updateProfile", e));
+    void R()
+      .updateProfile(patch)
+      .catch((e) => console.warn("[aah] updateProfile", e));
   },
 
   /** Email 註冊（示範模式唔會真係建立帳戶） */
-  async signUpEmail(email: string, password: string, nickname: string, phone?: string): Promise<"done" | "confirm"> {
+  async signUpEmail(
+    email: string,
+    password: string,
+    nickname: string,
+    phone?: string,
+  ): Promise<"done" | "confirm"> {
     if (!isRemote()) {
       local.register(phone || email, nickname);
       patchUserLocal({ email });
@@ -786,9 +1195,13 @@ export const aah = {
     if (!n) throw new Error("nickname required");
     if (!isRemote()) {
       // 示範模式：同伺服器一樣嘅規則
-      if (nicknameProblem(n)) throw new Error(/數字/.test(nicknameProblem(n)!) ? "nickname has number" : "nickname reserved");
+      if (nicknameProblem(n))
+        throw new Error(
+          /數字/.test(nicknameProblem(n)!) ? "nickname has number" : "nickname reserved",
+        );
       if (n === state.user.nickname) return;
-      if (nextNicknameChangeAt(state.user.nicknameChangedAt, Date.now())) throw new Error("nickname cooldown");
+      if (nextNicknameChangeAt(state.user.nicknameChangedAt, Date.now()))
+        throw new Error("nickname cooldown");
       return local.updateUser({ nickname: n, nicknameChangedAt: Date.now() });
     }
     if (n === state.user.nickname) return;
@@ -813,14 +1226,20 @@ export const aah = {
     if (isRemote()) R().setFeedMalls(ids);
   },
   touchPresence(mallId: string) {
-    if (isRemote()) void R().touchPresence(mallId).catch(() => {});
+    if (isRemote())
+      void R()
+        .touchPresence(mallId)
+        .catch(() => {});
   },
 
   async createPost(input: Parameters<typeof local.createPost>[0]): Promise<Post> {
     return isRemote() ? R().createPost(input) : local.createPost(input);
   },
   viewPost(id: string) {
-    if (isRemote()) void R().viewPost(id).catch(() => {});
+    if (isRemote())
+      void R()
+        .viewPost(id)
+        .catch(() => {});
     else local.viewPost(id);
   },
   async cancelPost(id: string) {
@@ -836,19 +1255,35 @@ export const aah = {
     return isRemote() ? R().pinPost(id, opts.useCredit) : local.pinPost(id, opts);
   },
 
-  async expressInterest(postId: string, text: string, offer?: number, opts: InterestOpts = {}): Promise<string | undefined> {
-    return isRemote() ? R().expressInterest(postId, text, offer, opts) : local.expressInterest(postId, text, offer, opts);
+  async expressInterest(
+    postId: string,
+    text: string,
+    offer?: number,
+    opts: InterestOpts = {},
+  ): Promise<string | undefined> {
+    return isRemote()
+      ? R().expressInterest(postId, text, offer, opts)
+      : local.expressInterest(postId, text, offer, opts);
   },
   /** 去緊嘅人到咗商場：轉做已喺場 */
-  async interestOnSite(postId: string, coords?: { lat: number; lng: number }): Promise<string | undefined> {
+  async interestOnSite(
+    postId: string,
+    coords?: { lat: number; lng: number },
+  ): Promise<string | undefined> {
     return isRemote() ? R().interestOnSite(postId, coords) : local.interestOnSite(postId);
   },
   /** 去緊嘅人過咗時間未到：取消並重新放出 */
   async releaseLate(matchId: string): Promise<"open" | "expired"> {
     return isRemote() ? R().releaseLate(matchId) : local.releaseLate(matchId);
   },
-  async acceptInterest(postId: string, userId: string, price?: number): Promise<string | undefined> {
-    return isRemote() ? R().acceptInterest(postId, userId, price) : local.acceptInterest(postId, userId, price);
+  async acceptInterest(
+    postId: string,
+    userId: string,
+    price?: number,
+  ): Promise<string | undefined> {
+    return isRemote()
+      ? R().acceptInterest(postId, userId, price)
+      : local.acceptInterest(postId, userId, price);
   },
   async declineInterest(postId: string, userId: string) {
     return isRemote() ? R().declineInterest(postId, userId) : local.declineInterest(postId, userId);
@@ -872,25 +1307,41 @@ export const aah = {
   },
 
   /** 我到咗（或者確認對方到咗）。回傳 completed = 全部人到齊、已完成 */
-  async arrive(matchId: string, opts: { userId?: string; coords?: { lat: number; lng: number } } = {}): Promise<"completed" | "waiting"> {
+  async arrive(
+    matchId: string,
+    opts: { userId?: string; coords?: { lat: number; lng: number } } = {},
+  ): Promise<"completed" | "waiting"> {
     const me = state.user.id;
     if (isRemote()) {
-      return opts.userId && opts.userId !== me ? R().confirmPartnerMet(matchId, opts.userId) : R().arrive(matchId, opts.coords);
+      return opts.userId && opts.userId !== me
+        ? R().confirmPartnerMet(matchId, opts.userId)
+        : R().arrive(matchId, opts.coords);
     }
     local.arrive(matchId, opts.userId ?? me);
-    return state.matches.find((m) => m.id === matchId)?.status === "completed" ? "completed" : "waiting";
+    return state.matches.find((m) => m.id === matchId)?.status === "completed"
+      ? "completed"
+      : "waiting";
   },
   async cancelMatch(matchId: string, reason: string) {
     return isRemote() ? R().cancelMatch(matchId, reason) : local.cancelMatch(matchId, reason);
   },
   async reportNoShow(matchId: string, accusedId: string) {
-    return isRemote() ? R().reportNoShow(matchId, accusedId) : local.reportNoShow(matchId, accusedId);
+    return isRemote()
+      ? R().reportNoShow(matchId, accusedId)
+      : local.reportNoShow(matchId, accusedId);
   },
   /**
    * 舉報用戶（連住配對或者 post），之後自動封鎖對方：
    * 雙方唔會再見到對方 post、唔可以再互動；進行中配對即刻取消（唔罰）
    */
-  async report(opts: { accusedId: string; kind: string; note?: string; matchId?: string; postId?: string; block?: boolean }) {
+  async report(opts: {
+    accusedId: string;
+    kind: string;
+    note?: string;
+    matchId?: string;
+    postId?: string;
+    block?: boolean;
+  }) {
     if (isRemote()) {
       await R().report(opts);
       if (opts.block !== false) await R().blockUser(opts.accusedId);
@@ -917,13 +1368,26 @@ export const aah = {
   },
   markRatePrompt(matchId: string) {
     if (!isRemote()) return local.markRatePrompt(matchId);
-    savePrefs({ matchFlags: { ...prefs.matchFlags, [matchId]: { ...prefs.matchFlags[matchId], ratePromptShown: true } } });
-    state = { ...state, matches: state.matches.map((m) => (m.id === matchId ? { ...m, ratePromptShown: true } : m)) };
+    savePrefs({
+      matchFlags: {
+        ...prefs.matchFlags,
+        [matchId]: { ...prefs.matchFlags[matchId], ratePromptShown: true },
+      },
+    });
+    state = {
+      ...state,
+      matches: state.matches.map((m) => (m.id === matchId ? { ...m, ratePromptShown: true } : m)),
+    };
     listeners.forEach((l) => l());
   },
   markAskedArrival(matchId: string) {
     if (!isRemote()) return local.markAskedArrival(matchId);
-    savePrefs({ matchFlags: { ...prefs.matchFlags, [matchId]: { ...prefs.matchFlags[matchId], askedArrival: true } } });
+    savePrefs({
+      matchFlags: {
+        ...prefs.matchFlags,
+        [matchId]: { ...prefs.matchFlags[matchId], askedArrival: true },
+      },
+    });
   },
 
   async submitAppeal(text: string) {
@@ -978,9 +1442,13 @@ function localBlock(userId: string) {
   const list = readLocalBlocks().filter((b) => b.userId !== userId);
   writeLocalBlocks([{ userId, nickname: name }, ...list]);
   for (const m of state.matches) {
-    if (m.status === "active" && m.participants.some((p) => p.userId === userId)) local.cancelMatch(m.id, "配對已取消。");
+    if (m.status === "active" && m.participants.some((p) => p.userId === userId))
+      local.cancelMatch(m.id, "配對已取消。");
   }
-  state = { ...state, posts: state.posts.filter((p) => !(p.authorId === userId && p.status === "open")) };
+  state = {
+    ...state,
+    posts: state.posts.filter((p) => !(p.authorId === userId && p.status === "open")),
+  };
   listeners.forEach((l) => l());
 }
 
@@ -990,14 +1458,20 @@ export function useAahState() {
 
 export function dailyDiningCount(posts: Post[], userId: string) {
   const today = todayKey();
-  return posts.filter((p) => p.authorId === userId && p.scenario === "dining" && todayKey(p.createdAt) === today).length;
+  return posts.filter(
+    (p) => p.authorId === userId && p.scenario === "dining" && todayKey(p.createdAt) === today,
+  ).length;
 }
 
 export function pinnedCountInMall(posts: Post[], mallId: string, now = Date.now()) {
-  return posts.filter((p) => p.mallId === mallId && p.status === "open" && (p.pinnedUntil ?? 0) > now).length;
+  return posts.filter(
+    (p) => p.mallId === mallId && p.status === "open" && (p.pinnedUntil ?? 0) > now,
+  ).length;
 }
 
 export function nextPinFreeAt(posts: Post[], mallId: string, now = Date.now()) {
-  const ends = posts.filter((p) => p.mallId === mallId && p.status === "open" && (p.pinnedUntil ?? 0) > now).map((p) => p.pinnedUntil!);
+  const ends = posts
+    .filter((p) => p.mallId === mallId && p.status === "open" && (p.pinnedUntil ?? 0) > now)
+    .map((p) => p.pinnedUntil!);
   return ends.length ? Math.min(...ends) : now;
 }

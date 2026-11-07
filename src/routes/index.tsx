@@ -4,11 +4,12 @@ import { Bell, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
 import { TabHeader } from "@/components/aah/TabHeader";
-import { FeedRow } from "@/components/aah/FeedRow";
+import { FeedRow, rowTitle } from "@/components/aah/FeedRow";
+import { priceLabel } from "@/components/aah/PostCard";
 import { CatIcon, LiveDot } from "@/components/aah/CatIcon";
 import { DemoBadge } from "@/components/aah/ui";
 import { useQuickInterest } from "@/components/aah/useQuickInterest";
-import { aah, useAahMode, useAahState, MAX_PINNED_PER_MALL } from "@/lib/aah/store";
+import { aah, isDemoForced, useAahMode, useAahState, MAX_PINNED_PER_MALL } from "@/lib/aah/store";
 import { useAahMalls, nearbyMalls, distanceM } from "@/lib/aah/malls";
 import { fmtAgo, geoStore, useNow, useViewMall } from "@/lib/aah/geo";
 import { SCENARIOS } from "@/lib/aah/scenarios";
@@ -53,17 +54,12 @@ function readHowSeen(): boolean {
   }
 }
 
-/** 「有人啱啱放咗…」：只講最近 3 個鐘內嘅，舊嘅唔扮即時 */
+/** 「2 分鐘前放：可換 2 個鐘・$23」：直接講係咩；只講最近 3 個鐘內嘅，舊嘅唔扮即時 */
 function tickerText(p: Post, now: number, showMall: boolean): string | null {
   if (now - p.createdAt > 3 * 3600 * 1000) return null;
-  const where = showMall ? `喺${p.mallName}` : "";
-  const what =
-    p.scenario === "groupbuy"
-      ? `開咗夾單：${p.shop} ${p.fields.deal ?? ""}`.trim()
-      : p.direction === "want"
-        ? `話要${CAT_STYLE[p.scenario].name}`
-        : `放咗${CAT_STYLE[p.scenario].name}`;
-  return `${fmtAgo(p.createdAt, now)}，有人${where}${what}`;
+  const where = showMall ? `${p.mallName}・` : "";
+  const price = priceLabel(p);
+  return `${fmtAgo(p.createdAt, now)}放：${where}${CAT_STYLE[p.scenario].name} ${rowTitle(p)}${price ? `・${price}` : ""}`;
 }
 
 function Home() {
@@ -169,11 +165,12 @@ function Home() {
   );
   const hidden = flat.length - visible.size;
 
+  // 搵頁淨係講有人放出嚟嘅（唔講想要嘅、唔講夾單）
   const tickerPost = useMemo(() => {
-    const pool = mall ? live.filter((p) => p.mallId === mall.id) : live;
-    const src = pool.length ? pool : live;
+    const pool = mall ? findable.filter((p) => p.mallId === mall.id) : findable;
+    const src = pool.length ? pool : findable;
     return src.reduce<Post | null>((a, p) => (!a || p.createdAt > a.createdAt ? p : a), null);
-  }, [live, mall]);
+  }, [findable, mall]);
   const ticker = tickerPost
     ? tickerText(tickerPost, now, !mall || tickerPost.mallId !== mall.id)
     : null;
@@ -226,6 +223,11 @@ function Home() {
               示範模式：post 同配對只存喺呢部電話，其他人睇唔到。
               {isSample ? "商場資料係示範數字。" : ""}
             </span>
+            {isDemoForced() && (
+              <a href="/?demo=0" className="ml-auto shrink-0 font-black underline">
+                離開示範
+              </a>
+            )}
           </div>
         )}
         {mode === "remote" && isSample && (
@@ -354,7 +356,7 @@ function Coach({ onClose }: { onClose: () => void }) {
         className="absolute -top-1.5 left-16 w-3.5 h-3.5 bg-[#2B2433] rotate-45"
       />
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[15px] font-black">第一次用？得三個字</span>
+        <span className="text-[15px] font-black">第一次用？</span>
         <button
           onClick={onClose}
           className="h-9 px-3.5 rounded-xl bg-white text-[#2B2433] text-[13px] font-black"
@@ -364,13 +366,13 @@ function Coach({ onClose }: { onClose: () => void }) {
       </div>
       <div className="text-sm leading-relaxed space-y-0.5">
         <div>
-          <b className="text-[#C9C0FF] mr-3">搵</b>人哋用唔着嘅，你攞嚟用
+          <b className="text-[#C9C0FF] mr-3">搵</b>泊車收據、餐廳排隊飛、商場優惠券
         </div>
         <div>
-          <b className="text-[#FFC6A3] mr-3">放</b>你用唔着嘅，轉俾人
+          <b className="text-[#FFC6A3] mr-3">放</b>你用唔着嘅收據、飛、券，換返錢
         </div>
         <div>
-          <b className="text-[#A9E5C4] mr-3">夾</b>一個人買唔抵，搵人一齊
+          <b className="text-[#A9E5C4] mr-3">夾</b>第二件半價、買一送一，搵人一齊買
         </div>
       </div>
     </div>
@@ -496,9 +498,12 @@ function ColdStart() {
   return (
     <div className="space-y-3">
       <div className="bg-card rounded-3xl p-5 text-center space-y-3">
-        <div className="font-bold">啱啱開始，仲未有人放</div>
+        <div className="font-bold flex items-center justify-center gap-2">
+          <LiveDot />
+          啱啱開始，仲未有人放
+        </div>
         <p className="text-sm text-muted-foreground">
-          做第一個：用唔着嘅收據、飛、券，放出去俾啱用嘅人。
+          呢度係真嘅即時資料，有人放就即刻出現。做第一個：用唔着嘅收據、飛、券，放出去俾啱用嘅人。
         </p>
         <div className="flex flex-col gap-2">
           <Link

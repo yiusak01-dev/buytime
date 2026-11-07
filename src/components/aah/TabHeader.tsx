@@ -88,7 +88,9 @@ export function TabHeader({ active }: { active: Verb }) {
               style={on ? { background: s.soft, color: s.text } : { color: MUTED }}
             >
               <span className="text-[22px] font-black leading-tight">{s.word}</span>
-              <span className="text-[11px] font-bold">{s.sub}</span>
+              <span className="text-[10.5px] font-bold tracking-tight px-1 text-center leading-tight">
+                {s.sub}
+              </span>
             </Link>
           );
         })}
