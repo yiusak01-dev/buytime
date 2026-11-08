@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 /**
- * 啱啱好 admin：申訴、舉報、禮券、操作紀錄。
+ * 啱啱好 admin：申訴、舉報、設定、可疑帳戶、用家意見、禮券、操作紀錄。
  * 讀寫 aah_* 資料表（見 supabase/migrations/20261025*）。所有決定經 security definer function，
  * function 入面會再檢查 admin 身份同記低操作紀錄。
  */
@@ -317,7 +317,8 @@ const KIND_LABEL: Record<string, string> = {
   noshow: "冇出現",
   prepay: "要求預先轉數",
   harass: "騷擾",
-  fake: "收據／飛／券係假",
+  fake: "單據／飛／券係假",
+  scalping: "炒飛／私下加價",
   other: "其他",
 };
 
@@ -576,6 +577,265 @@ export function AahAdminLogTab() {
               用戶：{nameOf(data.profiles, r.user_id)}・admin {String(r.admin_id).slice(0, 8)}
             </div>
             {r.note && <div className="text-xs mt-1">備註：{r.note}</div>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ================= 設定（參考價、每日上限、開關） ================= */
+
+type SettingDef = { key: string; label: string; hint?: string; kind: "money" | "int" | "multiple" | "bool"; required?: boolean; unit?: string };
+
+const SETTING_GROUPS: { title: string; note?: string; items: SettingDef[] }[] = [
+  {
+    title: "唔支持炒飛：參考價",
+    note: "留空 = 唔限。超過參考價會提醒放嘅人同要嘅人；超過下面嗰個倍數就放唔到。優惠券同夾單唔管。",
+    items: [
+      { key: "dining_ref_per_person", label: "餐廳排隊飛多謝費參考價", unit: "每位 $", kind: "money" },
+      { key: "parking_ref_per_hour", label: "泊車優惠單據參考價", unit: "每個鐘 $", kind: "money" },
+      { key: "price_block_multiple", label: "超過參考價幾多倍唔俾放", unit: "倍", kind: "multiple", required: true },
+    ],
+  },
+  {
+    title: "每日上限",
+    note: "香港時間每日 0 點重新計，取消咗都計。唔限同一時間手上有幾多張。",
+    items: [
+      { key: "limit_dining_per_day", label: "每人每日最多放餐廳排隊飛", unit: "張", kind: "int", required: true },
+      { key: "limit_dining_branch_per_day", label: "同一間分店（同一個商場同一個舖名）每人每日", unit: "張", kind: "int", required: true },
+      { key: "limit_parking_per_day", label: "每人每日最多放泊車優惠單據", unit: "張", kind: "int", required: true },
+    ],
+  },
+  {
+    title: "開關",
+    items: [
+      { key: "pin_enabled", label: "置頂", hint: "暫時收埋；開咗用家先見到置頂掣", kind: "bool" },
+      { key: "sms_login", label: "SMS 登入", hint: "開之前要先喺 Supabase 開通 SMS 供應商，唔係撳咗都收唔到驗證碼", kind: "bool" },
+    ],
+  },
+];
+
+export function AahSettingsTab() {
+  const { data, error, loading, reload } = useLoad(async () => {
+    const { data, error } = await sb().from("aah_settings").select("key,value");
+    if (error) throw error;
+    return new Map<string, unknown>((data ?? []).map((r: { key: string; value: unknown }) => [r.key, r.value]));
+  }, []);
+  const [draft, setDraft] = useState<Record<string, string | boolean>>({});
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!data) return;
+    const d: Record<string, string | boolean> = {};
+    for (const g of SETTING_GROUPS)
+      for (const it of g.items) {
+        const v = data.get(it.key);
+        d[it.key] = it.kind === "bool" ? v === true : v == null ? "" : String(v);
+      }
+    setDraft(d);
+  }, [data]);
+
+  async function save() {
+    const rows: { key: string; value: unknown }[] = [];
+    for (const g of SETTING_GROUPS)
+      for (const it of g.items) {
+        const v = draft[it.key];
+        if (it.kind === "bool") {
+          rows.push({ key: it.key, value: v === true });
+          continue;
+        }
+        const t = String(v ?? "").trim();
+        if (!t) {
+          if (it.required) return toast.error(`「${it.label}」一定要填`);
+          rows.push({ key: it.key, value: null });
+          continue;
+        }
+        const n = Number(t);
+        if (!Number.isFinite(n) || n <= 0) return toast.error(`「${it.label}」要係大過 0 嘅數字`);
+        if (it.kind === "int" && !Number.isInteger(n)) return toast.error(`「${it.label}」要係整數`);
+        if (it.kind === "multiple" && n < 1) return toast.error("倍數最少 1");
+        rows.push({ key: it.key, value: n });
+      }
+    setBusy(true);
+    try {
+      const { error } = await sb().from("aah_settings").upsert(rows, { onConflict: "key" });
+      if (error) throw error;
+      toast.success("已儲存", { description: "伺服器即刻用新數字；用家下次開 app 就見到新提示" });
+      void reload();
+    } catch (e) {
+      toast.error(friendlyError(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div>
+      <Toolbar onReload={reload} />
+      <StateBox loading={loading} error={error} empty={false} />
+      {data && (
+        <div className="space-y-4">
+          {SETTING_GROUPS.map((g) => (
+            <section key={g.title} className="bg-card rounded-2xl p-4 space-y-3">
+              <div>
+                <div className="font-bold">{g.title}</div>
+                {g.note && <p className="text-xs text-muted-foreground mt-0.5">{g.note}</p>}
+              </div>
+              {g.items.map((it) =>
+                it.kind === "bool" ? (
+                  <label key={it.key} className="flex items-start justify-between gap-3">
+                    <span className="text-sm">
+                      {it.label}
+                      {it.hint && <span className="block text-[11px] text-muted-foreground">{it.hint}</span>}
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={draft[it.key] === true}
+                      onChange={(e) => setDraft({ ...draft, [it.key]: e.target.checked })}
+                      className="w-5 h-5 mt-0.5"
+                      aria-label={it.label}
+                    />
+                  </label>
+                ) : (
+                  <label key={it.key} className="block space-y-1">
+                    <span className="text-sm">{it.label}</span>
+                    <span className="flex items-center gap-2">
+                      {it.unit?.endsWith("$") && <span className="text-xs text-muted-foreground shrink-0">{it.unit}</span>}
+                      <input
+                        inputMode="decimal"
+                        value={String(draft[it.key] ?? "")}
+                        onChange={(e) => setDraft({ ...draft, [it.key]: e.target.value.replace(/[^\d.]/g, "").slice(0, 6) })}
+                        placeholder={it.required ? "" : "留空 = 唔限"}
+                        aria-label={it.label}
+                        className="h-10 w-32 px-3 rounded-lg border border-border bg-background outline-none"
+                      />
+                      {it.unit && !it.unit.endsWith("$") && <span className="text-xs text-muted-foreground">{it.unit}</span>}
+                    </span>
+                  </label>
+                ),
+              )}
+            </section>
+          ))}
+          <button onClick={save} disabled={busy} className="w-full h-11 rounded-xl bg-foreground text-background font-bold disabled:opacity-50 inline-flex items-center justify-center gap-2">
+            {busy && <Loader2 className="w-4 h-4 animate-spin" />}儲存
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ================= 可疑帳戶（同一部機開多個帳戶、被舉報、冇出現） ================= */
+
+type Suspicious = {
+  id: string;
+  nickname: string | null;
+  created_at: string;
+  no_shows: number;
+  banned_until: string | null;
+  accounts_on_device: number;
+  device_mates: string[];
+  reports: number;
+  open_reports: number;
+  scalping_reports: number;
+};
+
+export function AahSuspiciousTab() {
+  const { data, error, loading, reload } = useLoad(async () => {
+    const [{ data: rows, error: e1 }, { data: stats, error: e2 }] = await Promise.all([
+      sb().rpc("aah_admin_suspicious"),
+      sb().rpc("aah_admin_stats"),
+    ]);
+    if (e1) throw e1;
+    if (e2) throw e2;
+    return { rows: (rows ?? []) as Suspicious[], stats: stats as Record<string, number> };
+  }, []);
+  return (
+    <div>
+      <Toolbar onReload={reload} />
+      {data?.stats && (
+        <div className="rounded-xl bg-card p-3 mb-3 text-sm">
+          今個月封咗 <b>{data.stats.bans_this_month}</b> 個帳戶（冇出現 {data.stats.bans_noshow}、舉報 {data.stats.bans_report}）・
+          收到舉報 {data.stats.reports_this_month} 宗（炒飛 {data.stats.scalping_reports_this_month} 宗）
+        </div>
+      )}
+      <p className="text-xs text-muted-foreground mb-3">
+        暫時冇做電話驗證。呢度列出可能濫用嘅帳戶，方便之後決定要唔要加驗證。「同一部機」用 app 自己整嘅隨機裝置號碼計，唔係電話號碼。
+      </p>
+      <StateBox loading={loading} error={error} empty={!!data && data.rows.length === 0} />
+      <div className="space-y-2">
+        {data?.rows.map((r) => {
+          const banned = r.banned_until && new Date(r.banned_until).getTime() > Date.now();
+          return (
+            <div key={r.id} className="rounded-xl bg-card p-3 text-sm space-y-1" data-testid="suspicious-row">
+              <div className="flex items-center justify-between gap-2">
+                <b>{r.nickname ?? r.id.slice(0, 6)}</b>
+                <span className="text-xs text-muted-foreground">帳戶 {daysSince(r.created_at)} 日</span>
+              </div>
+              <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5">
+                {r.accounts_on_device > 1 && (
+                  <span className="text-amber-700 font-semibold">
+                    同一部機 {r.accounts_on_device} 個帳戶{r.device_mates.length ? `（${r.device_mates.join("、")}）` : ""}
+                  </span>
+                )}
+                {r.reports > 0 && (
+                  <span>
+                    被舉報 {r.reports} 次{r.scalping_reports ? `（炒飛 ${r.scalping_reports}）` : ""}{r.open_reports ? `・未處理 ${r.open_reports}` : ""}
+                  </span>
+                )}
+                {r.no_shows > 0 && <span>冇出現 {r.no_shows} 次</span>}
+                {banned && <span className="text-red-600 font-semibold">停用到 {fmt(r.banned_until)}</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ================= 用家意見（「我的」→「話我哋知」） ================= */
+
+type Feedback = { id: string; user_id: string | null; page: string | null; text: string; status: "new" | "read"; created_at: string };
+
+export function AahFeedbackTab() {
+  const [filter, setFilter] = useState<"new" | "all">("new");
+  const { data, error, loading, reload } = useLoad(async () => {
+    let q = sb().from("aah_feedback").select("*").order("created_at", { ascending: false }).limit(200);
+    if (filter === "new") q = q.eq("status", "new");
+    const { data, error } = await q;
+    if (error) throw error;
+    const rows = (data ?? []) as Feedback[];
+    return { rows, profiles: await fetchProfiles(rows.map((r) => r.user_id)) };
+  }, [filter]);
+  async function markRead(id: string) {
+    const { error } = await sb().from("aah_feedback").update({ status: "read" }).eq("id", id);
+    if (error) toast.error(friendlyError(error));
+    else void reload();
+  }
+  return (
+    <div>
+      <Toolbar onReload={reload}>
+        <Seg value={filter} onChange={setFilter} options={[["new", "未睇"], ["all", "全部"]]} />
+      </Toolbar>
+      <StateBox loading={loading} error={error} empty={!!data && data.rows.length === 0} />
+      <div className="space-y-2">
+        {data?.rows.map((r) => (
+          <div key={r.id} className="rounded-xl bg-card p-3 text-sm space-y-1.5">
+            <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              <span>
+                {r.user_id ? nameOf(data.profiles, r.user_id) : "已刪除帳戶"}
+                {r.page ? `・${r.page}` : ""}
+              </span>
+              <span>{fmt(r.created_at)}</span>
+            </div>
+            <div className="whitespace-pre-wrap break-words">{r.text}</div>
+            {r.status === "new" && (
+              <button onClick={() => markRead(r.id)} className="text-xs underline text-muted-foreground">
+                標記睇咗
+              </button>
+            )}
           </div>
         ))}
       </div>

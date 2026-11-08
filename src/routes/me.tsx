@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Ban, ChevronRight, KeyRound, LogOut, Pencil, ShieldAlert, Trash2 } from "lucide-react";
+import { Ban, ChevronRight, KeyRound, Loader2, LogOut, MessageSquareText, Pencil, ShieldAlert, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { AppLayout } from "@/components/AppLayout";
@@ -200,7 +200,10 @@ function MePage() {
             <Switch checked={user.notifyOpportunities} onCheckedChange={(v) => aah.updateUser({ notifyOpportunities: v })} />
           </label>
           <label className="flex items-center justify-between">
-            <span className="text-sm">推廣通知（商戶優惠、廣告）</span>
+            <span className="text-sm">
+              推廣通知（商戶優惠、廣告）
+              <span className="block text-[11px] text-muted-foreground">預設唔開；開咗先會收，隨時可以熄</span>
+            </span>
             <Switch checked={user.notifyPromotions} onCheckedChange={(v) => aah.updateUser({ notifyPromotions: v })} />
           </label>
         </section>
@@ -284,6 +287,8 @@ function MePage() {
             </button>
           </section>
         )}
+
+        <FeedbackCard registered={user.registered} onRegister={() => setRegOpen(true)} />
 
         <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
           <Link to="/help" className="underline">常見問題</Link>
@@ -395,5 +400,59 @@ function MePage() {
         }}
       />
     </AppLayout>
+  );
+}
+
+/** 話我哋知：邊度唔好用、搵唔到嘢、有咩想加，我哋每個禮拜睇 */
+function FeedbackCard({ registered, onRegister }: { registered: boolean; onRegister: () => void }) {
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  return (
+    <section className="bg-card rounded-2xl p-4 space-y-2" data-testid="feedback-card">
+      <div className="font-bold flex items-center gap-1.5">
+        <MessageSquareText className="w-4 h-4" />
+        話我哋知
+      </div>
+      <p className="text-xs text-muted-foreground">邊度唔好用、搵唔到嘢、想加咩，直接講。我哋每個禮拜睇，跟住改 app。</p>
+      {registered ? (
+        <>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value.slice(0, 500))}
+            rows={3}
+            placeholder="例如：搵唔到點樣取消 post"
+            aria-label="意見"
+            className="w-full px-3 py-2.5 rounded-xl border border-border bg-background outline-none resize-none text-[15px]"
+          />
+          <button
+            disabled={text.trim().length < 2 || busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await aah.sendFeedback(text.trim(), window.location.pathname);
+                setText("");
+                toast.success("收到，多謝你！");
+              } catch (e) {
+                toast.error(aahErrorText(e));
+              } finally {
+                setBusy(false);
+              }
+            }}
+            className="w-full h-11 rounded-xl bg-[#2B2433] text-white font-bold disabled:opacity-40 inline-flex items-center justify-center gap-2"
+          >
+            {busy && <Loader2 className="w-4 h-4 animate-spin" />}傳送
+          </button>
+        </>
+      ) : (
+        <div className="flex gap-2">
+          <button onClick={onRegister} className="flex-1 h-11 rounded-xl bg-[#2B2433] text-white font-bold text-sm">
+            登記咗就可以話我哋知
+          </button>
+          <a href="mailto:support@buytime.hk" className="h-11 px-3 rounded-xl border border-border text-sm font-bold grid place-items-center">
+            電郵
+          </a>
+        </div>
+      )}
+    </section>
   );
 }

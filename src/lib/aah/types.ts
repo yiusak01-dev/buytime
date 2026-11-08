@@ -180,6 +180,8 @@ export type AahMall = {
   stacking?: string | null;
   /** 人流分數：5 極高、4 高、3 中、2 低、1 極低、0 未評 */
   traffic?: number;
+  /** 換泊車地點，例如「L2 顧客服務中心」：只有商場官網寫明、記低咗出處先有，冇就唔顯示 */
+  redeemPlace?: string | null;
   /** 資料來源 */
   source: "db" | "sample";
 };

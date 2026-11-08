@@ -8,7 +8,6 @@ import {
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 
-import "@/i18n/config";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { AahRuntime } from "@/components/aah/AahRuntime";
@@ -30,7 +29,16 @@ function reloadForNewVersion(): boolean {
 }
 const STALE_CHUNK = /dynamically imported module|Importing a module script failed|error loading dynamically|Failed to fetch dynamically|MIME type/i;
 
+/** 舊版買時間嘅頁面（已經刪咗）：直接轉返首頁 */
+const LEGACY_PATHS = /^\/(announcements|chats?|dining|dispute|group-buy|my-listings|notifications|offers|parking|profile|search|sell|transactions)(\/|$)/;
+
 function NotFoundComponent() {
+  const router = useRouter();
+  const legacy = typeof window !== "undefined" && LEGACY_PATHS.test(window.location.pathname);
+  useEffect(() => {
+    if (legacy) void router.navigate({ to: "/", replace: true });
+  }, [legacy, router]);
+  if (legacy) return null;
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center space-y-3">

@@ -11,30 +11,16 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
-import { Route as AnnouncementsRouteImport } from './routes/announcements'
 import { Route as AuthRouteImport } from './routes/auth'
-import { Route as ChatsRouteImport } from './routes/chats'
 import { Route as ConfirmRouteImport } from './routes/confirm'
-import { Route as DiningRouteImport } from './routes/dining'
 import { Route as GiveRouteImport } from './routes/give'
-import { Route as GroupBuyRouteImport } from './routes/group-buy'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as JoinRouteImport } from './routes/join'
 import { Route as MeRouteImport } from './routes/me'
-import { Route as MyListingsRouteImport } from './routes/my-listings'
-import { Route as NotificationsRouteImport } from './routes/notifications'
-import { Route as OffersRouteImport } from './routes/offers'
-import { Route as ParkingRouteImport } from './routes/parking'
 import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as SearchRouteImport } from './routes/search'
-import { Route as SellRouteImport } from './routes/sell'
 import { Route as TermsRouteImport } from './routes/terms'
-import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as WelcomeRouteImport } from './routes/welcome'
-import { Route as ChatIdRouteImport } from './routes/chat.$id'
-import { Route as DisputeTransactionIdRouteImport } from './routes/dispute.$transactionId'
 import { Route as MatchMatchIdRouteImport } from './routes/match.$matchId'
 import { Route as PostPostIdRouteImport } from './routes/post.$postId'
 import { Route as PostNewRouteImport } from './routes/post.new'
@@ -49,19 +35,9 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AnnouncementsRoute = AnnouncementsRouteImport.update({
-  id: '/announcements',
-  path: '/announcements',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChatsRoute = ChatsRouteImport.update({
-  id: '/chats',
-  path: '/chats',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfirmRoute = ConfirmRouteImport.update({
@@ -69,19 +45,9 @@ const ConfirmRoute = ConfirmRouteImport.update({
   path: '/confirm',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DiningRoute = DiningRouteImport.update({
-  id: '/dining',
-  path: '/dining',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const GiveRoute = GiveRouteImport.update({
   id: '/give',
   path: '/give',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GroupBuyRoute = GroupBuyRouteImport.update({
-  id: '/group-buy',
-  path: '/group-buy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HelpRoute = HelpRouteImport.update({
@@ -99,34 +65,9 @@ const MeRoute = MeRouteImport.update({
   path: '/me',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MyListingsRoute = MyListingsRouteImport.update({
-  id: '/my-listings',
-  path: '/my-listings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotificationsRoute = NotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OffersRoute = OffersRouteImport.update({
-  id: '/offers',
-  path: '/offers',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ParkingRoute = ParkingRouteImport.update({
-  id: '/parking',
-  path: '/parking',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -134,39 +75,14 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SearchRoute = SearchRouteImport.update({
-  id: '/search',
-  path: '/search',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SellRoute = SellRouteImport.update({
-  id: '/sell',
-  path: '/sell',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TransactionsRoute = TransactionsRouteImport.update({
-  id: '/transactions',
-  path: '/transactions',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChatIdRoute = ChatIdRouteImport.update({
-  id: '/chat/$id',
-  path: '/chat/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DisputeTransactionIdRoute = DisputeTransactionIdRouteImport.update({
-  id: '/dispute/$transactionId',
-  path: '/dispute/$transactionId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MatchMatchIdRoute = MatchMatchIdRouteImport.update({
@@ -188,30 +104,16 @@ const PostNewRoute = PostNewRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/announcements': typeof AnnouncementsRoute
   '/auth': typeof AuthRoute
-  '/chats': typeof ChatsRoute
   '/confirm': typeof ConfirmRoute
-  '/dining': typeof DiningRoute
   '/give': typeof GiveRoute
-  '/group-buy': typeof GroupBuyRoute
   '/help': typeof HelpRoute
   '/join': typeof JoinRoute
   '/me': typeof MeRoute
-  '/my-listings': typeof MyListingsRoute
-  '/notifications': typeof NotificationsRoute
-  '/offers': typeof OffersRoute
-  '/parking': typeof ParkingRoute
   '/privacy': typeof PrivacyRoute
-  '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/search': typeof SearchRoute
-  '/sell': typeof SellRoute
   '/terms': typeof TermsRoute
-  '/transactions': typeof TransactionsRoute
   '/welcome': typeof WelcomeRoute
-  '/chat/$id': typeof ChatIdRoute
-  '/dispute/$transactionId': typeof DisputeTransactionIdRoute
   '/match/$matchId': typeof MatchMatchIdRoute
   '/post/$postId': typeof PostPostIdRoute
   '/post/new': typeof PostNewRoute
@@ -219,30 +121,16 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/announcements': typeof AnnouncementsRoute
   '/auth': typeof AuthRoute
-  '/chats': typeof ChatsRoute
   '/confirm': typeof ConfirmRoute
-  '/dining': typeof DiningRoute
   '/give': typeof GiveRoute
-  '/group-buy': typeof GroupBuyRoute
   '/help': typeof HelpRoute
   '/join': typeof JoinRoute
   '/me': typeof MeRoute
-  '/my-listings': typeof MyListingsRoute
-  '/notifications': typeof NotificationsRoute
-  '/offers': typeof OffersRoute
-  '/parking': typeof ParkingRoute
   '/privacy': typeof PrivacyRoute
-  '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/search': typeof SearchRoute
-  '/sell': typeof SellRoute
   '/terms': typeof TermsRoute
-  '/transactions': typeof TransactionsRoute
   '/welcome': typeof WelcomeRoute
-  '/chat/$id': typeof ChatIdRoute
-  '/dispute/$transactionId': typeof DisputeTransactionIdRoute
   '/match/$matchId': typeof MatchMatchIdRoute
   '/post/$postId': typeof PostPostIdRoute
   '/post/new': typeof PostNewRoute
@@ -251,30 +139,16 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/announcements': typeof AnnouncementsRoute
   '/auth': typeof AuthRoute
-  '/chats': typeof ChatsRoute
   '/confirm': typeof ConfirmRoute
-  '/dining': typeof DiningRoute
   '/give': typeof GiveRoute
-  '/group-buy': typeof GroupBuyRoute
   '/help': typeof HelpRoute
   '/join': typeof JoinRoute
   '/me': typeof MeRoute
-  '/my-listings': typeof MyListingsRoute
-  '/notifications': typeof NotificationsRoute
-  '/offers': typeof OffersRoute
-  '/parking': typeof ParkingRoute
   '/privacy': typeof PrivacyRoute
-  '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/search': typeof SearchRoute
-  '/sell': typeof SellRoute
   '/terms': typeof TermsRoute
-  '/transactions': typeof TransactionsRoute
   '/welcome': typeof WelcomeRoute
-  '/chat/$id': typeof ChatIdRoute
-  '/dispute/$transactionId': typeof DisputeTransactionIdRoute
   '/match/$matchId': typeof MatchMatchIdRoute
   '/post/$postId': typeof PostPostIdRoute
   '/post/new': typeof PostNewRoute
@@ -284,30 +158,16 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
-    | '/announcements'
     | '/auth'
-    | '/chats'
     | '/confirm'
-    | '/dining'
     | '/give'
-    | '/group-buy'
     | '/help'
     | '/join'
     | '/me'
-    | '/my-listings'
-    | '/notifications'
-    | '/offers'
-    | '/parking'
     | '/privacy'
-    | '/profile'
     | '/reset-password'
-    | '/search'
-    | '/sell'
     | '/terms'
-    | '/transactions'
     | '/welcome'
-    | '/chat/$id'
-    | '/dispute/$transactionId'
     | '/match/$matchId'
     | '/post/$postId'
     | '/post/new'
@@ -315,30 +175,16 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
-    | '/announcements'
     | '/auth'
-    | '/chats'
     | '/confirm'
-    | '/dining'
     | '/give'
-    | '/group-buy'
     | '/help'
     | '/join'
     | '/me'
-    | '/my-listings'
-    | '/notifications'
-    | '/offers'
-    | '/parking'
     | '/privacy'
-    | '/profile'
     | '/reset-password'
-    | '/search'
-    | '/sell'
     | '/terms'
-    | '/transactions'
     | '/welcome'
-    | '/chat/$id'
-    | '/dispute/$transactionId'
     | '/match/$matchId'
     | '/post/$postId'
     | '/post/new'
@@ -346,30 +192,16 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
-    | '/announcements'
     | '/auth'
-    | '/chats'
     | '/confirm'
-    | '/dining'
     | '/give'
-    | '/group-buy'
     | '/help'
     | '/join'
     | '/me'
-    | '/my-listings'
-    | '/notifications'
-    | '/offers'
-    | '/parking'
     | '/privacy'
-    | '/profile'
     | '/reset-password'
-    | '/search'
-    | '/sell'
     | '/terms'
-    | '/transactions'
     | '/welcome'
-    | '/chat/$id'
-    | '/dispute/$transactionId'
     | '/match/$matchId'
     | '/post/$postId'
     | '/post/new'
@@ -378,30 +210,16 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
-  AnnouncementsRoute: typeof AnnouncementsRoute
   AuthRoute: typeof AuthRoute
-  ChatsRoute: typeof ChatsRoute
   ConfirmRoute: typeof ConfirmRoute
-  DiningRoute: typeof DiningRoute
   GiveRoute: typeof GiveRoute
-  GroupBuyRoute: typeof GroupBuyRoute
   HelpRoute: typeof HelpRoute
   JoinRoute: typeof JoinRoute
   MeRoute: typeof MeRoute
-  MyListingsRoute: typeof MyListingsRoute
-  NotificationsRoute: typeof NotificationsRoute
-  OffersRoute: typeof OffersRoute
-  ParkingRoute: typeof ParkingRoute
   PrivacyRoute: typeof PrivacyRoute
-  ProfileRoute: typeof ProfileRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  SearchRoute: typeof SearchRoute
-  SellRoute: typeof SellRoute
   TermsRoute: typeof TermsRoute
-  TransactionsRoute: typeof TransactionsRoute
   WelcomeRoute: typeof WelcomeRoute
-  ChatIdRoute: typeof ChatIdRoute
-  DisputeTransactionIdRoute: typeof DisputeTransactionIdRoute
   MatchMatchIdRoute: typeof MatchMatchIdRoute
   PostPostIdRoute: typeof PostPostIdRoute
   PostNewRoute: typeof PostNewRoute
@@ -423,25 +241,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/announcements': {
-      id: '/announcements'
-      path: '/announcements'
-      fullPath: '/announcements'
-      preLoaderRoute: typeof AnnouncementsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/auth': {
       id: '/auth'
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/chats': {
-      id: '/chats'
-      path: '/chats'
-      fullPath: '/chats'
-      preLoaderRoute: typeof ChatsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/confirm': {
@@ -451,25 +255,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfirmRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dining': {
-      id: '/dining'
-      path: '/dining'
-      fullPath: '/dining'
-      preLoaderRoute: typeof DiningRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/give': {
       id: '/give'
       path: '/give'
       fullPath: '/give'
       preLoaderRoute: typeof GiveRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/group-buy': {
-      id: '/group-buy'
-      path: '/group-buy'
-      fullPath: '/group-buy'
-      preLoaderRoute: typeof GroupBuyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/help': {
@@ -493,46 +283,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/my-listings': {
-      id: '/my-listings'
-      path: '/my-listings'
-      fullPath: '/my-listings'
-      preLoaderRoute: typeof MyListingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/notifications': {
-      id: '/notifications'
-      path: '/notifications'
-      fullPath: '/notifications'
-      preLoaderRoute: typeof NotificationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/offers': {
-      id: '/offers'
-      path: '/offers'
-      fullPath: '/offers'
-      preLoaderRoute: typeof OffersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/parking': {
-      id: '/parking'
-      path: '/parking'
-      fullPath: '/parking'
-      preLoaderRoute: typeof ParkingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/privacy': {
       id: '/privacy'
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -542,20 +297,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/search': {
-      id: '/search'
-      path: '/search'
-      fullPath: '/search'
-      preLoaderRoute: typeof SearchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sell': {
-      id: '/sell'
-      path: '/sell'
-      fullPath: '/sell'
-      preLoaderRoute: typeof SellRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/terms': {
       id: '/terms'
       path: '/terms'
@@ -563,32 +304,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/transactions': {
-      id: '/transactions'
-      path: '/transactions'
-      fullPath: '/transactions'
-      preLoaderRoute: typeof TransactionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/welcome': {
       id: '/welcome'
       path: '/welcome'
       fullPath: '/welcome'
       preLoaderRoute: typeof WelcomeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/chat/$id': {
-      id: '/chat/$id'
-      path: '/chat/$id'
-      fullPath: '/chat/$id'
-      preLoaderRoute: typeof ChatIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dispute/$transactionId': {
-      id: '/dispute/$transactionId'
-      path: '/dispute/$transactionId'
-      fullPath: '/dispute/$transactionId'
-      preLoaderRoute: typeof DisputeTransactionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/match/$matchId': {
@@ -618,30 +338,16 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
-  AnnouncementsRoute: AnnouncementsRoute,
   AuthRoute: AuthRoute,
-  ChatsRoute: ChatsRoute,
   ConfirmRoute: ConfirmRoute,
-  DiningRoute: DiningRoute,
   GiveRoute: GiveRoute,
-  GroupBuyRoute: GroupBuyRoute,
   HelpRoute: HelpRoute,
   JoinRoute: JoinRoute,
   MeRoute: MeRoute,
-  MyListingsRoute: MyListingsRoute,
-  NotificationsRoute: NotificationsRoute,
-  OffersRoute: OffersRoute,
-  ParkingRoute: ParkingRoute,
   PrivacyRoute: PrivacyRoute,
-  ProfileRoute: ProfileRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  SearchRoute: SearchRoute,
-  SellRoute: SellRoute,
   TermsRoute: TermsRoute,
-  TransactionsRoute: TransactionsRoute,
   WelcomeRoute: WelcomeRoute,
-  ChatIdRoute: ChatIdRoute,
-  DisputeTransactionIdRoute: DisputeTransactionIdRoute,
   MatchMatchIdRoute: MatchMatchIdRoute,
   PostPostIdRoute: PostPostIdRoute,
   PostNewRoute: PostNewRoute,

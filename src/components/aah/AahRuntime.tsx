@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { aah, testLocationAllowed, useAahMode, useAahState, LEAVE_GRACE_MIN, PIN_PROMPT_AFTER_MIN } from "@/lib/aah/store";
+import { aah, getRules, testLocationAllowed, useAahMode, useAahState, LEAVE_GRACE_MIN, PIN_PROMPT_AFTER_MIN } from "@/lib/aah/store";
 import { useAahMalls, nearbyMalls } from "@/lib/aah/malls";
 import { useAutoStartGeo, useCurrentMall, useGeo, useNow } from "@/lib/aah/geo";
 import { syncPush } from "@/lib/aah/push";
@@ -10,7 +10,7 @@ const MIN = 60000;
 
 /**
  * 喺背景跑嘅規則：到埗通知、post 過期、離開商場自動取消、
- * 15 分鐘冇人理提示置頂、離開商場時問評分。
+ * 15 分鐘冇人理提示置頂（管理頁開咗置頂先會）、離開商場時問評分。
  * 示範版用 app 內通知；正式版會用推送通知。
  */
 export function AahRuntime() {
@@ -178,10 +178,10 @@ export function AahRuntime() {
       // 15 分鐘冇人理先提示置頂
       const age = now - p.createdAt;
       const k2 = `pin:${p.id}`;
-      if (age >= PIN_PROMPT_AFTER_MIN * MIN && p.interests.length === 0 && !((p.pinnedUntil ?? 0) > now) && !toasted.current.has(k2)) {
+      if (getRules().pinEnabled && age >= PIN_PROMPT_AFTER_MIN * MIN && p.interests.length === 0 && !((p.pinnedUntil ?? 0) > now) && !toasted.current.has(k2)) {
         toasted.current.add(k2);
         toast("15 分鐘都未有人理", {
-          description: "$5 置頂 15 分鐘，同時推送俾附近嘅人？",
+          description: "置頂 15 分鐘，同時推送俾附近嘅人？",
           action: { label: "睇吓", onClick: () => navigate({ to: "/post/$postId", params: { postId: p.id } }) },
           duration: 10000,
         });

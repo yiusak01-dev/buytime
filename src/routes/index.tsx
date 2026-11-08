@@ -24,6 +24,7 @@ import {
 import type { Post, ScenarioId } from "@/lib/aah/types";
 import type { QuickKind } from "./post.new";
 import { cn } from "@/lib/utils";
+import { logEvent } from "@/lib/aah/track";
 
 type HomeSearch = { cat?: ScenarioId };
 
@@ -185,6 +186,19 @@ function Home() {
 
   const hereCount = feed.main.length;
   const nothingAnywhere = live.length === 0;
+
+  // 搵唔到嘢：記低（每個商場、每個類別一次），每週問題報告用
+  useEffect(() => {
+    if (!mall || hereCount > 0 || mode !== "remote") return;
+    const key = `aah:empty:${mall.id}:${cat ?? "all"}`;
+    try {
+      if (window.sessionStorage.getItem(key)) return;
+      window.sessionStorage.setItem(key, "1");
+    } catch {
+      /* 記唔到就照記 */
+    }
+    logEvent("feed_empty", { mall: mall.id, cat: cat ?? "all" });
+  }, [mall?.id, cat, hereCount, mode]); // eslint-disable-line react-hooks/exhaustive-deps
   const showCoach = !user.registered && !howSeen;
 
   function dismissCoach() {

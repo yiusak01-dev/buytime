@@ -5,6 +5,8 @@ import { postSaving, priceLabel } from "./PostCard";
 import { fmtAgo } from "@/lib/aah/geo";
 import { actWord } from "@/lib/aah/act";
 import { VERBS, type Verb } from "@/lib/aah/theme";
+import { getRules } from "@/lib/aah/store";
+import { postPriceCheck } from "@/lib/aah/rules";
 import type { AahMall, Post } from "@/lib/aah/types";
 
 /** 一行嘅標題：一眼睇到係咩 */
@@ -49,6 +51,8 @@ export function FeedRow({
   const own = post.authorId === meId;
 
   const bits: string[] = [];
+  const overRef = postPriceCheck(post, getRules())?.level !== undefined && postPriceCheck(post, getRules())?.level !== "ok";
+  if (overRef) bits.push("高過參考價");
   if (saving != null && saving > 0) bits.push(`慳 $${saving}`);
   if (post.scenario === "dining" && post.fields.calling)
     bits.push(`而家叫到 ${post.fields.calling}`);

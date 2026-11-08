@@ -13,6 +13,7 @@ import {
   aah,
   aahErrorText,
   getSettings,
+  getRules,
   pinIsFree,
   testLocationAllowed,
   useAahMode,
@@ -32,6 +33,8 @@ import type { InterestOpts } from "@/lib/aah/remote";
 import { SCENARIOS, payLabel, authorRole, receiptCountNote } from "@/lib/aah/scenarios";
 import { ScenarioTips } from "@/components/aah/ScenarioTips";
 import { ReportBlockSheet } from "@/components/aah/ReportBlockSheet";
+import { ParkingHandover } from "@/components/aah/ParkingHandover";
+import { postPriceCheck } from "@/lib/aah/rules";
 import { buyerParkingSaving } from "@/lib/aah/pricing";
 import type { Post } from "@/lib/aah/types";
 import { cn } from "@/lib/utils";
@@ -97,6 +100,20 @@ function detailLine(p: Post): string {
     case "groupbuy":
       return [f.note ? String(f.note) : "", p.needCount ? `仲要 ${p.needCount} 人` : ""].filter(Boolean).join("・");
   }
+}
+
+/** 唔支持炒飛：價錢高過參考價就講（參考價喺管理頁設定，留空就唔顯示） */
+function FairPriceNote({ post, who }: { post: Post; who: "buyer" | "seller" }) {
+  const pc = postPriceCheck(post, getRules());
+  if (!pc || pc.level === "ok") return null;
+  return (
+    <div data-testid="fair-price-note" className="text-sm rounded-2xl px-4 py-3 bg-amber-50 text-amber-900 border border-amber-200 leading-relaxed">
+      呢個價高過參考價 <b>${pc.ref}</b>（{pc.basis}）。
+      {who === "buyer"
+        ? "啱啱好唔支持炒飛。覺得佢炒賣，或者見面先話要加錢，可以撳右上角旗仔舉報。"
+        : "啱啱好唔支持炒飛，價錢合理啲會快啲有人要。"}
+    </div>
+  );
 }
 
 function PostSummary({ post, now }: { post: Post; now: number }) {
@@ -181,7 +198,7 @@ function PostDetailView({ post }: { post: Post }) {
     }
   }, [mine?.status, post.matchId, navigate]);
 
-  // 要喺同一個商場；$5 置頂推到嚟嘅附近商場 post 都接得（泊車除外）
+  // 要喺同一個商場；置頂推到嚟嘅附近商場 post 都接得（泊車除外）
   const inRange = useMemo(() => {
     // 正式上線（唔准測試位置）：一定要 GPS 確認喺商場先接得
     if (!current.mall || (current.test && !testLocationAllowed())) return false;
@@ -260,13 +277,16 @@ function PostDetailView({ post }: { post: Post }) {
       />
       <div className="px-4 pt-4 pb-40 space-y-4">
         <PostSummary post={post} now={now} />
+        <FairPriceNote post={post} who="buyer" />
 
         {/* 第一次用（例如朋友傳 link 嚟）：一句講明發生咩事 */}
         {!user.registered && post.authorId !== user.id && (
           <div className="text-sm rounded-2xl px-4 py-3 bg-[#FFF7D6] text-[#1a1a1a]">
             {post.direction === "want"
               ? `${post.authorName} 想要呢樣嘢。你有就撳「有興趣」，喺商場見面交收，你收返錢。`
-              : `${post.authorName} 用唔着，你啱用就撳「${post.scenario === "groupbuy" ? "我夾" : "有興趣"}」，喺商場見面，一手交錢一手交貨。`}
+              : post.scenario === "parking"
+                ? `${post.authorName} 用唔着呢張單據，你啱用就撳「有興趣」，喺商場一齊去換泊車，換到先俾錢。`
+                : `${post.authorName} 用唔着，你啱用就撳「${post.scenario === "groupbuy" ? "我夾" : "有興趣"}」，喺商場見面，一手交錢一手交貨。`}
           </div>
         )}
 
@@ -291,6 +311,7 @@ function PostDetailView({ post }: { post: Post }) {
           </div>
         )}
 
+        {post.scenario === "parking" && <ParkingHandover mall={mall} />}
         <ScenarioTips scenario={post.scenario} role={post.direction === "join" ? "taker" : authorRole(post.direction) === "giver" ? "taker" : "giver"} mall={mall} title="接之前要知" />
         <div className="text-xs bg-card rounded-xl px-3 py-2.5 text-muted-foreground">
           💡 {s.handoverHint}。{post.price ? "見面交收時先俾錢，唔好預先轉數。" : ""}
@@ -439,7 +460,8 @@ function MyPostView({ post }: { post: Post }) {
   const [reportTarget, setReportTarget] = useState<{ userId: string; name: string } | null>(null);
   const suggested = pending.length > 1 ? suggestedInterest(pending) : undefined;
   const age = now - post.createdAt;
-  const showPinPrompt = post.status === "open" && !pinned && post.interests.length === 0 && age >= PIN_PROMPT_AFTER_MIN * 60000;
+  const pinEnabled = getRules().pinEnabled;
+  const showPinPrompt = pinEnabled && post.status === "open" && !pinned && post.interests.length === 0 && age >= PIN_PROMPT_AFTER_MIN * 60000;
 
   useEffect(() => {
     if (post.status === "matched" && post.matchId) navigate({ to: "/match/$matchId", params: { matchId: post.matchId } });
@@ -494,7 +516,7 @@ function MyPostView({ post }: { post: Post }) {
               </div>
             </div>
             {mode === "remote" ? (
-              <div className="text-[11px] opacity-70">而家喺 {post.mallName}、有訂閱呢類着數嘅用戶。佢哋開 app 就會見到；置頂可以即刻推送通知俾佢哋。</div>
+              <div className="text-[11px] opacity-70">而家喺 {post.mallName}、有訂閱呢類着數嘅用戶。佢哋開 app 就會見到{pinEnabled ? "；置頂可以即刻推送通知俾佢哋" : ""}。</div>
             ) : (
               <div className="text-[11px] opacity-70 flex items-center gap-1.5"><DemoBadge /> 示範數字；正式版顯示真實推送人數。</div>
             )}
@@ -527,11 +549,13 @@ function MyPostView({ post }: { post: Post }) {
           <div className="bg-[#FFF6D6] border border-[#F5C518] rounded-2xl p-4 space-y-2">
             <div className="font-bold">15 分鐘都未有人理</div>
             <div className="text-sm">置頂 15 分鐘，同時推送俾而家喺{s.pushNearby ? "呢度同附近商場" : ` ${post.mallName} `}嘅人？</div>
-            <button onClick={() => setPinOpen(true)} className="h-11 px-4 rounded-2xl bg-[#1a1a1a] text-white font-bold">{pinIsFree(mode) ? "免費置頂 15 分鐘" : "$5 置頂 15 分鐘"}</button>
+            <button onClick={() => setPinOpen(true)} className="h-11 px-4 rounded-2xl bg-[#1a1a1a] text-white font-bold">{pinIsFree(mode) ? "免費置頂 15 分鐘" : "置頂 15 分鐘"}</button>
           </div>
         )}
 
         <PostSummary post={post} now={now} />
+        <FairPriceNote post={post} who="seller" />
+        {post.scenario === "parking" && <ParkingHandover mall={mall} compact />}
 
         {/* 有興趣名單 */}
         {post.status === "open" && (
@@ -607,9 +631,11 @@ function MyPostView({ post }: { post: Post }) {
 
         {post.status === "open" && (
           <div className="space-y-2">
-            <button onClick={() => setPinOpen(true)} className="w-full h-12 rounded-2xl border border-border bg-card font-bold inline-flex items-center justify-center gap-2">
-              <Pin className="w-4 h-4" /> {pinned ? "再置頂 15 分鐘" : "置頂 15 分鐘"}
-            </button>
+            {pinEnabled && (
+              <button onClick={() => setPinOpen(true)} className="w-full h-12 rounded-2xl border border-border bg-card font-bold inline-flex items-center justify-center gap-2">
+                <Pin className="w-4 h-4" /> {pinned ? "再置頂 15 分鐘" : "置頂 15 分鐘"}
+              </button>
+            )}
             <button onClick={() => act(aah.cancelPost(post.id), "已取消 post")} className="w-full h-11 rounded-2xl text-sm text-destructive font-semibold">
               取消呢個 post
             </button>
@@ -703,7 +729,7 @@ function PinSheet({
               </button>
             )}
             <button disabled={busy} onClick={() => doPin(false)} className="w-full h-12 rounded-2xl bg-[#1a1a1a] text-white font-black disabled:opacity-50">
-              {pinIsFree(mode) ? "免費置頂 15 分鐘" : "$5 置頂 15 分鐘"}
+              {pinIsFree(mode) ? "免費置頂 15 分鐘" : "置頂 15 分鐘"}
             </button>
             {pinIsFree(mode) && <p className="text-[11px] text-muted-foreground text-center">現階段置頂免費，每人每日最多 3 次。</p>}
           </>

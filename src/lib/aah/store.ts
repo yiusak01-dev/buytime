@@ -6,6 +6,7 @@ import { quoteParkingReceipt } from "./pricing";
 import { POINTS, canEarnPoints } from "./points";
 import { cancelIsLate } from "./enroute";
 import { nicknameProblem, nextNicknameChangeAt } from "./nickname";
+import { DEFAULT_RULES, dailyLimitMessage, priceCheck, type Rules } from "./rules";
 import {
   createRemote,
   detectRemote,
@@ -1000,7 +1001,7 @@ const local = {
 
 export type AahMode = "detecting" | "local" | "remote";
 let mode: AahMode = "detecting";
-let settings: RemoteSettings = { allowTestLocation: true, enforceGps: false, freePinTrial: true };
+let settings: RemoteSettings = { allowTestLocation: true, enforceGps: false, freePinTrial: true, ...DEFAULT_RULES };
 let remote: Remote | null = null;
 let modeListeners: Array<() => void> = [];
 const PREFS_KEY = "aah:prefs";
@@ -1104,6 +1105,10 @@ export function getMode() {
   return mode;
 }
 export function getSettings() {
+  return settings;
+}
+/** 唔支持炒飛同每日上限嘅數字（管理頁設定） */
+export function getRules(): Rules {
   return settings;
 }
 /** 可唔可以用測試位置扮自己喺商場（示範模式、或者雲端開咗試用） */
@@ -1233,6 +1238,13 @@ export const aah = {
   },
 
   async createPost(input: Parameters<typeof local.createPost>[0]): Promise<Post> {
+    if (!isRemote()) {
+      // 示範模式都跟正式版一樣嘅上限同封頂（正式版由伺服器檢查）
+      const limit = dailyLimitMessage(state.posts, state.user.id, input, settings);
+      if (limit) throw new Error(limit);
+      const pc = priceCheck({ ...input, partySize: input.fields.partySize, hours: input.fields.hours }, settings);
+      if (pc?.level === "blocked") throw new Error(`price too high ${pc.cap}`);
+    }
     return isRemote() ? R().createPost(input) : local.createPost(input);
   },
   viewPost(id: string) {
@@ -1334,6 +1346,11 @@ export const aah = {
    * 舉報用戶（連住配對或者 post），之後自動封鎖對方：
    * 雙方唔會再見到對方 post、唔可以再互動；進行中配對即刻取消（唔罰）
    */
+  /** 話我哋知（示範模式唔會真係傳出去） */
+  async sendFeedback(text: string, page: string) {
+    if (isRemote()) return R().sendFeedback(text, page);
+    if (text.trim().length < 2) throw new Error("feedback too short");
+  },
   async report(opts: {
     accusedId: string;
     kind: string;

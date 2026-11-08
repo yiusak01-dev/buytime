@@ -15,6 +15,9 @@ import { LATE_GRACE_MIN, CANCEL_GRACE_MIN, cancelIsLate } from "@/lib/aah/enrout
 import { SCENARIOS, payLabel, authorRole } from "@/lib/aah/scenarios";
 import { ReportBlockSheet } from "@/components/aah/ReportBlockSheet";
 import { ScenarioTips } from "@/components/aah/ScenarioTips";
+import { ParkingHandover } from "@/components/aah/ParkingHandover";
+import { CONTACT_RE, CONTACT_WARNING } from "@/lib/aah/rules";
+import { logEvent } from "@/lib/aah/track";
 import type { Match } from "@/lib/aah/types";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +28,6 @@ export const Route = createFileRoute("/match/$matchId")({
 
 const MIN = 60000;
 /** 偵測交換電話／其他通訊 app */
-const CONTACT_RE = /(\d[\s-]?){8,}|whats\s*app|\bwts\b|\bwa\b|telegram|\btg\b|signal|wechat|微信|line\s*id|ig\s*:|instagram/i;
 
 function MatchPage() {
   const { matchId } = Route.useParams();
@@ -87,9 +89,10 @@ function MatchPage() {
   const inMall = current.mall?.id === m.mallId;
 
   function guardedSend(t: string) {
+    // 打咗電話、email、WhatsApp、IG 呢類：照樣傳，但提醒一句
     if (CONTACT_RE.test(t)) {
-      toast.error("為咗安全，請喺 app 內溝通", { description: "唔好交換電話號碼或者其他通訊 app" });
-      return;
+      toast.warning(CONTACT_WARNING, { duration: 6000 });
+      logEvent("contact_warned");
     }
     // 防連撳：同一句 5 秒內唔重複發送
     const now2 = Date.now();
@@ -167,7 +170,7 @@ function MatchPage() {
               <span className="text-xs text-muted-foreground truncate">{m.mallName}</span>
             </div>
             <div className="font-black text-base truncate mt-0.5">
-              {m.shop}・{m.price == null ? "夾單" : m.price === 0 ? "免費" : `$${m.price}`}
+              {m.shop}・{m.price == null ? "夾單" : m.price === 0 ? "免費" : m.scenario === "dining" ? `多謝費 $${m.price}` : `$${m.price}`}
             </div>
           </div>
           {others.length > 0 && (
@@ -281,7 +284,11 @@ function MatchPage() {
           {active && iConfirmed && (
             <button onClick={() => setChangeOpen(true)} className="text-xs underline text-muted-foreground">改地點／時間</button>
           )}
-          <div className="text-xs text-muted-foreground">💡 {s.handoverHint}</div>
+          {m.scenario === "parking" ? (
+            <ParkingHandover mall={malls.find((x) => x.id === m.mallId)} />
+          ) : (
+            <div className="text-xs text-muted-foreground">💡 {s.handoverHint}</div>
+          )}
         </div>
 
         {/* 認人：公仔 */}
@@ -328,6 +335,7 @@ function MatchPage() {
             <div>・見面先俾錢，唔好預先轉數</div>
             {m.payMethods.some((p) => p !== "cash") && <div>・用 {payLabel(m.payMethods.filter((p) => p !== "cash"))} 就掃對方 QR code，唔使交換電話</div>}
             <div>・收錢嗰位要睇自己電話嘅收款通知，唔好只睇對方截圖</div>
+            <div>・講好嘅價就係呢個價。見面先話要加錢，可以撳右上角旗仔舉報「炒飛、私下加價」</div>
           </div>
         )}
         {m.scenario === "groupbuy" && <div className="bg-card rounded-2xl p-4 text-sm">🛍 見面一齊去收銀處，各自俾自己嗰份。</div>}
@@ -419,7 +427,7 @@ function MatchPage() {
                 }}
                 className="flex gap-2"
               >
-                <input value={text} onChange={(e) => setText(e.target.value)} placeholder="打少少字（唔好留電話）" className="flex-1 h-10 px-3 rounded-full border border-border bg-card outline-none text-base" />
+                <input value={text} onChange={(e) => setText(e.target.value)} placeholder="打少少字（喺 app 傾就夠，唔使留電話）" className="flex-1 h-10 px-3 rounded-full border border-border bg-card outline-none text-base" />
                 <button className="h-10 px-4 rounded-full bg-[#1a1a1a] text-white text-sm font-bold">傳送</button>
               </form>
               <div className="flex gap-2">

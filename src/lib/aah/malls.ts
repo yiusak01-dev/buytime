@@ -26,7 +26,8 @@ export function useAahMalls() {
     queryFn: async () => {
       const { data, error } = await ownSupabase
         .from("malls")
-        .select("id,name,district,lat,lng,weekday_parking_cond,holiday_parking_cond,hourly_rate_weekday_num,hourly_rate_holiday_num,hourly_rate_weekend,supports_stacking,traffic_score,is_active");
+        // 用 *：新加嘅欄（例如換泊車地點）未開都唔會令成個商場表讀唔到
+        .select("*");
       if (error) throw error;
       const rows: AahMall[] = (data ?? [])
         .filter((r: any) => r.is_active !== false && r.lat != null && r.lng != null)
@@ -46,6 +47,10 @@ export function useAahMalls() {
           rateWeekend: r.hourly_rate_holiday_num != null ? Number(r.hourly_rate_holiday_num) : r.hourly_rate_weekend != null ? Number(r.hourly_rate_weekend) : null,
           stacking: r.supports_stacking ?? null,
           traffic: r.traffic_score != null ? Number(r.traffic_score) : 0,
+          redeemPlace:
+            r.redeem_source_url && r.redeem_place
+              ? [r.redeem_floor, r.redeem_place].filter(Boolean).join(" ")
+              : null,
           source: "db" as const,
         }));
       return rows;
@@ -53,6 +58,11 @@ export function useAahMalls() {
   });
   const malls = q.data && q.data.length > 0 ? q.data : SAMPLE_MALLS;
   return { malls, isSample: !(q.data && q.data.length > 0), isLoading: q.isLoading };
+}
+
+/** 泊車交收地點：有核實資料就寫埋邊層，冇就淨係講詢問處／換泊車嘅地方（唔估） */
+export function redeemPlaceText(mall: AahMall | null | undefined): string {
+  return mall?.redeemPlace ? `${mall.name} ${mall.redeemPlace}` : "商場詢問處或者換泊車嘅地方";
 }
 
 export function distanceM(aLat: number, aLng: number, bLat: number, bLng: number) {
@@ -74,7 +84,7 @@ export function findMallAt(malls: AahMall[], lat: number, lng: number): AahMall 
   return best?.m ?? null;
 }
 
-/** 行路幾分鐘到嘅附近商場（$5 置頂會推送埋呢啲） */
+/** 行路幾分鐘到嘅附近商場（置頂會推送埋呢啲） */
 export function nearbyMalls(malls: AahMall[], mall: AahMall, maxM = 700): AahMall[] {
   return malls
     .filter((m) => m.id !== mall.id && distanceM(mall.lat, mall.lng, m.lat, m.lng) <= maxM)

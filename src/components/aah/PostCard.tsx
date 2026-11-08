@@ -21,7 +21,8 @@ export function postSaving(post: Post, mall: AahMall | undefined, now: number): 
 export function priceLabel(post: Post) {
   if (post.price == null) return post.scenario === "groupbuy" ? "一齊夾" : "";
   if (post.price === 0) return "免費";
-  return post.direction === "want" ? `願意俾 $${post.price}` : `$${post.price}`;
+  if (post.direction === "want") return `願意俾 $${post.price}`;
+  return post.scenario === "dining" ? `多謝費 $${post.price}` : `$${post.price}`;
 }
 
 export function PostCard({ post, mall, now, otherMallLabel }: { post: Post; mall?: AahMall; now: number; otherMallLabel?: string }) {

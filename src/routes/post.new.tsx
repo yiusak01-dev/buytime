@@ -6,7 +6,10 @@ import { Switch } from "@/components/ui/switch";
 import { AppLayout } from "@/components/AppLayout";
 import { Chip, Section, DemoBadge } from "@/components/aah/ui";
 import { RegisterSheet } from "@/components/aah/RegisterSheet";
-import { aah, aahErrorText, getSettings, testLocationAllowed, useAahState, isBanned, dailyDiningCount, DINING_POSTS_PER_DAY } from "@/lib/aah/store";
+import { aah, aahErrorText, getSettings, getRules, testLocationAllowed, useAahState, isBanned } from "@/lib/aah/store";
+import { dailyLimitMessage, priceCheck, limitText, multipleWord } from "@/lib/aah/rules";
+import { logEvent } from "@/lib/aah/track";
+import { ParkingHandover } from "@/components/aah/ParkingHandover";
 import { useAahMalls, demoAudience } from "@/lib/aah/malls";
 import { useCurrentMall, fmtClock, useNow } from "@/lib/aah/geo";
 import { SCENARIOS, SCENARIO_LIST, GROUPBUY_DEALS, PAY_METHODS, authorRole, diningFlag, receiptCountNote, cleanMoneyInput, payLabel } from "@/lib/aah/scenarios";
@@ -45,7 +48,7 @@ const MORE_KEYS = new Set(["receiptCount", "receiptType", "receiptCategory", "ca
 const GIVE_TILE_COLOR: Record<ScenarioId, string> = { parking: "#1E7F52", dining: "#2F62C9", offer: "#B8336A", groupbuy: "#C2531A" };
 const REMARK_MAX = 80;
 const REMARK_PLACEHOLDER: Record<ScenarioId, string> = {
-  parking: "例如：一張餐廳單加一張超市單，喺停車場繳費處等",
+  parking: "例如：一張餐廳單加一張超市單",
   dining: "例如：卡位，叫號前 5 分鐘喺門口等",
   offer: "例如：只限指定貨品，今晚 10 點到期",
   groupbuy: "例如：滿 $500 減 $100，想搵人夾 $250",
@@ -81,6 +84,7 @@ function NewPost() {
   const fileRef = useRef<HTMLInputElement>(null);
   const pickFileRef = useRef<HTMLInputElement>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  const published = useRef(false);
 
   const s = scenario ? SCENARIOS[scenario] : null;
   const diningExtra = mallDiningExtra(mall);
@@ -224,16 +228,52 @@ function NewPost() {
 
   const priceNum = free ? 0 : price === "" ? null : Number(price);
 
-  // 一撳發佈：用戶未填價錢時用嘅價（泊車、有面值嘅優惠用建議價；食飯飛、冇面值嘅優惠用免費）
+  // 唔支持炒飛：參考價同封頂（數字喺管理頁設定，留空就唔限）
+  const rules = getRules();
+  const unitsFor = { partySize: fields.partySize, hours: suggestion?.hours ?? fields.hours };
+  const refInfo = scenario ? priceCheck({ scenario, direction, price: 0, ...unitsFor }, rules) : null;
+
+  // 一撳發佈：用戶未填價錢時用嘅價（泊車、有面值嘅優惠用建議價，唔會高過參考價；冇面值嘅優惠用免費）
+  // 餐廳排隊飛唔預設免費，要自己填多謝費（或者揀免費）
   // 只會喺用戶撳發佈掣先用，掣上面寫明係幾多錢
   const quickPrice = useMemo((): number | null => {
     if (!s || !s.hasPrice || free || price !== "") return null;
-    if (s.id === "parking") return suggestion?.max != null && suggestion.max > 0 ? suggestion.max : null;
+    if (s.id === "parking") {
+      if (suggestion?.max == null || suggestion.max <= 0) return null;
+      return refInfo ? Math.min(suggestion.max, refInfo.ref) : suggestion.max;
+    }
     if (s.id === "offer") return suggestion?.max != null && suggestion.max > 0 ? suggestion.max : 0;
-    if (s.id === "dining") return 0;
     return null;
-  }, [s, free, price, suggestion]);
+  }, [s, free, price, suggestion, refInfo?.ref]); // eslint-disable-line react-hooks/exhaustive-deps
   const effPrice = priceNum ?? quickPrice;
+  const pc = scenario ? priceCheck({ scenario, direction, price: effPrice, ...unitsFor }, rules) : null;
+  const priceBlocked = pc?.level === "blocked";
+
+  // 每日上限：一入嚟就講，唔使填完先知
+  const limitMsg =
+    scenario && user.registered
+      ? dailyLimitMessage(posts, user.id, { scenario, direction, mallId: mall?.id, mallName: mall?.name, shop }, rules, now)
+      : null;
+
+  // 用法紀錄（每週問題報告用）：開始放、放到一半走咗、撞到上限、價錢太高
+  const draftRef = useRef<{ scenario: ScenarioId | null; direction: Direction }>({ scenario: null, direction: "have" });
+  draftRef.current = { scenario, direction };
+  useEffect(() => {
+    if (scenario) logEvent("post_start", { scenario, direction });
+  }, [scenario]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(
+    () => () => {
+      const d = draftRef.current;
+      if (d.scenario && !published.current) logEvent("post_abandon", { scenario: d.scenario, direction: d.direction });
+    },
+    [],
+  );
+  useEffect(() => {
+    if (limitMsg && scenario) logEvent("limit_hit", { scenario });
+  }, [!!limitMsg]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (pc && pc.level !== "ok" && scenario) logEvent(pc.level === "blocked" ? "price_blocked" : "price_warned", { scenario, price: effPrice ?? 0, ref: pc.ref });
+  }, [pc?.level]); // eslint-disable-line react-hooks/exhaustive-deps
   /** 自己冇揀收款方式就用現金（掣上面會寫） */
   const effPay: PayMethod[] = pay.length ? pay : ["cash"];
 
@@ -246,7 +286,7 @@ function NewPost() {
       if (f.required && !v) return `${f.type === "choice" ? "揀" : "填"}「${f.label}」`;
       if (f.type === "number" && v && !(Number(v) > 0)) return `填啱「${f.label}」`;
     }
-    if (s.hasPrice && effPrice == null) return "填價錢（可以揀免費）";
+    if (s.hasPrice && effPrice == null) return s.id === "dining" ? "填多謝費（可以揀免費）" : "填價錢（可以揀免費）";
     if (s.hasPrice && priceNum != null && priceNum > 0 && pay.length === 0) return "揀收款方式";
     if (!leaveAt) return "揀時間";
     return null;
@@ -267,8 +307,12 @@ function NewPost() {
       toast.error("去到商場先放得", { description: "對方會即刻嚟搵你見面交收，所以要 GPS 確認你喺商場" });
       return;
     }
-    if (scenario === "dining" && dailyDiningCount(posts, user.id) >= DINING_POSTS_PER_DAY) {
-      toast.error(`每人每日最多出 ${DINING_POSTS_PER_DAY} 個食飯候位 post`);
+    if (limitMsg) {
+      toast.error(limitMsg);
+      return;
+    }
+    if (priceBlocked && pc) {
+      toast.error(limitText.priceTooHigh(pc.cap, rules.priceBlockMultiple));
       return;
     }
     const f: Record<string, string | number> = {};
@@ -299,6 +343,8 @@ function NewPost() {
       acceptEnRoute: scenario !== "groupbuy" && acceptEnRoute,
       needCount: scenario === "groupbuy" ? needCount : undefined,
     });
+    published.current = true;
+    logEvent("post_done", { scenario, direction });
     toast.success("已經發佈！");
     navigate({ to: "/post/$postId", params: { postId: post.id }, replace: true });
     } catch (e) {
@@ -352,7 +398,11 @@ function NewPost() {
 
   const submitLabel = submitting
     ? "發佈緊…"
-    : missing
+    : limitMsg
+      ? "今日已經放夠，聽日再嚟"
+      : priceBlocked && pc
+        ? `價錢太高：最多 $${pc.cap}`
+        : missing
       ? `仲要${missing}`
       : s?.hasPrice && priceNum == null && quickPrice != null
         ? quickPrice > 0
@@ -529,6 +579,13 @@ function NewPost() {
                 {!quick && <button onClick={() => setScenario(null)} className="text-xs text-muted-foreground underline">換類別</button>}
               </div>
 
+              {limitMsg && (
+                <div data-testid="daily-limit" className="rounded-2xl px-4 py-3 bg-[#FFF0C2] text-[#5C3B00] text-sm leading-relaxed">
+                  {limitMsg}
+                  <div className="text-xs mt-1 opacity-80">手上同時有幾多張都冇問題，淨係限每日放幾多張。</div>
+                </div>
+              )}
+
               {s.shopLabel && (
                 <Section title={s.shopLabel}>
                   <input
@@ -605,22 +662,48 @@ function NewPost() {
               {shownFields.filter(essentialField).map(renderField)}
 
               {s.hasPrice && (
-                <Section title={direction === "want" ? "你願意俾幾多錢？" : "你想收幾多錢？"} hint="見面交收時直接俾，唔經平台">
+                <Section
+                  title={direction === "want" ? "你願意俾幾多錢？" : s.id === "dining" ? "你想收幾多多謝費？" : "你想收幾多錢？"}
+                  hint={s.id === "dining" ? "多謝費係對方多謝你讓張飛，唔係賣飛；見面時直接俾，唔經平台" : "見面交收時直接俾，唔經平台"}
+                >
                   <div className="flex items-center gap-2">
-                    <div className={cn("flex-1 min-w-0 flex items-center gap-2 h-12 px-4 rounded-2xl border bg-card", overSuggest ? "border-amber-400" : "border-border")}>
+                    <div className={cn("flex-1 min-w-0 flex items-center gap-2 h-12 px-4 rounded-2xl border bg-card", priceBlocked ? "border-red-400" : overSuggest || pc?.level === "over" ? "border-amber-400" : "border-border")}>
                       <span className="font-bold text-muted-foreground">$</span>
                       <input
                         inputMode="numeric"
                         value={free ? "" : price}
                         disabled={free}
                         onChange={(e) => setPrice(e.target.value.replace(/[^\d]/g, "").slice(0, 5))}
-                        placeholder={free ? "免費" : "自己填"}
+                        placeholder={free ? "免費" : s.id === "dining" ? "多謝費" : "自己填"}
                         aria-label="價錢"
                         className="flex-1 min-w-0 w-full bg-transparent outline-none text-lg font-bold"
                       />
                     </div>
                     <Chip active={free} onClick={() => setFree(!free)}>免費</Chip>
                   </div>
+                  {pc && (
+                    <div
+                      data-testid="fair-price"
+                      className={cn(
+                        "text-xs rounded-xl px-3 py-2 leading-relaxed",
+                        pc.level === "blocked" ? "bg-red-50 text-red-800" : pc.level === "over" ? "bg-amber-50 text-amber-900" : "bg-background text-muted-foreground",
+                      )}
+                    >
+                      {pc.level === "blocked" ? (
+                        <>
+                          <b>{limitText.priceTooHigh(pc.cap, rules.priceBlockMultiple)}</b> 參考價 ${pc.ref}（{pc.basis}）。
+                        </>
+                      ) : pc.level === "over" ? (
+                        <>
+                          呢個價高過參考價 <b>${pc.ref}</b>（{pc.basis}）。啱啱好唔支持炒飛，價錢合理啲會快啲有人要。
+                        </>
+                      ) : (
+                        <>
+                          參考價 ${pc.ref}（{pc.basis}），超過{multipleWord(rules.priceBlockMultiple)}就放唔到。
+                        </>
+                      )}
+                    </div>
+                  )}
                   {suggestion?.max != null && suggestion.max > 0 && (
                     <div
                       data-testid="price-hint"
@@ -734,9 +817,10 @@ function NewPost() {
                 )}
               </div>
 
+              {s.id === "parking" && <ParkingHandover mall={mall} />}
               <ScenarioTips scenario={s.id} role={authorRole(direction)} mall={mall} title="放之前要知" />
               <p className="text-[11px] text-muted-foreground">
-                發佈即表示你會遵守商場同商戶嘅規則。平台只係顯示資訊同配對，唔參與交易。
+                發佈即表示你會遵守商場同商戶嘅規則，唔會炒賣。平台只係顯示資訊同配對，唔參與交易，亦唔收任何費用。
               </p>
             </>
           )
@@ -755,7 +839,7 @@ function NewPost() {
             )}
             <button
               onClick={submit}
-              disabled={!!missing || submitting}
+              disabled={!!missing || submitting || !!limitMsg || priceBlocked}
               className="w-full h-14 rounded-2xl bg-[#F5C518] text-[#1a1a1a] font-black text-base shadow-lg disabled:opacity-50"
             >
               {submitLabel}

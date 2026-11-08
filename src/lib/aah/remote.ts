@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { removeThisDevice } from "./push";
 import type { Interest, Match, Outfit, Post, User } from "./types";
+import { limitText, rulesFromSettings, type Rules } from "./rules";
+import { deviceId, platformName } from "./device";
 
 /**
  * 雲端模式：所有 post、配對、傾偈存喺 Supabase（aah_* 資料表），
@@ -10,7 +12,7 @@ import type { Interest, Match, Outfit, Post, User } from "./types";
 
 const sb = () => supabase as any;
 
-export type RemoteSettings = { allowTestLocation: boolean; enforceGps: boolean; freePinTrial: boolean };
+export type RemoteSettings = { allowTestLocation: boolean; enforceGps: boolean; freePinTrial: boolean } & Rules;
 
 /** 撳有興趣：etaMin = 去緊幾多分鐘到（有就係「我去緊」）；onSite = GPS 確認咗喺商場 */
 export type InterestOpts = { etaMin?: number; coords?: { lat: number; lng: number }; onSite?: boolean };
@@ -44,6 +46,7 @@ export async function detectRemote(): Promise<RemoteSettings | null> {
       allowTestLocation: map.get("allow_test_location") !== false,
       enforceGps: map.get("enforce_gps") === true,
       freePinTrial: map.get("free_pin_trial") !== false,
+      ...rulesFromSettings(map),
     };
   } catch {
     return null;
@@ -74,6 +77,16 @@ export function createRemote(host: Host) {
     // 三組資料互不依賴，一齊攞（伺服器喺悉尼，逐個等會慢成兩秒）
     const [user, posts, matches] = await Promise.all([loadUser(me, base, prefs, email), loadPosts(me), loadMatches(me, prefs)]);
     host.set({ user, posts, matches });
+    if (me && user.registered) touchDevice(me);
+  }
+
+  /** 記低「呢部機用過呢個帳戶」（防濫用；10 分鐘內唔重複） */
+  let touched: { uid: string; at: number } | null = null;
+  function touchDevice(me: string) {
+    const id = deviceId();
+    if (!id || (touched?.uid === me && Date.now() - touched.at < 10 * 60_000)) return;
+    touched = { uid: me, at: Date.now() };
+    void sb().rpc("aah_touch_device", { p_device: id, p_platform: platformName() }).then(() => undefined, () => undefined);
   }
 
   async function loadUser(me: string | null, base: User, prefs: ReturnType<typeof host.prefs>, email: string | undefined): Promise<User> {
@@ -543,6 +556,11 @@ export function createRemote(host: Host) {
       });
     },
 
+    /** 「話我哋知」：用家意見，管理頁同每週報告睇得到 */
+    async sendFeedback(text: string, page: string) {
+      await rpc("aah_send_feedback", { p_text: text, p_page: page });
+    },
+
     /** 封鎖：雙方唔會再見到對方 post、唔可以再互動；進行中配對即刻取消 */
     async blockUser(userId: string) {
       await rpc("aah_block_user", { p_user: userId });
@@ -690,6 +708,12 @@ function rowToMatch(m: any, parts: any[], msgs: any[], uid: string, prefs: Local
 /** 將 Supabase / function 錯誤轉做用戶睇得明嘅句子 */
 export function aahErrorText(e: unknown): string {
   const msg = String((e as any)?.message ?? e ?? "");
+  let n: RegExpExecArray | null;
+  if ((n = /dining daily limit (\d+)/.exec(msg))) return limitText.dining(Number(n[1]));
+  if ((n = /dining branch limit (\d+)/.exec(msg))) return limitText.branch(Number(n[1]));
+  if ((n = /parking daily limit (\d+)/.exec(msg))) return limitText.parking(Number(n[1]));
+  if ((n = /price too high (\d+)/.exec(msg))) return limitText.priceTooHigh(Number(n[1]));
+  if ((n = /bad setting: (.+)/.exec(msg))) return n[1];
   const map: [RegExp, string][] = [
     [/objectionable/, "內容有唔適合嘅字眼，改一改再試"],
     [/blocked/, "你哋其中一方封鎖咗對方，唔可以再互動"],
@@ -698,7 +722,10 @@ export function aahErrorText(e: unknown): string {
     [/not registered/, "要先註冊"],
     [/post closed/, "呢個 post 已經結束"],
     [/own post/, "唔可以接自己嘅 post"],
-    [/dining daily limit/, "每人每日最多出 3 個食飯候位 post"],
+    [/dining daily limit/, limitText.dining(3)],
+    [/pin disabled/, "置頂暫時未開放"],
+    [/feedback too short/, "寫多少少先傳得"],
+    [/feedback limit/, "今日傳咗好多次喇，聽日再話我哋知"],
     [/not on site/, "要喺商場先可以出 post"],
     [/bad leave time/, "預計離開時間要喺而家之後"],
     [/pin slots full/, "置頂位已滿（最多 10 個），遲啲再試"],

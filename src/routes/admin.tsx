@@ -16,13 +16,13 @@ import {
   type Dispute,
   type AppRole,
 } from "@/lib/escrow-db";
-import { AahAppealsTab, AahReportsTab, AahAdminLogTab } from "@/components/aah/admin/AahAdminTabs";
+import { AahAppealsTab, AahReportsTab, AahAdminLogTab, AahSettingsTab, AahSuspiciousTab, AahFeedbackTab } from "@/components/aah/admin/AahAdminTabs";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPanel,
 });
 
-type Tab = "appeals" | "aahReports" | "vouchers" | "log" | "users" | "legacy";
+type Tab = "appeals" | "aahReports" | "suspicious" | "feedback" | "settings" | "vouchers" | "log" | "users" | "legacy";
 type LegacyTab = "disputes" | "reports" | "audit";
 
 const REASON_LABEL: Record<string, string> = {
@@ -87,6 +87,9 @@ function AdminPanel() {
           {([
             ["appeals", "申訴"],
             ["aahReports", "舉報"],
+            ["suspicious", "可疑帳戶"],
+            ["feedback", "意見"],
+            ["settings", "設定"],
             ["log", "操作紀錄"],
             ...(isSuper ? ([["users", "用戶"]] as [Tab, string][]) : []),
             ["legacy", "舊版"],
@@ -107,6 +110,9 @@ function AdminPanel() {
       <div className="p-4">
         {tab === "appeals" && <AahAppealsTab />}
         {tab === "aahReports" && <AahReportsTab />}
+        {tab === "suspicious" && <AahSuspiciousTab />}
+        {tab === "feedback" && <AahFeedbackTab />}
+        {tab === "settings" && <AahSettingsTab />}
         {tab === "log" && <AahAdminLogTab />}
         {tab === "users" && isSuper && me && <UsersTab adminId={me} />}
         {tab === "legacy" && me && (

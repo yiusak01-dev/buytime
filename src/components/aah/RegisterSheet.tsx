@@ -2,7 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Check, Loader2, Lock, MailCheck } from "lucide-react";
 import { toast } from "sonner";
-import { aah, aahErrorText, useAahMode, useAahState } from "@/lib/aah/store";
+import { aah, aahErrorText, getRules, useAahMode, useAahState } from "@/lib/aah/store";
+import { logEvent } from "@/lib/aah/track";
 import { useAahMalls, nearestMalls } from "@/lib/aah/malls";
 import { useGeo, useNow } from "@/lib/aah/geo";
 import { nicknameProblem } from "@/lib/aah/nickname";
@@ -23,7 +24,7 @@ const outline =
   "w-full h-12 rounded-2xl font-black border border-border bg-card inline-flex items-center justify-center gap-2";
 
 /**
- * 登記／登入：SMS 驗證碼或者 email。
+ * 登記／登入：email（SMS 驗證碼要喺管理頁開咗「SMS 登入」先出，開通 SMS 供應商之前收埋）。
  * 登記完問幾樣（常去商場、揸唔揸車、想慳邊樣、收唔收推廣），可以跳過；推廣通知預設唔剔。
  */
 export function RegisterSheet({
@@ -39,7 +40,9 @@ export function RegisterSheet({
 }) {
   const mode = useAahMode();
   const { user } = useAahState();
-  const [step, setStep] = useState<Step>("start");
+  const sms = getRules().smsLogin;
+  const first: Step = sms ? "start" : "signup";
+  const [step, setStep] = useState<Step>(first);
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [sentAt, setSentAt] = useState(0);
@@ -58,8 +61,9 @@ export function RegisterSheet({
   useEffect(() => {
     if (open && !user.signedIn)
       setStep((s) =>
-        s === "checkEmail" ? "login" : s === "prefs" || s === "profile" ? "start" : s,
+        s === "checkEmail" ? "login" : s === "prefs" || s === "profile" ? first : !sms && (s === "start" || s === "otp") ? "signup" : s,
       );
+    if (open && !user.registered) logEvent("register_start", { step: first });
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const phoneOk = /^[4-9]\d{7}$/.test(phone);
@@ -68,12 +72,14 @@ export function RegisterSheet({
 
   function finish() {
     setErr("");
+    logEvent("register_done");
     onDone();
   }
   function close() {
     setErr("");
     // 登記咗先閂：當完成（之前想做嘅嘢照做）
     if (step === "prefs") return finish();
+    if (!user.registered) logEvent("register_abandon", { step });
     if (step === "checkEmail") setStep("login");
     onClose();
   }
@@ -99,7 +105,9 @@ export function RegisterSheet({
       : step === "otp"
         ? "輸入驗證碼"
         : step === "signup"
-          ? "用 email 登記"
+          ? sms
+            ? "用 email 登記"
+            : (reason ?? "登記，免費 30 秒")
           : step === "login"
             ? "用 email 登入"
             : step === "checkEmail"
@@ -228,6 +236,19 @@ export function RegisterSheet({
 
         {step === "signup" && (
           <>
+            {!sms && (
+              <div className="flex items-center gap-3">
+                <span
+                  className="w-12 h-12 rounded-full grid place-items-center shrink-0"
+                  style={{ background: SOFT, color: STRONG }}
+                >
+                  <Lock className="w-5 h-5" />
+                </span>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  免費，30 秒搞掂。對方只會見到你個暱稱，唔會見到你個 email。
+                </p>
+              </div>
+            )}
             <input
               type="email"
               autoComplete="email"
@@ -274,9 +295,18 @@ export function RegisterSheet({
             >
               {busy && <Loader2 className="w-4 h-4 animate-spin" />}登記
             </button>
-            <button onClick={() => go("start")} className="w-full text-sm text-muted-foreground">
-              用 SMS 登記
-            </button>
+            {sms ? (
+              <button onClick={() => go("start")} className="w-full text-sm text-muted-foreground">
+                用 SMS 登記
+              </button>
+            ) : (
+              <button onClick={() => go("login")} className="w-full text-sm">
+                已經登記過？
+                <span className="font-black" style={{ color: STRONG }}>
+                  登入
+                </span>
+              </button>
+            )}
             <Terms />
           </>
         )}
@@ -330,8 +360,8 @@ export function RegisterSheet({
                 唔記得密碼？（先填 email）
               </button>
             )}
-            <button onClick={() => go("start")} className="w-full text-sm text-muted-foreground">
-              用 SMS 登入
+            <button onClick={() => go(sms ? "start" : "signup")} className="w-full text-sm text-muted-foreground">
+              {sms ? "用 SMS 登入" : "未有帳戶？用 email 登記"}
             </button>
           </>
         )}
