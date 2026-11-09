@@ -182,6 +182,8 @@ export type AahMall = {
   traffic?: number;
   /** 換泊車地點，例如「L2 顧客服務中心」：只有商場官網寫明、記低咗出處先有，冇就唔顯示 */
   redeemPlace?: string | null;
+  /** 有冇舖頭名單（有出處、有幾多間）；冇就唔會提醒「呢間舖唔喺呢個商場」 */
+  shopsCount?: number;
   /** 資料來源 */
   source: "db" | "sample";
 };

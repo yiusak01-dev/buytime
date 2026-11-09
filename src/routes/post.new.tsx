@@ -10,6 +10,9 @@ import { aah, aahErrorText, getSettings, getRules, testLocationAllowed, useAahSt
 import { dailyLimitMessage, priceCheck, limitText, multipleWord } from "@/lib/aah/rules";
 import { logEvent } from "@/lib/aah/track";
 import { ParkingHandover } from "@/components/aah/ParkingHandover";
+import { checkReceiptDate, findOtherMallInText, findShopInText, shopInList, shopMatches, normShop, type MallShop, type ReceiptDateCheck } from "@/lib/aah/receipt";
+import { useMallShops } from "@/lib/aah/shops";
+import type { AahMall } from "@/lib/aah/types";
 import { useAahMalls, demoAudience } from "@/lib/aah/malls";
 import { useCurrentMall, fmtClock, useNow } from "@/lib/aah/geo";
 import { SCENARIOS, SCENARIO_LIST, GROUPBUY_DEALS, PAY_METHODS, authorRole, diningFlag, receiptCountNote, cleanMoneyInput, payLabel } from "@/lib/aah/scenarios";
@@ -87,6 +90,9 @@ function NewPost() {
   const published = useRef(false);
 
   const s = scenario ? SCENARIOS[scenario] : null;
+  // 商場舖頭名單（冇名單就唔判斷）；影單據讀到嘅日期同舖名
+  const shops = useMallShops(mall);
+  const [receiptCheck, setReceiptCheck] = useState<{ date: ReceiptDateCheck; shop: MallShop | null; otherMall: AahMall | null } | null>(null);
   const diningExtra = mallDiningExtra(mall);
   const hasDiningRule = mallHasDiningRule(mall);
   const diningTier = diningTierToday(mall, now);
@@ -250,6 +256,8 @@ function NewPost() {
   const priceBlocked = pc?.level === "blocked";
 
   // 每日上限：一入嚟就講，唔使填完先知
+  // 影單據讀到日期唔係今日：唔俾放（商場一般只收即日單據）；要再影過先解除
+  const receiptBlocked = scenario === "parking" && direction === "have" && receiptCheck?.date.status === "other";
   const limitMsg =
     scenario && user.registered
       ? dailyLimitMessage(posts, user.id, { scenario, direction, mallId: mall?.id, mallName: mall?.name, shop }, rules, now)
@@ -311,6 +319,10 @@ function NewPost() {
       toast.error(limitMsg);
       return;
     }
+    if (receiptBlocked) {
+      toast.error("張單唔係今日，放唔到", { description: "商場一般只收即日單據。讀錯咗就再影清楚啲。" });
+      return;
+    }
     if (priceBlocked && pc) {
       toast.error(limitText.priceTooHigh(pc.cap, rules.priceBlockMultiple));
       return;
@@ -323,6 +335,10 @@ function NewPost() {
       f[def.key] = def.type === "number" ? Number(v) : v.trim();
     }
     if (scenario === "parking" && direction === "have" && suggestion?.hours) f.hours = suggestion.hours;
+    if (scenario === "parking" && direction === "have" && receiptCheck) {
+      if (receiptCheck.date.status === "today") f.receiptDate = receiptCheck.date.iso;
+      if (receiptCheck.shop) f.receiptShop = receiptCheck.shop.name;
+    }
     if (remark.trim()) f.remark = remark.trim();
 
     setSubmitting(true);
@@ -356,13 +372,24 @@ function NewPost() {
 
   async function onPhoto(file: File | undefined, keyOverride?: string) {
     if (!file) return;
+    const key = keyOverride ?? (scenario === "offer" ? "faceValue" : "receiptAmount");
+    const isReceipt = key === "receiptAmount";
     setOcrBusy(true);
     setOcrNote("");
     setOcrOptions([]);
+    if (isReceipt) setReceiptCheck(null);
     try {
-      const { best, options } = await readAmountsFromImage(file);
+      const { best, options, text } = await readAmountsFromImage(file);
+      if (isReceipt) {
+        // 單據日期要係今日；舖頭睇吓係咪呢個商場（淨係提醒）
+        const date = checkReceiptDate(text ?? "");
+        const shop = findShopInText(text ?? "", shops);
+        const otherMall = shop ? null : findOtherMallInText(text ?? "", malls, mall);
+        setReceiptCheck({ date, shop, otherMall });
+        if (shop?.category === "dining" && hasDiningRule) setFields((x) => (x.receiptCategory ? x : { ...x, receiptCategory: "有食肆單" }));
+        if (date.status === "other") logEvent("limit_hit", { scenario: "parking", reason: "receipt_date" });
+      }
       if (best != null) {
-        const key = keyOverride ?? (scenario === "offer" ? "faceValue" : "receiptAmount");
         setFields((x) => ({ ...x, [key]: fmtAmount(best) }));
         setOcrOptions(options);
         setOcrNote(
@@ -400,6 +427,8 @@ function NewPost() {
     ? "發佈緊…"
     : limitMsg
       ? "今日已經放夠，聽日再嚟"
+      : receiptBlocked
+        ? "張單唔係今日，放唔到"
       : priceBlocked && pc
         ? `價錢太高：最多 $${pc.cap}`
         : missing
@@ -596,10 +625,18 @@ function NewPost() {
                     className="w-full h-12 px-4 rounded-2xl border border-border bg-card outline-none"
                   />
                   <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-1 scrollbar-hide">
-                    {s.shopSuggestions.map((n) => (
+                    {(shops.length && shop.trim() && shopMatches(shop, shops).length
+                      ? shopMatches(shop, shops).map((x) => x.name)
+                      : s.shopSuggestions
+                    ).map((n) => (
                       <Chip key={n} active={shop === n} onClick={() => setShop(n)}>{n}</Chip>
                     ))}
                   </div>
+                  {mall && shops.length > 0 && normShop(shop).length >= 2 && !shopInList(shop, shops) && (
+                    <div className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900 leading-relaxed" data-testid="shop-not-in-mall">
+                      我哋 {mall.name} 嘅舖頭名單入面搵唔到「{shop.trim()}」。可能係我哋名單未齊，或者打錯字、身處另一個商場，自己睇清楚先放。
+                    </div>
+                  )}
                 </Section>
               )}
 
@@ -624,6 +661,30 @@ function NewPost() {
                     </button>
                   )}
                   {ocrNote && <div className="text-xs text-muted-foreground mt-1.5">{ocrNote}</div>}
+                  {s.id === "parking" && receiptCheck && (
+                    <div className="mt-2 space-y-1.5" data-testid="receipt-check">
+                      {receiptCheck.date.status === "other" ? (
+                        <div className="text-sm rounded-xl px-3 py-2.5 bg-red-50 text-red-800 leading-relaxed" data-testid="receipt-date-bad">
+                          <b>張單日期係 {receiptCheck.date.label}，唔係今日。</b>商場一般只收即日單據，所以放唔到。讀錯咗？再影清楚啲。
+                        </div>
+                      ) : receiptCheck.date.status === "unknown" ? (
+                        <div className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900">讀唔到張單日期。記得要係今日嘅單據先放。</div>
+                      ) : (
+                        <div className="text-xs text-[#1d6b47] font-semibold">✓ 張單係今日嘅</div>
+                      )}
+                      {receiptCheck.shop ? (
+                        <div className="text-xs text-[#1d6b47] font-semibold">✓ 張單係 {receiptCheck.shop.name}</div>
+                      ) : receiptCheck.otherMall && mall ? (
+                        <div className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900 leading-relaxed" data-testid="receipt-other-mall">
+                          張單好似係 {receiptCheck.otherMall.name} 嘅單，唔係 {mall.name}。可能係我哋讀錯，自己睇清楚張單係咪呢個商場嘅。
+                        </div>
+                      ) : shops.length > 0 && mall ? (
+                        <div className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900 leading-relaxed" data-testid="receipt-shop-unknown">
+                          張單上面搵唔到 {mall.name} 嘅舖頭名。可能係我哋讀唔到或者名單未齊，自己睇清楚張單係咪呢個商場嘅。
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
                   {ocrOptions.length > 1 && (
                     <div className="flex flex-wrap gap-2 mt-2">
                       {ocrOptions.map((n) => {
@@ -839,7 +900,7 @@ function NewPost() {
             )}
             <button
               onClick={submit}
-              disabled={!!missing || submitting || !!limitMsg || priceBlocked}
+              disabled={!!missing || submitting || !!limitMsg || priceBlocked || receiptBlocked}
               className="w-full h-14 rounded-2xl bg-[#F5C518] text-[#1a1a1a] font-black text-base shadow-lg disabled:opacity-50"
             >
               {submitLabel}

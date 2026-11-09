@@ -91,7 +91,13 @@ function detailLine(p: Post): string {
   switch (p.scenario) {
     case "parking":
       return p.direction === "have"
-        ? [f.receiptAmount ? `單據 $${f.receiptAmount}` : "", f.receiptCount && f.receiptCount !== "1 張" ? `${f.receiptCount}單` : "", f.receiptType ? String(f.receiptType) : ""].filter(Boolean).join("・")
+        ? [
+            f.receiptAmount ? `單據 $${f.receiptAmount}` : "",
+            f.receiptShop ? `${f.receiptShop}單` : "",
+            f.receiptDate ? "今日單據（影相讀到）" : "",
+            f.receiptCount && f.receiptCount !== "1 張" ? `${f.receiptCount}單` : "",
+            f.receiptType ? String(f.receiptType) : "",
+          ].filter(Boolean).join("・")
         : "";
     case "dining":
       return f.calling ? `而家叫到 ${f.calling}` : "";

@@ -51,6 +51,7 @@ export function useAahMalls() {
             r.redeem_source_url && r.redeem_place
               ? [r.redeem_floor, r.redeem_place].filter(Boolean).join(" ")
               : null,
+          shopsCount: r.shops_source_url && r.shops_count ? Number(r.shops_count) : 0,
           source: "db" as const,
         }));
       return rows;

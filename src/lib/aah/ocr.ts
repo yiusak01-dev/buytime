@@ -9,6 +9,8 @@ export type OcrAmounts = {
   best: number | null;
   /** 讀到嘅其他金額（包括 best），最似嘅排先，最多 4 個 */
   options: number[];
+  /** 讀到嘅全部字（用嚟睇單據日期同舖名；唔會上載） */
+  text?: string;
 };
 
 /**
@@ -35,7 +37,7 @@ export async function readAmountsFromImage(file: File): Promise<OcrAmounts> {
           for (const l of p.lines) lines.push({ text: l.text, h: Math.max(1, l.bbox.y1 - l.bbox.y0) / k });
       if (lines.length === before && data.text) for (const t of data.text.split(/\n+/)) lines.push({ text: t, h: 1 });
     }
-    return pickAmounts(lines);
+    return { ...pickAmounts(lines), text: lines.map((l) => l.text).join("\n") };
   } finally {
     await worker.terminate();
   }
