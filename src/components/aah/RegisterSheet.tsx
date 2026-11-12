@@ -61,7 +61,13 @@ export function RegisterSheet({
   useEffect(() => {
     if (open && !user.signedIn)
       setStep((s) =>
-        s === "checkEmail" ? "login" : s === "prefs" || s === "profile" ? first : !sms && (s === "start" || s === "otp") ? "signup" : s,
+        s === "checkEmail"
+          ? "login"
+          : s === "prefs" || s === "profile"
+            ? first
+            : !sms && (s === "start" || s === "otp")
+              ? "signup"
+              : s,
       );
     if (open && !user.registered) logEvent("register_start", { step: first });
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -286,8 +292,10 @@ export function RegisterSheet({
               onClick={() =>
                 run(async () => {
                   const r = await aah.signUpEmail(email.trim(), password, nickname.trim());
-                  if (r === "confirm") setStep("checkEmail");
-                  else setStep("prefs");
+                  if (r === "confirm") {
+                    setSentAt(Date.now());
+                    setStep("checkEmail");
+                  } else setStep("prefs");
                 })
               }
               className={primary}
@@ -360,7 +368,10 @@ export function RegisterSheet({
                 唔記得密碼？（先填 email）
               </button>
             )}
-            <button onClick={() => go(sms ? "start" : "signup")} className="w-full text-sm text-muted-foreground">
+            <button
+              onClick={() => go(sms ? "start" : "signup")}
+              className="w-full text-sm text-muted-foreground"
+            >
               {sms ? "用 SMS 登入" : "未有帳戶？用 email 登記"}
             </button>
           </>
@@ -371,12 +382,14 @@ export function RegisterSheet({
             <MailCheck className="w-12 h-12 mx-auto text-[#1E5C3F]" />
             <div className="font-bold">確認連結已經寄去 {email}</div>
             <p className="text-sm text-muted-foreground">
-              打開 email，撳「確認 email」掣，再撳「確認我嘅 email」，就會自動登入，用「{nickname}
+              打開 email，撳「確認 email」掣，再撳「確認我嘅 email」。確認完返嚟呢度登入，就會用「
+              {nickname}
               」做暱稱。
             </p>
             <p className="text-[11px] text-muted-foreground">
-              搵唔到就睇吓垃圾郵件。喺另一部機確認咗嘅話，返嚟呢度登入就得。
+              搵唔到就睇吓垃圾郵件。連結有時限，過咗期就再寄一次。
             </p>
+            {err && <p className="text-xs text-destructive">{err}</p>}
             <button
               onClick={() => go("login")}
               className={primary}
@@ -384,6 +397,20 @@ export function RegisterSheet({
             >
               已經確認，去登入
             </button>
+            <div className="text-sm" data-testid="resend-confirm">
+              <Resend
+                sentAt={sentAt}
+                disabled={busy}
+                label="冇收到？再寄一次"
+                onResend={() =>
+                  run(async () => {
+                    await aah.resendConfirm(email.trim());
+                    setSentAt(Date.now());
+                    toast.success("已經再寄，睇吓 email");
+                  })
+                }
+              />
+            </div>
           </div>
         )}
 
@@ -441,10 +468,12 @@ function Resend({
   sentAt,
   disabled,
   onResend,
+  label = "重新寄驗證碼",
 }: {
   sentAt: number;
   disabled: boolean;
   onResend: () => void;
+  label?: string;
 }) {
   const now = useNow(1000);
   const left = Math.max(0, Math.ceil((sentAt + 60_000 - now) / 1000));
@@ -455,7 +484,7 @@ function Resend({
       className="font-bold disabled:text-muted-foreground disabled:font-normal"
       style={left > 0 ? undefined : { color: STRONG }}
     >
-      {left > 0 ? `${left} 秒後可以重新寄` : "重新寄驗證碼"}
+      {left > 0 ? `${left} 秒後可以重新寄` : label}
     </button>
   );
 }

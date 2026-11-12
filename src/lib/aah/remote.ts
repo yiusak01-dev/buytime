@@ -5,6 +5,21 @@ import { limitText, rulesFromSettings, type Rules } from "./rules";
 import { deviceId, platformName } from "./device";
 
 /**
+ * Email 連結返去邊度。網頁版用自己個網址；原生 app 嘅網址係 localhost，email 入面開唔到，
+ * 所以一律用正式網站（確認完返 app 登入）。
+ */
+const WEB_BASE = "https://www.buytime.hk";
+function emailLinkBase(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
+  return cap?.isNativePlatform?.() ? WEB_BASE : window.location.origin;
+}
+const emailLink = (path: string) => {
+  const base = emailLinkBase();
+  return base ? `${base}${path}` : undefined;
+};
+
+/**
  * 雲端模式：所有 post、配對、傾偈存喺 Supabase（aah_* 資料表），
  * 用 realtime 同步，兩部電話之間即時見到。
  * 狀態變更全部經 security definer function（見 supabase/migrations/20261025*）。
@@ -323,7 +338,7 @@ export function createRemote(host: Host) {
       const { data, error } = await sb().auth.signUp({
         email,
         password,
-        options: { data: { name: nickname }, emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/confirm` : undefined },
+        options: { data: { name: nickname }, emailRedirectTo: emailLink("/confirm") },
       });
       if (error) throw error;
       // 已經註冊過嘅 email，Supabase 會回傳冇 identities 嘅 user
@@ -356,9 +371,15 @@ export function createRemote(host: Host) {
       return host.get().user.registered ? "done" : "need_profile";
     },
 
+    /** 冇收到確認 email：再寄一次（Supabase 限每個 email 60 秒一次） */
+    async resendConfirm(email: string) {
+      const { error } = await sb().auth.resend({ type: "signup", email, options: { emailRedirectTo: emailLink("/confirm") } });
+      if (error) throw error;
+    },
+
     async resetPassword(email: string) {
       const { error } = await sb().auth.resetPasswordForEmail(email, {
-        redirectTo: typeof window !== "undefined" ? `${window.location.origin}/reset-password` : undefined,
+        redirectTo: emailLink("/reset-password"),
       });
       if (error) throw error;
     },

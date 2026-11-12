@@ -1186,6 +1186,10 @@ export const aah = {
   async resetPassword(email: string) {
     if (isRemote()) await R().resetPassword(email);
   },
+  /** 再寄確認 email（示範模式冇嘢寄） */
+  async resendConfirm(email: string) {
+    if (isRemote()) await R().resendConfirm(email);
+  },
   async signOut() {
     if (isRemote()) await R().signOut();
   },
