@@ -1,0 +1,300 @@
+11-13 16:17:26.324   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{b40250d com.android.simappdialog.auto_generated_rro_product__/10030} BLOCKED
+11-13 16:17:26.324   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{aa7ecc2 com.android.htmlviewer/10115} BLOCKED
+11-13 16:17:26.324   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{3af1ad3 com.google.android.health.connect.backuprestore/10173} BLOCKED
+11-13 16:17:26.325   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{dece610 com.android.systemui.auto_generated_rro_product__/10031} BLOCKED
+11-13 16:17:26.329   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{28c130e com.google.android.apps.messaging/10129} BLOCKED
+11-13 16:17:26.330   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{adb75e6 com.google.android.soundpicker/10136} BLOCKED
+11-13 16:17:26.331   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{a4df340 com.google.android.marvin.talkbackoverlay/10077} BLOCKED
+11-13 16:17:26.331   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{6ce4279 com.google.android.configupdater/10130} BLOCKED
+11-13 16:17:26.331   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{a95bbe com.android.internal.emulation.pixel_3a_xl/10044} BLOCKED
+11-13 16:17:26.331   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{4bf036c com.android.internal.emulation.pixel_6_pro/10018} BLOCKED
+11-13 16:17:26.331   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{9e78d35 com.android.internal.emulation.pixel_7_pro/10004} BLOCKED
+11-13 16:17:26.332   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{450e33b com.android.internal.emulation.pixel_8_pro/10058} BLOCKED
+11-13 16:17:26.332   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{310c7b1 com.android.internal.emulation.pixel_3a/10053} BLOCKED
+11-13 16:17:26.332   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{ee32496 com.android.internal.emulation.pixel_4a/10011} BLOCKED
+11-13 16:17:26.332   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{de07817 com.android.internal.emulation.pixel_6a/10023} BLOCKED
+11-13 16:17:26.332   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{5f45404 com.android.internal.emulation.pixel_7a/10033} BLOCKED
+11-13 16:17:26.332   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{224f422 com.google.android.overlay.googlewebview/10049} BLOCKED
+11-13 16:17:26.332   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{6a7eb3 com.google.android.hotspot2.osulogin/10182} BLOCKED
+11-13 16:17:26.332   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{164ac70 com.android.simappdialog/10111} BLOCKED
+11-13 16:17:26.332   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{307bbe9 com.android.internal.display.cutout.emulation.hole/10073} BLOCKED
+11-13 16:17:26.332   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{4c2306e com.android.internal.display.cutout.emulation.tall/10065} BLOCKED
+11-13 16:17:26.332   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{484530f com.android.internal.systemui.navbar.threebutton/10068} BLOCKED
+11-13 16:17:26.332   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{a401f9c com.android.camera2/10145} BLOCKED
+11-13 16:17:26.333   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{5972da5 com.android.systemui.auto_generated_rro_vendor__/10076} BLOCKED
+11-13 16:17:26.333   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{3e4e57a com.google.android.deskclock/10152} BLOCKED
+11-13 16:17:26.333   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{cbd112b com.android.internal.systemui.navbar.twobutton/10020} BLOCKED
+11-13 16:17:26.333   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{9fd9988 com.google.android.as/10125} BLOCKED
+11-13 16:17:26.334   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{cf1ff21 com.google.android.gm/10143} BLOCKED
+11-13 16:17:26.334   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{34bdf46 com.android.internal.systemui.navbar.gestural_extra_wide_back/10045} BLOCKED
+11-13 16:17:26.335   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{b799507 com.android.systemui.emulation.pixel_3/10015} BLOCKED
+11-13 16:17:26.335   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{896c634 com.android.systemui.emulation.pixel_4/10037} BLOCKED
+11-13 16:17:26.335   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{8ce6c5d com.android.systemui.emulation.pixel_5/10071} BLOCKED
+11-13 16:17:26.335   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{a907aa3 com.android.systemui.emulation.pixel_6/10074} BLOCKED
+11-13 16:17:26.335   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{618a7cc com.android.systemui.emulation.pixel_7/10072} BLOCKED
+11-13 16:17:26.335   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{f67ca15 com.android.systemui.emulation.pixel_8/10070} BLOCKED
+11-13 16:17:26.335   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{1a12a com.android.nfc.auto_generated_rro_product__/10027} BLOCKED
+11-13 16:17:26.335   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{489b1b com.android.printspooler/10103} BLOCKED
+11-13 16:17:26.336   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{e74b8 com.android.emergency.auto_generated_rro_product__/10041} BLOCKED
+11-13 16:17:26.336   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{c07f291 com.google.android.connectivity.resources.goldfish.overlay/10079} BLOCKED
+11-13 16:17:26.336   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{870a5f6 com.android.dreams.basic/10104} BLOCKED
+11-13 16:17:26.337   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{1a826cd com.google.android.networkstack.tethering.emulator/10022} BLOCKED
+11-13 16:17:26.340  3420  3420 W hk.buytime.app: Accessing hidden method Landroid/os/Trace;->isTagEnabled(J)Z (unsupported, reflection, allowed)
+11-13 16:17:26.341   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{e55293 com.android.providers.settings.auto_generated_rro_product__/10002} BLOCKED
+11-13 16:17:26.341   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{17f22d0 com.google.android.as.oss/10122} BLOCKED
+11-13 16:17:26.341   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{c9d62c9 com.android.traceur.auto_generated_rro_product__/10005} BLOCKED
+11-13 16:17:26.341   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{3927dce com.google.android.devicelockcontroller/10186} BLOCKED
+11-13 16:17:26.341   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{30884ef com.google.android.dialer/10128} BLOCKED
+11-13 16:17:26.341   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{2fb9bfc com.android.internal.emulation.pixel_3/10046} BLOCKED
+11-13 16:17:26.341   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{f906285 com.android.internal.emulation.pixel_4/10060} BLOCKED
+11-13 16:17:26.341   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{65ca8da com.android.internal.emulation.pixel_5/10012} BLOCKED
+11-13 16:17:26.341   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{382810b com.android.internal.emulation.pixel_6/10038} BLOCKED
+11-13 16:17:26.341   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{b647be8 com.android.internal.emulation.pixel_7/10067} BLOCKED
+11-13 16:17:26.342   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{4f9a201 com.android.internal.emulation.pixel_8/10039} BLOCKED
+11-13 16:17:26.342   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{b6c78a6 com.google.android.captiveportallogin/10113} BLOCKED
+11-13 16:17:26.342   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{5622e7 com.android.musicfx/10088} BLOCKED
+11-13 16:17:26.342   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{8f96e94 com.google.android.apps.docs/10153} BLOCKED
+11-13 16:17:26.342   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{61cb9cf com.google.android.apps.maps/10155} BLOCKED
+11-13 16:17:26.342   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{ad80683 com.google.android.modulemetadata/10147} BLOCKED
+11-13 16:17:26.342   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{c48e000 com.google.android.markup/10135} BLOCKED
+11-13 16:17:26.342   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{f479039 com.android.providers.settings.auto_generated_rro_vendor__/10080} BLOCKED
+11-13 16:17:26.342   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{47ff67e com.google.android.rkpdapp/10178} BLOCKED
+11-13 16:17:26.342   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{b0a87df com.google.android.contacts/10154} BLOCKED
+11-13 16:17:26.342   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{e5bfc2c com.android.server.telecom.auto_generated_rro_product__/10032} BLOCKED
+11-13 16:17:26.343  3420  3420 W hk.buytime.app: Accessing hidden method Landroid/os/Trace;->traceBegin(JLjava/lang/String;)V (unsupported, reflection, allowed)
+11-13 16:17:26.343  3420  3420 W hk.buytime.app: Accessing hidden method Landroid/os/Trace;->traceEnd(J)V (unsupported, reflection, allowed)
+11-13 16:17:26.343  3420  3420 W hk.buytime.app: Accessing hidden method Landroid/os/Trace;->asyncTraceBegin(JLjava/lang/String;I)V (unsupported, reflection, allowed)
+11-13 16:17:26.343  3420  3420 W hk.buytime.app: Accessing hidden method Landroid/os/Trace;->asyncTraceEnd(JLjava/lang/String;I)V (unsupported, reflection, allowed)
+11-13 16:17:26.345   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{cb9c2fb com.google.android.overlay.googleconfig/10055} BLOCKED
+11-13 16:17:26.345   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{42e0d71 com.android.chrome/10150} BLOCKED
+11-13 16:17:26.345   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{61a5756 com.android.bips.auto_generated_rro_product__/10035} BLOCKED
+11-13 16:17:26.345   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{25793d7 com.google.android.apps.customization.pixel/10144} BLOCKED
+11-13 16:17:26.345   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{d9fa4c4 com.google.android.tag/10082} BLOCKED
+11-13 16:17:26.345   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{4c50fad com.google.android.overlay.permissioncontroller/10003} BLOCKED
+11-13 16:17:26.345   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{f7c92e2 com.google.android.partnersetup/10124} BLOCKED
+11-13 16:17:26.345   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{9979673 com.google.android.apps.wallpaper.nexus/10141} BLOCKED
+11-13 16:17:26.346   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{5544930 com.google.android.apps.nexuslauncher/10169} BLOCKED
+11-13 16:17:26.347   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{e4ff9a9 com.google.android.nearby.halfsheet/10175} BLOCKED
+11-13 16:17:26.347   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{7d4fb2e com.android.theme.font.notoserifsource/10066} BLOCKED
+11-13 16:17:26.347   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{dcb26cf com.google.android.safetycenter.resources/10170} BLOCKED
+11-13 16:17:26.347   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{86cc85c com.android.internal.display.cutout.emulation.waterfall/10040} BLOCKED
+11-13 16:17:26.347   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{e858765 com.android.internal.systemui.navbar.transparent/10029} BLOCKED
+11-13 16:17:26.347   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{b399c3a com.google.android.connectivity.resources/10174} BLOCKED
+11-13 16:17:26.347   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{3fd60eb com.android.providers.contacts.auto_generated_rro_product__/10019} BLOCKED
+11-13 16:17:26.347   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{72c0e48 com.google.android.feedback/10162} BLOCKED
+11-13 16:17:26.347   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{dcc34e1 com.google.android.printservice.recommendation/10110} BLOCKED
+11-13 16:17:26.347   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{f154206 com.google.android.apps.photos/10140} BLOCKED
+11-13 16:17:26.347   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{7e5f973 com.google.android.calendar/10142} BLOCKED
+11-13 16:17:26.347   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{ccf20c7 com.google.android.documentsui/10098} BLOCKED
+11-13 16:17:26.347   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{117c6f4 com.android.systemui.emulation.pixel_3a_xl/10021} BLOCKED
+11-13 16:17:26.347   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{a763e1d com.android.systemui.emulation.pixel_6_pro/10063} BLOCKED
+11-13 16:17:26.347   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{2b37892 com.android.systemui.emulation.pixel_7_pro/10054} BLOCKED
+11-13 16:17:26.347   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{8130263 com.android.systemui.emulation.pixel_8_pro/10001} BLOCKED
+11-13 16:17:26.347   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{6645e60 com.google.mainline.telemetry/10151} BLOCKED
+11-13 16:17:26.347   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{bbd9f19 com.android.carrierconfig.auto_generated_rro_product__/10064} BLOCKED
+11-13 16:17:26.348   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{c8c8bde com.android.providers.partnerbookmarks/10101} BLOCKED
+11-13 16:17:26.348   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{62961bf com.android.wallpaper.livepicker/10090} BLOCKED
+11-13 16:17:26.348   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{421008c com.android.providers.telephony.auto_generated_rro_product__/10062} BLOCKED
+11-13 16:17:26.348   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{88013d5 com.android.phone.auto_generated_rro_vendor__/10081} BLOCKED
+11-13 16:17:26.348   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{5187ea com.google.mainline.adservices/10137} BLOCKED
+11-13 16:17:26.348   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{31c5adb com.android.imsserviceentitlement/10117} BLOCKED
+11-13 16:17:26.348   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{7239978 com.google.android.healthconnect.controller/10172} BLOCKED
+11-13 16:17:26.348   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{dbb1851 com.android.internal.emulation.pixel_2_xl/10016} BLOCKED
+11-13 16:17:26.349   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{9b838b6 com.android.internal.emulation.pixel_3_xl/10056} BLOCKED
+11-13 16:17:26.349   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{77bc9b7 com.android.internal.emulation.pixel_4_xl/10047} BLOCKED
+11-13 16:17:26.349   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{1b4d524 com.android.internal.emulation.pixel_fold/10006} BLOCKED
+11-13 16:17:26.349   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{c7e88d com.android.bookmarkprovider/10114} BLOCKED
+11-13 16:17:26.349   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{8072a42 com.google.android.overlay.pixelconfigcommon/10014} BLOCKED
+11-13 16:17:26.349   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{661a88e com.android.systemui.accessibility.accessibilitymenu.auto_generated_rro_product__/10050} BLOCKED
+11-13 16:17:26.349   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{4c438af com.android.systemui.emulation.pixel_3a/10013} BLOCKED
+11-13 16:17:26.349   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{72ba4bc com.android.systemui.emulation.pixel_4a/10000} BLOCKED
+11-13 16:17:26.349   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{f2e9c45 com.android.systemui.emulation.pixel_6a/10042} BLOCKED
+11-13 16:17:26.349   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{5a5b0cb com.android.systemui.emulation.pixel_7a/10017} BLOCKED
+11-13 16:17:26.349   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{b6c50a8 com.google.android.settings.intelligence/10118} BLOCKED
+11-13 16:17:26.349   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{f08b942 com.google.android.projection.gearhead/10123} BLOCKED
+11-13 16:17:26.349   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{7dc8ea7 com.google.android.uwb.resources/10183} BLOCKED
+11-13 16:17:26.349   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{a352d53 com.android.cts.ctsshim/10177} BLOCKED
+11-13 16:17:26.349   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{ed10efd com.google.android.wifi.resources/10180} BLOCKED
+11-13 16:17:26.350   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{642a7f2 com.google.android.wifi.dialog/10181} BLOCKED
+11-13 16:17:26.350   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{b96e43 com.google.android.apps.wallpaper/10161} BLOCKED
+11-13 16:17:26.350   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{95e8cc0 com.google.android.odad/10121} BLOCKED
+11-13 16:17:26.350   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{8a49df9 com.android.settings.auto_generated_rro_product__/10028} BLOCKED
+11-13 16:17:26.350   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{dcf513e com.android.internal.systemui.navbar.gestural/10051} BLOCKED
+11-13 16:17:26.350   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{ffaab9f com.google.android.apps.youtube.music/10156} BLOCKED
+11-13 16:17:26.350   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{9ffb4ec com.android.bluetoothmidiservice/10108} BLOCKED
+11-13 16:17:26.350   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{58820b5 com.android.storagemanager.auto_generated_rro_product__/10026} BLOCKED
+11-13 16:17:26.350   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{5eb434a com.google.android.cellbroadcastreceiver/10185} BLOCKED
+11-13 16:17:26.350   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{8e862bb com.android.phone.auto_generated_rro_product__/10061} BLOCKED
+11-13 16:17:26.350   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{a933d8 android.auto_generated_rro_product__/10069} BLOCKED
+11-13 16:17:26.350   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{6e71331 com.android.internal.systemui.navbar.gestural_narrow_back/10052} BLOCKED
+11-13 16:17:26.350   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{1224a16 com.google.android.inputmethod.latin/10146} BLOCKED
+11-13 16:17:26.350   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{1306f97 android.auto_generated_rro_vendor__/10075} BLOCKED
+11-13 16:17:26.350   521   592 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{969b584 com.google.android.apps.restore/10119} BLOCKED
+11-13 16:17:26.368  3420  3571 I cr_VariationsUtils: Failed reading seed file "/data/user/0/hk.buytime.app/app_webview/variations_seed_new"
+11-13 16:17:26.368  3420  3571 I cr_VariationsUtils: Failed reading seed file "/data/user/0/hk.buytime.app/app_webview/variations_seed"
+11-13 16:17:26.572   521   552 I ActivityManager: Start proc 3597:com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0ai9000 for  {hk.buytime.app/org.chromium.content.app.SandboxedProcessService0:0}
+11-13 16:17:26.585   521   814 D ConnectivityService: requestNetwork for uid/pid:10192/3420 activeRequest: null callbackRequest: 84 [NetworkRequest [ REQUEST id=85, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10192 RequestorUid: 10192 RequestorPkg: hk.buytime.app UnderlyingNetworks: Null] ]] callback flags: 0 order: 2147483647
+11-13 16:17:26.631  3420  3420 D Capacitor: Starting BridgeActivity
+11-13 16:17:26.640   521   751 D WifiNetworkFactory: got request NetworkRequest [ REQUEST id=85, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10192 RequestorUid: 10192 RequestorPkg: hk.buytime.app UnderlyingNetworks: Null] ]
+11-13 16:17:26.640   521   751 D UntrustedWifiNetworkFactory: got request NetworkRequest [ REQUEST id=85, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10192 RequestorUid: 10192 RequestorPkg: hk.buytime.app UnderlyingNetworks: Null] ]
+11-13 16:17:26.640   521   751 D OemPaidWifiNetworkFactory: got request NetworkRequest [ REQUEST id=85, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10192 RequestorUid: 10192 RequestorPkg: hk.buytime.app UnderlyingNetworks: Null] ]
+11-13 16:17:26.640   521   751 D MultiInternetWifiNetworkFactory: got request NetworkRequest [ REQUEST id=85, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10192 RequestorUid: 10192 RequestorPkg: hk.buytime.app UnderlyingNetworks: Null] ]
+11-13 16:17:26.655  3420  3420 D Capacitor: Registering plugin instance: CapacitorCookies
+11-13 16:17:26.658  3420  3420 D Capacitor: Registering plugin instance: WebView
+11-13 16:17:26.662  3420  3420 D Capacitor: Registering plugin instance: CapacitorHttp
+11-13 16:17:26.668  3420  3420 D Capacitor: Registering plugin instance: SystemBars
+11-13 16:17:26.670  3420  3420 D Capacitor: Registering plugin instance: App
+11-13 16:17:26.671  3420  3420 D Capacitor: Registering plugin instance: Geolocation
+11-13 16:17:26.745  3420  3420 D Capacitor: Registering plugin instance: SplashScreen
+11-13 16:17:26.748  3420  3420 D Capacitor: Registering plugin instance: StatusBar
+11-13 16:17:26.779  3420  3420 V Capacitor/StatusBarPlugin: Notifying listeners for event statusBarOverlayChanged
+11-13 16:17:26.779  3420  3420 D Capacitor/StatusBarPlugin: No listeners found for event statusBarOverlayChanged
+11-13 16:17:26.780  3420  3420 V Capacitor/StatusBarPlugin: Notifying listeners for event statusBarOverlayChanged
+11-13 16:17:26.780  3420  3420 D Capacitor/StatusBarPlugin: No listeners found for event statusBarOverlayChanged
+11-13 16:17:26.824  3420  3420 W Capacitor: Unable to read file at path public/plugins
+11-13 16:17:26.839  3420  3420 D Capacitor: Loading app at https://localhost
+11-13 16:17:26.871  3420  3420 D Capacitor: App started
+11-13 16:17:26.880  3420  3420 D Capacitor/AppPlugin: Firing change: true
+11-13 16:17:26.880  3420  3420 V Capacitor/AppPlugin: Notifying listeners for event appStateChange
+11-13 16:17:26.880  3420  3420 D Capacitor/AppPlugin: No listeners found for event appStateChange
+11-13 16:17:26.881  3420  3420 D Capacitor: App resumed
+11-13 16:17:26.966  3420  3576 D Capacitor: Handling local request: https://localhost/
+11-13 16:17:27.202   521  2269 D CoreBackPreview: Window{ffa9b0c u0 hk.buytime.app/hk.buytime.app.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@5def266, mPriority=0, mIsAnimationCallback=false}
+11-13 16:17:27.272  3420  3420 V Capacitor/AppPlugin: Notifying listeners for event pause
+11-13 16:17:27.272  3420  3420 D Capacitor/AppPlugin: No listeners found for event pause
+11-13 16:17:27.272  3420  3420 D Capacitor: App paused
+11-13 16:17:27.277  3420  3420 D Capacitor/AppPlugin: Firing change: false
+11-13 16:17:27.277  3420  3420 V Capacitor/AppPlugin: Notifying listeners for event appStateChange
+11-13 16:17:27.278  3420  3420 D Capacitor/AppPlugin: No listeners found for event appStateChange
+11-13 16:17:27.278  3420  3420 D Capacitor: App stopped
+11-13 16:17:27.278  3420  3420 D Capacitor: Saving instance state!
+11-13 16:17:27.283  3420  3420 D Capacitor: App destroyed
+11-13 16:17:27.285   521   814 D CoreBackPreview: Window{ffa9b0c u0 hk.buytime.app/hk.buytime.app.MainActivity}: Setting back callback null
+11-13 16:17:27.301   521  2295 W InputManager-JNI: Input channel object 'ffa9b0c hk.buytime.app/hk.buytime.app.MainActivity (client)' was disposed without first being removed with the input manager!
+11-13 16:17:27.500  3420  3420 D Capacitor: Starting BridgeActivity
+11-13 16:17:27.503  3420  3420 D Capacitor: Registering plugin instance: CapacitorCookies
+11-13 16:17:27.504  3420  3420 D Capacitor: Registering plugin instance: WebView
+11-13 16:17:27.508  3420  3420 D Capacitor: Registering plugin instance: CapacitorHttp
+11-13 16:17:27.508  3420  3420 D Capacitor: Registering plugin instance: SystemBars
+11-13 16:17:27.509  3420  3420 D Capacitor: Registering plugin instance: App
+11-13 16:17:27.510  3420  3420 D Capacitor: Registering plugin instance: Geolocation
+11-13 16:17:27.513  3420  3420 D Capacitor: Registering plugin instance: SplashScreen
+11-13 16:17:27.514  3420  3420 D Capacitor: Registering plugin instance: StatusBar
+11-13 16:17:27.516  3420  3420 V Capacitor/StatusBarPlugin: Notifying listeners for event statusBarOverlayChanged
+11-13 16:17:27.516  3420  3420 D Capacitor/StatusBarPlugin: No listeners found for event statusBarOverlayChanged
+11-13 16:17:27.516  3420  3420 V Capacitor/StatusBarPlugin: Notifying listeners for event statusBarOverlayChanged
+11-13 16:17:27.516  3420  3420 D Capacitor/StatusBarPlugin: No listeners found for event statusBarOverlayChanged
+11-13 16:17:27.539  3420  3420 W Capacitor: Unable to read file at path public/plugins
+11-13 16:17:27.540  3420  3420 D Capacitor: Loading app at https://localhost
+11-13 16:17:27.547  3420  3577 D Capacitor: Handling local request: https://localhost/
+11-13 16:17:27.547  3420  3420 D Capacitor: App started
+11-13 16:17:27.562  3420  3420 D Capacitor/AppPlugin: Firing change: true
+11-13 16:17:27.562  3420  3420 V Capacitor/AppPlugin: Notifying listeners for event appStateChange
+11-13 16:17:27.562  3420  3420 D Capacitor/AppPlugin: No listeners found for event appStateChange
+11-13 16:17:27.562  3420  3420 D Capacitor: App resumed
+11-13 16:17:27.567  1040  1040 D CarrierSvcBindHelper: onPackageModified: hk.buytime.app
+11-13 16:17:27.625  1040  1410 D ImsResolver: maybeAddedImsService, packageName: hk.buytime.app
+11-13 16:17:27.697  3420  3577 D Capacitor: Handling local request: https://localhost/assets/index-4aYK4LRt.js
+11-13 16:17:27.716  3420  3578 D Capacitor: Handling local request: https://localhost/assets/index-CSo9jCDa.css
+11-13 16:17:27.908  3420  3420 W cr_AwContents: 	at com.getcapacitor.plugin.SystemBars.lambda$injectSafeAreaCSS$5(SystemBars.java:278)
+11-13 16:17:27.908  3420  3420 W cr_AwContents: 	at com.getcapacitor.plugin.SystemBars.$r8$lambda$TNHKhinwCcf5MkP4ahZdrUqtU1k(Unknown Source:0)
+11-13 16:17:27.908  3420  3420 W cr_AwContents: 	at com.getcapacitor.plugin.SystemBars$$ExternalSyntheticLambda2.run(D8$$SyntheticClass:0)
+11-13 16:17:27.930   521  2283 D CoreBackPreview: Window{f1e750 u0 hk.buytime.app/hk.buytime.app.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@b545b29, mPriority=0, mIsAnimationCallback=false}
+11-13 16:17:28.051  3420  3420 W cr_AwContents: 	at com.getcapacitor.cordova.MockCordovaWebViewImpl.lambda$eval$0(MockCordovaWebViewImpl.java:189)
+11-13 16:17:28.051  3420  3420 W cr_AwContents: 	at com.getcapacitor.cordova.MockCordovaWebViewImpl.$r8$lambda$4KdV8CYlWQxu6zbahMKlKsvDFpM(Unknown Source:0)
+11-13 16:17:28.051  3420  3420 W cr_AwContents: 	at com.getcapacitor.cordova.MockCordovaWebViewImpl$$ExternalSyntheticLambda1.run(D8$$SyntheticClass:0)
+11-13 16:17:28.228  3420  3420 W Capacitor/Console: File: https://localhost/assets/index-4aYK4LRt.js - Line 19 - Msg: GoTrueClient@sb-oadwfgujhjqgnydigwux-auth-token:1 (2.118.0) 2026-11-13T16:17:28.218Z Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+11-13 16:17:28.505  3420  3578 D Capacitor: Handling local request: https://localhost/assets/esm-BSvW-Qpl.js
+11-13 16:17:28.518  3420  3578 D Capacitor: Handling local request: https://localhost/assets/esm-BfY1Liqp.js
+11-13 16:17:28.527  3420  3578 D Capacitor: Handling local request: https://localhost/assets/esm-Btf5-ejb.js
+11-13 16:17:28.674  3420  3577 D Capacitor: Handling local request: https://localhost/favicon-32.png
+11-13 16:17:29.163  3420  3420 I Capacitor/Console: File:  - Line 349 - Msg: [object Object]
+11-13 16:17:29.172  3420  3420 V Capacitor/Plugin: To native (Capacitor plugin): callbackId: 49037133, pluginId: StatusBar, methodName: setStyle
+11-13 16:17:29.174  3420  3420 V Capacitor: callback: 49037133, pluginId: StatusBar, methodName: setStyle, methodData: {"style":"LIGHT"}
+11-13 16:17:29.254   521  2295 I WindowManager: finishDrawing of relaunch: Window{f1e750 u0 hk.buytime.app/hk.buytime.app.MainActivity} 3712ms
+11-13 16:17:29.258   521   539 W ziparchive: Unable to open '/data/app/~~lUQ0fi6iTUSpgi6FxiqoCQ==/hk.buytime.app-qZxcy8l_WG_90980m10_eg==/base.dm': No such file or directory
+11-13 16:17:29.323  3420  3420 I Capacitor/Console: File:  - Line 333 - Msg: undefined
+11-13 16:17:29.324  3420  3420 I Capacitor/Console: File:  - Line 349 - Msg: [object Object]
+11-13 16:17:29.325  3420  3420 V Capacitor/Plugin: To native (Capacitor plugin): callbackId: 49037134, pluginId: StatusBar, methodName: setBackgroundColor
+11-13 16:17:29.325  3420  3420 V Capacitor: callback: 49037134, pluginId: StatusBar, methodName: setBackgroundColor, methodData: {"color":"#FFFFFF"}
+11-13 16:17:29.333   521  2256 I ImeTracker: hk.buytime.app:1f00c691: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_UNSPECIFIED_WINDOW
+11-13 16:17:29.333   521  2256 I ImeTracker: hk.buytime.app:1f00c691: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-13 16:17:29.340   521   539 I ActivityTaskManager: Displayed hk.buytime.app/.MainActivity for user 0: +4s753ms
+11-13 16:17:29.359  1528  1528 I GoogleInputMethodService: GoogleInputMethodService.onStartInput():1877 onStartInput(EditorInfo{inputType=0x0(NULL) imeOptions=0x12000000 privateImeOptions=null actionName=UNSPECIFIED actionLabel=null actionId=0 initialSelStart=-1 initialSelEnd=-1 initialCapsMode=0x0 hintText=null label=null packageName=hk.buytime.app fieldId=0 fieldName=null extras=null}, false)
+11-13 16:17:29.795  1587  1587 I AiAiEcho: AppFetcherImplV2 updateApps package:[hk.buytime.app], userId:[0], reason:[package is added.].
+11-13 16:17:30.107   521  2283 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{f6507e9 com.google.android.gm/10143} BLOCKED
+11-13 16:17:30.208  3420  3818 W hk.buytime.app: Long monitor contention with owner ThreadPoolForeg (3576) at android.content.IContentProvider android.app.ActivityThread.acquireProvider(android.content.Context, java.lang.String, int, boolean)(ActivityThread.java:7330) waiters=0 in android.content.IContentProvider android.app.ActivityThread.acquireProvider(android.content.Context, java.lang.String, int, boolean) for 2.127s
+11-13 16:17:30.432  3420  3420 I Capacitor/Console: File:  - Line 333 - Msg: undefined
+11-13 16:17:30.433  3420  3420 I Capacitor/Console: File:  - Line 349 - Msg: [object Object]
+11-13 16:17:30.450  3420  3420 V Capacitor/Plugin: To native (Capacitor plugin): callbackId: 49037135, pluginId: SplashScreen, methodName: hide
+11-13 16:17:30.450  3420  3420 V Capacitor: callback: 49037135, pluginId: SplashScreen, methodName: hide, methodData: {}
+11-13 16:17:30.618   521  2036 W InputManager-JNI: Input channel object 'd9e5e59 Splash Screen hk.buytime.app (client)' was disposed without first being removed with the input manager!
+11-13 16:17:30.948  3420  3420 I Capacitor/Console: File:  - Line 333 - Msg: undefined
+11-13 16:17:30.950  3420  3420 I Capacitor/Console: File:  - Line 349 - Msg: [object Object]
+11-13 16:17:30.952  3420  3420 V Capacitor/Plugin: To native (Capacitor plugin): callbackId: 49037136, pluginId: App, methodName: addListener
+11-13 16:17:30.961  3420  3420 V Capacitor: callback: 49037136, pluginId: App, methodName: addListener, methodData: {"eventName":"backButton"}
+11-13 16:17:30.964  3420  3420 I Capacitor/Console: File:  - Line 349 - Msg: [object Object]
+11-13 16:17:30.964  3420  3420 V Capacitor/Plugin: To native (Capacitor plugin): callbackId: 49037137, pluginId: App, methodName: addListener
+11-13 16:17:30.964  3420  3420 V Capacitor: callback: 49037137, pluginId: App, methodName: addListener, methodData: {"eventName":"appUrlOpen"}
+11-13 16:17:31.678  1587  1587 I AiAiEcho: AppFetcherImpl onPackageChanged hk.buytime.app.
+11-13 16:17:31.679  1587  2864 I AiAiEcho: AppIndexer Package:[hk.buytime.app] UserProfile:[0] Enabled:[true].
+11-13 16:17:31.679  1587  2864 I AiAiEcho: AppFetcherImplV2 updateApps package:[hk.buytime.app], userId:[0], reason:[package is updated.].
+11-13 16:17:32.310   521  2722 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{c5a15e2 com.google.android.settings.intelligence/10118} BLOCKED
+11-13 16:17:32.382   521   574 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{aac229a com.google.android.googlequicksearchbox/10132} BLOCKED
+11-13 16:17:32.384   521   574 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{837543 com.android.camera2/10145} BLOCKED
+11-13 16:17:32.385   521   574 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{a8587c0 com.google.android.gm/10143} BLOCKED
+11-13 16:17:32.385   521   574 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{8b77cf9 com.google.android.devicelockcontroller/10186} BLOCKED
+11-13 16:17:32.386   521   574 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{822664a com.google.android.rkpdapp/10178} BLOCKED
+11-13 16:17:32.386   521   574 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{b0a87df com.google.android.contacts/10154} BLOCKED
+11-13 16:17:32.386   521   574 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{4a3aa6b com.google.android.projection.gearhead/10123} BLOCKED
+11-13 16:17:32.387   521   574 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{ffaab9f com.google.android.apps.youtube.music/10156} BLOCKED
+11-13 16:17:33.023  3420  4238 D ProfileInstaller: Installing profile for hk.buytime.app
+11-13 16:17:34.908  3825  3966 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{hk.buytime.app/hk.buytime.app.MainActivity}
+11-13 16:17:42.726   521   574 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{3738741 com.google.android.googlequicksearchbox/10132} BLOCKED
+11-13 16:17:42.726   521   574 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{8ac94e6 com.google.android.apps.messaging/10129} BLOCKED
+11-13 16:17:42.726   521   574 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{6bdaa27 com.google.android.gm/10143} BLOCKED
+11-13 16:17:42.726   521   574 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{9c384d4 com.google.android.settings.intelligence/10118} BLOCKED
+11-13 16:17:45.675   521   971 I ActivityTaskManager: START u0 {act=android.intent.action.VIEW dat=hk.buytime.app://me/... flg=0x10000000 pkg=hk.buytime.app cmp=hk.buytime.app/.MainActivity} with LAUNCH_SINGLE_TASK from uid 2000 (BAL_ALLOW_PERMISSION) result code=3
+11-13 16:17:45.675  3420  3420 V Capacitor/AppPlugin: Notifying listeners for event pause
+11-13 16:17:45.675  3420  3420 D Capacitor/AppPlugin: No listeners found for event pause
+11-13 16:17:45.675  3420  3420 D Capacitor: App paused
+11-13 16:17:45.676  3420  3420 V Capacitor/AppPlugin: Notifying listeners for event appUrlOpen
+11-13 16:17:45.678  3420  3420 D Capacitor/AppPlugin: Firing change: true
+11-13 16:17:45.679  3420  3420 V Capacitor/AppPlugin: Notifying listeners for event appStateChange
+11-13 16:17:45.680  3420  3420 D Capacitor/AppPlugin: No listeners found for event appStateChange
+11-13 16:17:45.680  3420  3420 V Capacitor/AppPlugin: Notifying listeners for event resume
+11-13 16:17:45.680  3420  3420 D Capacitor/AppPlugin: No listeners found for event resume
+11-13 16:17:45.680  3420  3420 D Capacitor: App resumed
+11-13 16:17:45.694   825   859 D WindowManagerShell: onActivityRestartAttempt: ComponentInfo{hk.buytime.app/hk.buytime.app.MainActivity}
+11-13 16:17:45.697  3420  3420 I Capacitor/Console: File:  - Line 333 - Msg: {"url":"hk.buytime.app://me"}
+11-13 16:17:45.769  3420  3576 D Capacitor: Handling local request: https://localhost/favicon-32.png
+11-13 16:17:46.552  1445  1487 I BlockstoreStorage: Clearing Blockstore Data for package hk.buytime.app [CONTEXT service_id=258 ]
+11-13 16:17:50.032   521   535 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{769aa92 com.google.android.settings.intelligence/10118} BLOCKED
+11-13 16:17:52.918   521   574 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{2ac8943 com.google.android.youtube/10138} BLOCKED
+11-13 16:17:52.918   521   574 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{21b0bc0 com.google.android.apps.messaging/10129} BLOCKED
+11-13 16:17:52.918   521   574 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{998b0f9 com.google.android.as/10125} BLOCKED
+11-13 16:17:52.918   521   574 I AppsFilter: interaction: PackageSetting{e6e5a9d hk.buytime.app/10192} -> PackageSetting{2f1d782 com.google.android.apps.maps/10155} BLOCKED
+11-13 16:17:54.450  3420  3420 V Capacitor/AppPlugin: Notifying listeners for event pause
+11-13 16:17:54.450  3420  3420 D Capacitor/AppPlugin: No listeners found for event pause
+11-13 16:17:54.450  3420  3420 D Capacitor: App paused
+11-13 16:17:54.450   521   535 I ActivityTaskManager: START u0 {act=android.intent.action.VIEW dat=hk.buytime.app://terms/... flg=0x10000000 pkg=hk.buytime.app cmp=hk.buytime.app/.MainActivity} with LAUNCH_SINGLE_TASK from uid 2000 (BAL_ALLOW_PERMISSION) result code=3
+11-13 16:17:54.450  3420  3420 V Capacitor/AppPlugin: Notifying listeners for event appUrlOpen
+11-13 16:17:54.456  3420  3420 D Capacitor/AppPlugin: Firing change: true
+11-13 16:17:54.456  3420  3420 V Capacitor/AppPlugin: Notifying listeners for event appStateChange
+11-13 16:17:54.456  3420  3420 D Capacitor/AppPlugin: No listeners found for event appStateChange
+11-13 16:17:54.456  3420  3420 V Capacitor/AppPlugin: Notifying listeners for event resume
+11-13 16:17:54.456  3420  3420 D Capacitor/AppPlugin: No listeners found for event resume
+11-13 16:17:54.456  3420  3420 D Capacitor: App resumed
+11-13 16:17:54.457  3420  3420 I Capacitor/Console: File:  - Line 333 - Msg: {"url":"hk.buytime.app://terms"}
+11-13 16:17:54.457   825   859 D WindowManagerShell: onActivityRestartAttempt: ComponentInfo{hk.buytime.app/hk.buytime.app.MainActivity}
+11-13 16:17:54.575  3420  3576 D Capacitor: Handling local request: https://localhost/favicon-32.png
+11-13 16:17:55.685   521  2669 I ActivityManager: Killing 3420:hk.buytime.app/u0a192 (adj 0): depends on provider com.google.android.gms/.fonts.provider.FontsProvider in dying proc com.google.android.gms.persistent (adj -10000)
+11-13 16:17:55.807   521   536 I ImeTracker: hk.buytime.app:d10859d8: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_REMOVE_CLIENT
+11-13 16:17:55.811   521   899 I WindowManager: WIN DEATH: Window{f1e750 u0 hk.buytime.app/hk.buytime.app.MainActivity}
+11-13 16:17:55.812   521   758 D ConnectivityService: releasing NetworkRequest [ REQUEST id=85, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10192 RequestorUid: 10192 RequestorPkg: hk.buytime.app UnderlyingNetworks: Null] ] (release request)
+11-13 16:17:55.814   521   536 I ImeTracker: hk.buytime.app:d10859d8: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-13 16:17:55.824   521   899 W InputManager-JNI: Input channel object 'f1e750 hk.buytime.app/hk.buytime.app.MainActivity (client)' was disposed without first being removed with the input manager!
+11-13 16:17:55.851   521  2184 W ActivityManager: Exception when unbinding service hk.buytime.app/org.chromium.content.app.SandboxedProcessService0:0
+11-13 16:17:55.863   521  2184 W ActivityTaskManager: Force removing ActivityRecord{170a80a u0 hk.buytime.app/.MainActivity t8}: app died, no saved state
+11-13 16:17:55.869   825   859 V WindowManagerShell: Transition requested: android.os.BinderProxy@2d4fed0 TransitionRequestInfo { type = CLOSE, triggerTask = TaskInfo{userId=0 taskId=8 displayId=0 isRunning=true baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=hk.buytime.app/.MainActivity } baseActivity=ComponentInfo{hk.buytime.app/hk.buytime.app.MainActivity} topActivity=ComponentInfo{hk.buytime.app/hk.buytime.app.MainActivity} origActivity=null realActivity=ComponentInfo{hk.buytime.app/hk.buytime.app.MainActivity} numActivities=1 lastActiveTime=39527 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{android.window.IWindowContainerToken$Stub$Proxy@f340ec9} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 128 - 0, 0) topActivityInfo=ActivityInfo{e21b9ce hk.buytime.app.MainActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=true isVisible=true isVisibleRequested=true isSleeping=false topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= false topActivityLetterboxed= false isFromDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 locusId=null displayAreaFeatureId=1 cameraCompatControlState=hidden}, remoteTransition = null, displayChange = null }
+11-13 16:17:57.182   521   539 V WindowManager: Sent Transition #10 createdAt=11-13 16:17:55.863 via request=TransitionRequestInfo { type = CLOSE, triggerTask = TaskInfo{userId=0 taskId=8 displayId=0 isRunning=true baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=hk.buytime.app/.MainActivity } baseActivity=ComponentInfo{hk.buytime.app/hk.buytime.app.MainActivity} topActivity=ComponentInfo{hk.buytime.app/hk.buytime.app.MainActivity} origActivity=null realActivity=ComponentInfo{hk.buytime.app/hk.buytime.app.MainActivity} numActivities=1 lastActiveTime=39527 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{RemoteToken{5759b89 Task{7d0f674 #8 type=standard A=10192:hk.buytime.app}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 128 - 0, 0) topActivityInfo=ActivityInfo{d6d278e hk.buytime.app.MainActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=true isVisible=true isVisibleRequested=true isSleeping=false topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= false topActivityLetterboxed= false isFromDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 locusId=null displayAreaFeatureId=1 cameraCompatControlState=hidden}, remoteTransition = null, displayChange = null }
