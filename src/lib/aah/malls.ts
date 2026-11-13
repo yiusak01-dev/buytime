@@ -43,7 +43,13 @@ export function useAahMalls() {
           condWeekday: r.weekday_parking_cond ?? null,
           // Excel 有時假日欄寫「同左」＝同平日一樣
           condWeekend: (r.holiday_parking_cond && !/^\s*同(左|上|平日)\s*$/.test(r.holiday_parking_cond) ? r.holiday_parking_cond : r.weekday_parking_cond) ?? null,
-          rateWeekday: r.hourly_rate_weekday_num != null ? Number(r.hourly_rate_weekday_num) : null,
+          // 時租數字欄冇就試讀文字欄（例如「30.0」）；伺服器 aah__mall_rate 用同一個計法
+          rateWeekday:
+            Number(r.hourly_rate_weekday_num) > 0
+              ? Number(r.hourly_rate_weekday_num)
+              : /^\s*\$?\d+(\.\d+)?\s*$/.test(String(r.hourly_rate_weekday ?? ""))
+                ? Number(String(r.hourly_rate_weekday).replace(/[^\d.]/g, ""))
+                : null,
           rateWeekend: r.hourly_rate_holiday_num != null ? Number(r.hourly_rate_holiday_num) : r.hourly_rate_weekend != null ? Number(r.hourly_rate_weekend) : null,
           stacking: r.supports_stacking ?? null,
           traffic: r.traffic_score != null ? Number(r.traffic_score) : 0,

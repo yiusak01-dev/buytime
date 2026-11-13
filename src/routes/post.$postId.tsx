@@ -108,9 +108,10 @@ function detailLine(p: Post): string {
   }
 }
 
-/** 唔支持炒飛：價錢高過參考價就講（參考價喺管理頁設定，留空就唔顯示） */
+/** 唔支持炒飛：泊車優惠單據價錢高過參考價（商場時租 × 比例 × 鐘數）就講；冇時租資料就唔顯示 */
 function FairPriceNote({ post, who }: { post: Post; who: "buyer" | "seller" }) {
-  const pc = postPriceCheck(post, getRules());
+  const { malls } = useAahMalls();
+  const pc = postPriceCheck(post, getRules(), malls.find((m) => m.id === post.mallId));
   if (!pc || pc.level === "ok") return null;
   return (
     <div data-testid="fair-price-note" className="text-sm rounded-2xl px-4 py-3 bg-amber-50 text-amber-900 border border-amber-200 leading-relaxed">

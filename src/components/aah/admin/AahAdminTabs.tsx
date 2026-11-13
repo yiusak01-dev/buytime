@@ -586,15 +586,14 @@ export function AahAdminLogTab() {
 
 /* ================= 設定（參考價、每日上限、開關） ================= */
 
-type SettingDef = { key: string; label: string; hint?: string; kind: "money" | "int" | "multiple" | "bool"; required?: boolean; unit?: string };
+type SettingDef = { key: string; label: string; hint?: string; kind: "money" | "int" | "multiple" | "ratio" | "bool"; required?: boolean; unit?: string };
 
 const SETTING_GROUPS: { title: string; note?: string; items: SettingDef[] }[] = [
   {
-    title: "唔支持炒飛：參考價",
-    note: "留空 = 唔限。超過參考價會提醒放嘅人同要嘅人；超過下面嗰個倍數就放唔到。優惠券同夾單唔管。",
+    title: "唔支持炒飛：泊車優惠單據參考價",
+    note: "參考價 = 商場停車場時租 × 下面嘅比例 × 換到幾多個鐘（星期六日用假日時租）。超過參考價會提醒放嘅人同要嘅人；超過倍數就放唔到。商場冇時租資料就冇參考價。餐廳排隊飛、優惠券同夾單唔管。",
     items: [
-      { key: "dining_ref_per_person", label: "餐廳排隊飛多謝費參考價", unit: "每位 $", kind: "money" },
-      { key: "parking_ref_per_hour", label: "泊車優惠單據參考價", unit: "每個鐘 $", kind: "money" },
+      { key: "parking_ref_rate_factor", label: "時租比例", hint: "0.5 = 時租一半；1 = 時租全數", unit: "倍時租", kind: "ratio", required: true },
       { key: "price_block_multiple", label: "超過參考價幾多倍唔俾放", unit: "倍", kind: "multiple", required: true },
     ],
   },
@@ -655,6 +654,7 @@ export function AahSettingsTab() {
         if (!Number.isFinite(n) || n <= 0) return toast.error(`「${it.label}」要係大過 0 嘅數字`);
         if (it.kind === "int" && !Number.isInteger(n)) return toast.error(`「${it.label}」要係整數`);
         if (it.kind === "multiple" && n < 1) return toast.error("倍數最少 1");
+        if (it.kind === "ratio" && n > 5) return toast.error("時租比例最多 5");
         rows.push({ key: it.key, value: n });
       }
     setBusy(true);
@@ -699,7 +699,10 @@ export function AahSettingsTab() {
                   </label>
                 ) : (
                   <label key={it.key} className="block space-y-1">
-                    <span className="text-sm">{it.label}</span>
+                    <span className="text-sm">
+                      {it.label}
+                      {it.hint && <span className="block text-[11px] text-muted-foreground">{it.hint}</span>}
+                    </span>
                     <span className="flex items-center gap-2">
                       {it.unit?.endsWith("$") && <span className="text-xs text-muted-foreground shrink-0">{it.unit}</span>}
                       <input

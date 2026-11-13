@@ -1241,12 +1241,13 @@ export const aah = {
         .catch(() => {});
   },
 
-  async createPost(input: Parameters<typeof local.createPost>[0]): Promise<Post> {
+  /** opts.mallRate：商場今日時租，示範模式用嚟計泊車參考價（正式版由伺服器自己查） */
+  async createPost(input: Parameters<typeof local.createPost>[0], opts?: { mallRate?: number | null }): Promise<Post> {
     if (!isRemote()) {
       // 示範模式都跟正式版一樣嘅上限同封頂（正式版由伺服器檢查）
       const limit = dailyLimitMessage(state.posts, state.user.id, input, settings);
       if (limit) throw new Error(limit);
-      const pc = priceCheck({ ...input, partySize: input.fields.partySize, hours: input.fields.hours }, settings);
+      const pc = priceCheck({ ...input, hours: input.fields.hours, rate: opts?.mallRate }, settings);
       if (pc?.level === "blocked") throw new Error(`price too high ${pc.cap}`);
     }
     return isRemote() ? R().createPost(input) : local.createPost(input);

@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { LegalPage, Bullets, type LegalSection } from "@/components/aah/LegalPage";
 import { isNativeApp } from "@/lib/aah/push";
 import { getRules } from "@/lib/aah/store";
-import { multipleWord } from "@/lib/aah/rules";
+import { factorWord, multipleWord } from "@/lib/aah/rules";
 
 export const Route = createFileRoute("/help")({
   head: () => ({
@@ -24,7 +24,10 @@ const sections = (native: boolean): LegalSection[] => {
           <p>
             商場入面成日有人用唔着嘅嘢，例如泊車優惠單據（商場消費單，夠數可以換免費泊車）、餐廳排隊飛、優惠券；又有人啱啱用得着。
           </p>
-          <p>好多嘢我哋越嚟越冇得揀，但呢啲嘢點樣分，其實我哋自己揀得。去到商場打開 app，就見到身邊有咩，亦可以搵人一齊夾單。</p>
+          <p>
+            好多嘢我哋越嚟越冇得揀，但呢啲嘢點樣分，其實我哋自己揀得。去到商場打開
+            app，就見到身邊有咩，亦可以搵人一齊夾單。
+          </p>
         </>
       ),
     },
@@ -32,7 +35,8 @@ const sections = (native: boolean): LegalSection[] => {
       title: "要唔要錢？",
       body: (
         <p>
-          唔使。啱啱好唔收交易費、唔收手續費、唔抽佣。你同對方點俾錢（現金、PayMe、轉數快、八達通）由你哋自己傾，平台唔經手。我哋靠 app 入面嘅廣告維持。
+          唔使。啱啱好唔收交易費、唔收手續費、唔抽佣。你同對方點俾錢（現金、PayMe、轉數快、八達通）由你哋自己傾，平台唔經手。我哋靠
+          app 入面嘅廣告維持。
         </p>
       ),
     },
@@ -56,7 +60,8 @@ const sections = (native: boolean): LegalSection[] => {
           items={[
             "唔可以。啱啱好唔支持炒飛同黃牛。",
             "餐廳排隊飛收嘅錢叫「多謝費」，係多謝對方讓飛，唔係賣飛。",
-            `餐廳排隊飛同泊車優惠單據有參考價：高過會提醒；高過參考價${multipleWord(r.priceBlockMultiple)}就放唔到。`,
+            "餐廳排隊飛冇參考價，多謝費自己定，免費都得。",
+            `泊車優惠單據有參考價，按商場停車場時租計（${factorWord(r.parkingRefRateFactor)} × 換到幾多個鐘）：高過會提醒；高過參考價${multipleWord(r.priceBlockMultiple)}就放唔到。`,
             `每人每日最多放 ${r.limitDiningPerDay} 張餐廳排隊飛（同一間分店 ${r.limitDiningBranchPerDay} 張）、${r.limitParkingPerDay} 張泊車優惠單據。手上同時有幾多張冇問題，淨係限每日放幾多。`,
             "見到有人炒賣、見面先話要加錢，撳旗仔舉報。我哋冇辦法保證完全冇黃牛，但見到就封。",
             "放嘅舖頭或者餐廳唔喺我哋嗰個商場嘅名單，app 會提醒你。可能係我哋名單未齊，照樣放得，但自己睇清楚。",
@@ -81,7 +86,9 @@ const sections = (native: boolean): LegalSection[] => {
       title: "點解要開定位？",
       body: (
         <p>
-          App 要知道你喺邊個商場，先可以顯示身邊嘅着數，同埋證明你真係喺度。其他人只會見到你喺邊個商場，唔會見到你嘅確實位置；我哋亦唔會儲存你嘅 GPS 座標。
+          App
+          要知道你喺邊個商場，先可以顯示身邊嘅着數，同埋證明你真係喺度。其他人只會見到你喺邊個商場，唔會見到你嘅確實位置；我哋亦唔會儲存你嘅
+          GPS 座標。
         </p>
       ),
     },
@@ -126,7 +133,8 @@ const sections = (native: boolean): LegalSection[] => {
       title: "我嘅資料點用？",
       body: (
         <p>
-          用嚟配對、防濫用、改善 app 同揀顯示咩廣告。推廣通知預設唔開，你開咗先會收。冇你同意，我哋唔會將認得出你嘅資料俾廣告商。詳細睇
+          用嚟配對、防濫用、改善 app
+          同揀顯示咩廣告。推廣通知預設唔開，你開咗先會收。冇你同意，我哋唔會將認得出你嘅資料俾廣告商。詳細睇
           <Link to="/privacy" className="underline mx-0.5">
             私隱政策
           </Link>
@@ -154,7 +162,8 @@ const sections = (native: boolean): LegalSection[] => {
       title: "點樣刪除帳戶？",
       body: (
         <p>
-          去「我的配對」→「帳戶」→「刪除帳戶」。有進行中嘅配對要先完成或者取消。已經刪咗 app 都可以電郵 support@buytime.hk 要求刪除（見私隱政策）。
+          去「我的配對」→「帳戶」→「刪除帳戶」。有進行中嘅配對要先完成或者取消。已經刪咗 app
+          都可以電郵 support@buytime.hk 要求刪除（見私隱政策）。
         </p>
       ),
     },

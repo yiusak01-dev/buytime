@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { LegalPage, Bullets, type LegalSection } from "@/components/aah/LegalPage";
 import { getRules } from "@/lib/aah/store";
-import { multipleWord } from "@/lib/aah/rules";
+import { factorWord, multipleWord } from "@/lib/aah/rules";
 
 export const Route = createFileRoute("/terms")({
   head: () => ({
@@ -22,7 +22,8 @@ const sections = (): LegalSection[] => {
       body: (
         <>
           <p>
-            啱啱好（BuyTime，下面叫「我哋」或者「平台」）幫同一個商場、同一時間嘅人，將用唔着嘅泊車優惠單據、餐廳排隊飛、優惠券，同埋夾單，分俾啱啱用得着嘅人。
+            啱啱好（BuyTime）由 Lai King Wa
+            以個人身份營運（下面叫「我哋」或者「平台」）幫同一個商場、同一時間嘅人，將用唔着嘅泊車優惠單據、餐廳排隊飛、優惠券，同埋夾單，分俾啱啱用得着嘅人。
           </p>
           <p>
             我哋只係提供資訊同配對工具。交收係你同對方之間嘅事，我哋唔係買賣任何一方，唔代任何人賣、買或者保證任何嘢。
@@ -72,9 +73,13 @@ const sections = (): LegalSection[] => {
             items={[
               "餐廳排隊飛收嘅錢叫「多謝費」，係對方多謝你讓飛，唔係賣飛。",
               <>
-                餐廳排隊飛（按人數）同泊車優惠單據（按可換幾多個鐘）有參考價。高過參考價，我哋會提醒放嘅人同要嘅人；高過參考價
-                {multipleWord(r.priceBlockMultiple)}，就放唔到。參考價由我哋定，會不時調整。
+                泊車優惠單據有參考價，按商場停車場時租計：參考價 ={" "}
+                {factorWord(r.parkingRefRateFactor)} ×
+                換到幾多個鐘（星期六日用假日時租）。高過參考價，我哋會提醒放嘅人同要嘅人；高過參考價
+                {multipleWord(r.priceBlockMultiple)}
+                ，就放唔到。我哋未有時租資料嘅商場冇參考價。計法由我哋定，會不時調整。
               </>,
+              "餐廳排隊飛冇參考價，多謝費由你自己定，免費都得；但唔可以炒賣。",
               <>
                 每日上限（香港時間每日 0 點重新計，取消咗都計）：每人每日最多放{" "}
                 {r.limitDiningPerDay} 張餐廳排隊飛；同一間分店最多 {r.limitDiningBranchPerDay}{" "}
@@ -246,7 +251,7 @@ function TermsPage() {
   return (
     <LegalPage
       title="服務條款"
-      version="版本 3.1 · 生效日期：2026 年 11 月 12 日"
+      version="版本 3.2 · 生效日期：2026 年 11 月 14 日"
       intro="商場入面成日有人用唔着嘅嘢，又有人啱啱用得着。點樣分，其實我哋自己揀得。以下係用啱啱好嘅規矩，用咗即係你同意。"
       sections={sections()}
     />

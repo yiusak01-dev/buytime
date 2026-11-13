@@ -7,7 +7,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Chip, Section, DemoBadge } from "@/components/aah/ui";
 import { RegisterSheet } from "@/components/aah/RegisterSheet";
 import { aah, aahErrorText, getSettings, getRules, testLocationAllowed, useAahState, isBanned } from "@/lib/aah/store";
-import { dailyLimitMessage, priceCheck, limitText, multipleWord } from "@/lib/aah/rules";
+import { dailyLimitMessage, priceCheck, limitText, multipleWord, mallRateToday } from "@/lib/aah/rules";
 import { logEvent } from "@/lib/aah/track";
 import { ParkingHandover } from "@/components/aah/ParkingHandover";
 import { checkReceiptDate, findOtherMallInText, findShopInText, shopInList, shopMatches, normShop, type MallShop, type ReceiptDateCheck } from "@/lib/aah/receipt";
@@ -234,9 +234,11 @@ function NewPost() {
 
   const priceNum = free ? 0 : price === "" ? null : Number(price);
 
-  // 唔支持炒飛：參考價同封頂（數字喺管理頁設定，留空就唔限）
+  // 唔支持炒飛：泊車優惠單據參考價 = 商場時租 × 比例 × 鐘數（餐廳排隊飛冇參考價）
   const rules = getRules();
-  const unitsFor = { partySize: fields.partySize, hours: suggestion?.hours ?? fields.hours };
+  const mallRate = mallRateToday(mall, now);
+  const unitsFor = { hours: suggestion?.hours ?? fields.hours, rate: mallRate };
+  const noRate = scenario === "parking" && direction === "have" && !!mall && mallRate == null;
   const refInfo = scenario ? priceCheck({ scenario, direction, price: 0, ...unitsFor }, rules) : null;
 
   // 一撳發佈：用戶未填價錢時用嘅價（泊車、有面值嘅優惠用建議價，唔會高過參考價；冇面值嘅優惠用免費）
@@ -358,7 +360,7 @@ function NewPost() {
       autoAccept,
       acceptEnRoute: scenario !== "groupbuy" && acceptEnRoute,
       needCount: scenario === "groupbuy" ? needCount : undefined,
-    });
+    }, { mallRate });
     published.current = true;
     logEvent("post_done", { scenario, direction });
     toast.success("已經發佈！");
@@ -742,6 +744,11 @@ function NewPost() {
                     </div>
                     <Chip active={free} onClick={() => setFree(!free)}>免費</Chip>
                   </div>
+                  {noRate && (
+                    <div data-testid="no-rate" className="text-xs rounded-xl px-3 py-2 leading-relaxed bg-amber-50 text-amber-900">
+                      我哋未有{mall?.name ?? "呢個商場"}嘅停車場時租資料，所以冇參考價。放之前請確認呢個商場有「消費換免費泊車」優惠，同埋張單換得到。
+                    </div>
+                  )}
                   {pc && (
                     <div
                       data-testid="fair-price"

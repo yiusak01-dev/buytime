@@ -51,7 +51,8 @@ export function FeedRow({
   const own = post.authorId === meId;
 
   const bits: string[] = [];
-  const overRef = postPriceCheck(post, getRules())?.level !== undefined && postPriceCheck(post, getRules())?.level !== "ok";
+  const pcLevel = postPriceCheck(post, getRules(), mall, now)?.level;
+  const overRef = pcLevel !== undefined && pcLevel !== "ok";
   if (overRef) bits.push("高過參考價");
   if (saving != null && saving > 0) bits.push(`慳 $${saving}`);
   if (post.scenario === "dining" && post.fields.calling)
