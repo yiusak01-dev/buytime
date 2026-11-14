@@ -34,6 +34,7 @@ export function FeedRow({
   verb = "find",
   otherMall,
   onAct,
+  hideIcon,
 }: {
   post: Post;
   mall?: AahMall;
@@ -42,6 +43,8 @@ export function FeedRow({
   verb?: Verb;
   otherMall?: string;
   onAct: (p: Post) => void;
+  /** 已經喺類別組入面：唔使再出類別圖示 */
+  hideIcon?: boolean;
 }) {
   const v = VERBS[verb];
   const pinned = (post.pinnedUntil ?? 0) > now;
@@ -108,7 +111,7 @@ export function FeedRow({
         params={{ postId: post.id }}
         className="flex-1 min-w-0 flex items-center gap-3"
       >
-        <CatIcon scenario={post.scenario} />
+        {!hideIcon && <CatIcon scenario={post.scenario} />}
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1.5">
             <span className="font-black text-[15px] truncate">{rowTitle(post)}</span>

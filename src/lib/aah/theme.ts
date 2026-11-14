@@ -53,8 +53,8 @@ export const CAT_STYLE: Record<
   ScenarioId,
   { name: string; short: string; bg: string; fg: string }
 > = {
-  parking: { name: "泊車優惠單據", short: "泊車優惠單據", bg: "#E5EEFC", fg: "#2F55B5" },
-  dining: { name: "餐廳排隊飛", short: "餐廳排隊飛", bg: "#FFF0C2", fg: "#8A5A00" },
+  parking: { name: "泊車單", short: "泊車單", bg: "#E5EEFC", fg: "#2F55B5" },
+  dining: { name: "餐廳排隊飛", short: "排隊飛", bg: "#FFF0C2", fg: "#8A5A00" },
   offer: { name: "優惠券", short: "優惠券", bg: "#FBE6EF", fg: "#A12D5E" },
   groupbuy: { name: "夾單", short: "夾單", bg: "#D6F2E2", fg: "#1E5C3F" },
 };
@@ -62,7 +62,7 @@ export const CAT_STYLE: Record<
 /** 「搵」入面嘅類別（「夾」頁已經併入嚟：夾單係其中一個類別） */
 export const FIND_SCENARIOS: ScenarioId[] = ["parking", "dining", "offer", "groupbuy"];
 
-/** 第一次用嘅人未必知咩係泊車優惠單據：喺有位嘅地方講一次 */
+/** 第一次用嘅人未必知咩係泊車單：喺有位嘅地方講一次 */
 export const PARKING_EXPLAIN = "商場消費單，夠數可以換免費泊車";
 
 /** 未登記睇得幾多個 */

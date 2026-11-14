@@ -5,6 +5,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { TabHeader } from "@/components/aah/TabHeader";
 import { FeedRow, rowTitle } from "@/components/aah/FeedRow";
 import { CatIcon, LiveDot } from "@/components/aah/CatIcon";
+import { CatGroup } from "@/components/aah/Group";
 import { priceLabel } from "@/components/aah/PostCard";
 import { useQuickInterest } from "@/components/aah/useQuickInterest";
 import { useAahState } from "@/lib/aah/store";
@@ -22,7 +23,7 @@ export const Route = createFileRoute("/give")({
       { title: "放 · 啱啱好" },
       {
         name: "description",
-        content: "用唔着嘅泊車優惠單據、餐廳排隊飛、優惠券，影相放出去，換返錢。",
+        content: "用唔着嘅泊車單、排隊飛、優惠券，影相放出去，交俾啱用嘅人；或者開個夾單。",
       },
     ],
   }),
@@ -84,110 +85,111 @@ function Give() {
     return n ? `${where} 而家 ${n} 人用緊` : null;
   }, [wants, mall, live]);
 
+  const ACTIONS: { id: ScenarioId; sub: string; quick: QuickKind; action: string }[] = [
+    { id: "dining", sub: "唔去食，張飛轉俾人", quick: "dining", action: "放出去" },
+    { id: "offer", sub: "用唔晒嘅優惠券", quick: "offer", action: "放出去" },
+    { id: "groupbuy", sub: "一個人買唔抵？搵人一齊買", quick: "groupbuy", action: "開夾單" },
+  ];
+
+  const wantRows = (id: ScenarioId) => {
+    const list = wants.filter((p) => p.scenario === id).slice(0, 20);
+    if (!list.length) return null;
+    return (
+      <div className="pt-1">
+        <div className="text-xs font-black text-muted-foreground pt-1">有人想要</div>
+        {list.map((p) => (
+          <FeedRow
+            key={p.id}
+            post={p}
+            mall={mallById.get(p.mallId)}
+            now={now}
+            meId={user.id}
+            verb="give"
+            onAct={interest}
+            hideIcon
+          />
+        ))}
+      </div>
+    );
+  };
+  const mineRows = (id: ScenarioId) => {
+    const list = mine.filter((p) => p.scenario === id);
+    if (!list.length) return null;
+    return (
+      <div className="space-y-2 pt-2">
+        <div className="text-xs font-black text-muted-foreground">你放咗嘅</div>
+        {list.map((p) => (
+          <MyPost key={p.id} post={p} now={now} />
+        ))}
+      </div>
+    );
+  };
+
   return (
     <AppLayout hideNav>
       <TabHeader active="give" />
-      <div className="px-4 space-y-4">
-        <div className="rounded-[28px] p-5 space-y-3.5" style={{ background: G.soft }}>
-          <div className="space-y-1" style={{ color: G.text }}>
-            <h1 className="text-[21px] font-black">你有用唔着嘅？放出去換錢</h1>
-            <p className="text-[13px] font-bold">揀你有邊樣，影相放上嚟，有人要就喺商場見面收錢</p>
-          </div>
-          {demand && (
+      <div className="px-4 space-y-3">
+        {demand && (
+          <span
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-card text-[13px] font-bold"
+            data-testid="give-demand"
+          >
+            <LiveDot />
+            {demand}
+          </span>
+        )}
+
+        <CatGroup scenario="parking">
+          {/* 泊車單：一撳就開相機，影完自動讀總數 */}
+          <label
+            className="flex items-center gap-3 py-2 cursor-pointer active:scale-[0.99] transition-transform"
+            data-testid="give-parking"
+          >
+            <span className="flex-1 min-w-0 text-sm text-muted-foreground">{PARKING_EXPLAIN}</span>
             <span
-              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-card text-[13px] font-bold"
-              data-testid="give-demand"
+              className="h-11 px-3.5 rounded-[14px] text-white text-sm font-black flex items-center gap-1.5 shrink-0"
+              style={{ background: G.strong }}
             >
-              <LiveDot />
-              {demand}
+              <Camera className="w-4 h-4" />
+              影相放出去
             </span>
-          )}
-          <div className="space-y-2">
-            {/* 泊車優惠單據：一撳就開相機，影完自動讀總數 */}
-            <label
-              className="flex items-center gap-3 rounded-[20px] bg-card px-4 py-3.5 cursor-pointer active:scale-[0.99] transition-transform"
-              data-testid="give-parking"
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="sr-only"
+              data-testid="give-camera"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                setPendingPhoto(f);
+                navigate({ to: "/post/new", search: { quick: "receipt" } });
+              }}
+            />
+          </label>
+          {wantRows("parking")}
+          {mineRows("parking")}
+        </CatGroup>
+
+        {ACTIONS.map((a) => (
+          <CatGroup key={a.id} scenario={a.id}>
+            <Link
+              to="/post/new"
+              search={{ quick: a.quick }}
+              className="flex items-center gap-3 py-2 active:scale-[0.99] transition-transform"
             >
-              <CatIcon scenario="parking" size={44} />
-              <span className="flex-1 min-w-0">
-                <span className="block text-base font-black">{CAT_STYLE.parking.name}</span>
-                <span className="block text-xs text-muted-foreground">{PARKING_EXPLAIN}</span>
-              </span>
+              <span className="flex-1 min-w-0 text-sm text-muted-foreground">{a.sub}</span>
               <span
-                className="h-10 px-3 rounded-xl text-white text-sm font-black flex items-center gap-1.5 shrink-0"
-                style={{ background: G.strong }}
+                className="h-11 px-3.5 rounded-[14px] text-sm font-black grid place-items-center shrink-0"
+                style={{ background: G.soft, color: G.text }}
               >
-                <Camera className="w-4 h-4" />
-                影相
+                {a.action}
               </span>
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="sr-only"
-                data-testid="give-camera"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (!f) return;
-                  setPendingPhoto(f);
-                  navigate({ to: "/post/new", search: { quick: "receipt" } });
-                }}
-              />
-            </label>
-            <GiveRow scenario="dining" sub="唔去食，張飛轉俾人" quick="dining" />
-            <GiveRow scenario="offer" sub="用唔晒嘅優惠券" quick="offer" />
-            <GiveRow scenario="groupbuy" sub="一個人買唔抵？開個夾單搵人一齊買" quick="groupbuy" action="開" />
-          </div>
-        </div>
-
-        {mine.length > 0 && (
-          <section className="space-y-2.5">
-            <h2 className="text-base font-black">你放咗嘅</h2>
-            {mine.map((p) => (
-              <MyPost key={p.id} post={p} now={now} />
-            ))}
-          </section>
-        )}
-
-        {wants.length > 0 && (
-          <section className="space-y-2.5">
-            <h2 className="text-base font-black">有人想要</h2>
-            <div className="bg-card rounded-3xl px-3.5 py-1.5 shadow-[var(--shadow-card)]">
-              {wants.slice(0, 20).map((p) => (
-                <FeedRow
-                  key={p.id}
-                  post={p}
-                  mall={mallById.get(p.mallId)}
-                  now={now}
-                  meId={user.id}
-                  verb="give"
-                  onAct={interest}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {mine.length === 0 && (
-          <div className="bg-card rounded-3xl p-4 space-y-2.5">
-            <div className="text-sm font-black">點樣放</div>
-            {[
-              "影張單據，自動計可以換幾多個鐘泊車",
-              "揀價錢：已經幫你揀咗建議價，唔改都得",
-              "有人想要，你揀邊個，喺商場見面交收",
-            ].map((t, i) => (
-              <div key={t} className="flex items-center gap-3 text-sm">
-                <span
-                  className="w-7 h-7 rounded-full grid place-items-center text-xs font-black shrink-0"
-                  style={{ background: G.soft, color: G.text }}
-                >
-                  {i + 1}
-                </span>
-                {t}
-              </div>
-            ))}
-          </div>
-        )}
+            </Link>
+            {wantRows(a.id)}
+            {mineRows(a.id)}
+          </CatGroup>
+        ))}
       </div>
       {sheet}
     </AppLayout>
@@ -257,37 +259,5 @@ function MyPost({ post, now }: { post: Post; now: number }) {
         </Link>
       )}
     </div>
-  );
-}
-
-function GiveRow({
-  scenario,
-  sub,
-  quick,
-  action = "放",
-}: {
-  scenario: ScenarioId;
-  sub: string;
-  quick: QuickKind;
-  action?: string;
-}) {
-  return (
-    <Link
-      to="/post/new"
-      search={{ quick }}
-      className="flex items-center gap-3 rounded-[20px] bg-card px-4 py-3.5 active:scale-[0.99] transition-transform"
-    >
-      <CatIcon scenario={scenario} size={44} />
-      <span className="flex-1 min-w-0">
-        <span className="block text-base font-black">{CAT_STYLE[scenario].name}</span>
-        <span className="block text-xs text-muted-foreground">{sub}</span>
-      </span>
-      <span
-        className="h-10 px-3 rounded-xl text-sm font-black grid place-items-center shrink-0"
-        style={{ background: G.soft, color: G.text }}
-      >
-        {action}
-      </span>
-    </Link>
   );
 }

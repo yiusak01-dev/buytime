@@ -1,16 +1,17 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ChevronDown, UserRound } from "lucide-react";
 import { LiveDot } from "./CatIcon";
 import { MallPicker } from "./MallPicker";
 import { RegisterSheet } from "./RegisterSheet";
+import { Onboarding, readHowSeen } from "./Onboarding";
 import { aah, useAahState } from "@/lib/aah/store";
 import { useAahMalls } from "@/lib/aah/malls";
 import { useCurrentMall, useViewMall } from "@/lib/aah/geo";
 import { useLivePeople } from "@/lib/aah/live";
 import { MUTED, VERBS, type Verb } from "@/lib/aah/theme";
 
-/** 搵／放／夾三頁共用嘅頭：商場掣（即時人數）、登入／我的、三個分頁 */
+/** 搵／放兩個版面共用嘅頭：商場掣（即時人數）、登入／我的、兩個切換掣；第一次開先出新手教學 */
 export function TabHeader({ active }: { active: Verb }) {
   const { user, matches } = useAahState();
   const { malls } = useAahMalls();
@@ -19,6 +20,12 @@ export function TabHeader({ active }: { active: Verb }) {
   const live = useLivePeople();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [regOpen, setRegOpen] = useState(false);
+  const navigate = useNavigate();
+  const replay = useRouterState({
+    select: (s) => new URLSearchParams(s.location.searchStr).get("how") === "1",
+  });
+  const [howSeen, setHowSeen] = useState(readHowSeen);
+  const showHow = replay || (!howSeen && !user.onboarded);
 
   const hasActive = useMemo(
     () =>
@@ -84,13 +91,10 @@ export function TabHeader({ active }: { active: Verb }) {
               key={v}
               to={s.to}
               aria-current={on ? "page" : undefined}
-              className="rounded-[18px] py-1.5 flex flex-col items-center"
+              className="rounded-[18px] py-2 flex flex-col items-center"
               style={on ? { background: s.soft, color: s.text } : { color: MUTED }}
             >
-              <span className="text-[22px] font-black leading-tight">{s.word}</span>
-              <span className="text-[10.5px] font-bold tracking-tight px-1 text-center leading-tight">
-                {s.sub}
-              </span>
+              <span className="text-[24px] font-black leading-tight">{s.word}</span>
             </Link>
           );
         })}
@@ -111,6 +115,14 @@ export function TabHeader({ active }: { active: Verb }) {
         }}
         hasTest={!!user.testMallId}
       />
+      {showHow && (
+        <Onboarding
+          onDone={() => {
+            setHowSeen(true);
+            if (replay) navigate({ to: ".", search: {}, replace: true });
+          }}
+        />
+      )}
       <RegisterSheet
         open={regOpen}
         onClose={() => setRegOpen(false)}

@@ -40,7 +40,7 @@ import type { Post } from "@/lib/aah/types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/post/$postId")({
-  head: () => ({ meta: [{ title: "着數詳情 · 啱啱好" }] }),
+  head: () => ({ meta: [{ title: "詳情 · 啱啱好" }] }),
   component: PostPage,
 });
 
@@ -60,7 +60,7 @@ function PostPage() {
           <div className="text-4xl">🤷</div>
           <div className="font-bold">搵唔到呢個 post</div>
           <p className="text-sm text-muted-foreground">可能已經過期或者被取消。</p>
-          <Link to="/" className="inline-block h-11 px-5 leading-[44px] rounded-2xl bg-[#1a1a1a] text-white font-bold">返去睇着數</Link>
+          <Link to="/" className="inline-block h-11 px-5 leading-[44px] rounded-2xl bg-[#1a1a1a] text-white font-bold">返去首頁</Link>
         </div>
       </AppLayout>
     );
@@ -108,7 +108,7 @@ function detailLine(p: Post): string {
   }
 }
 
-/** 唔支持炒飛：泊車優惠單據價錢高過參考價（商場時租 × 比例 × 鐘數）就講；冇時租資料就唔顯示 */
+/** 唔支持炒飛：泊車單價錢高過參考價（商場時租 × 比例 × 鐘數）就講；冇時租資料就唔顯示 */
 function FairPriceNote({ post, who }: { post: Post; who: "buyer" | "seller" }) {
   const { malls } = useAahMalls();
   const pc = postPriceCheck(post, getRules(), malls.find((m) => m.id === post.mallId));
@@ -274,7 +274,7 @@ function PostDetailView({ post }: { post: Post }) {
 
   return (
     <AppLayout hideNav>
-      <TopBar title="着數詳情" onReport={() => setReportOpen(true)} />
+      <TopBar title="詳情" onReport={() => setReportOpen(true)} />
       <ReportBlockSheet
         open={reportOpen}
         onClose={() => setReportOpen(false)}
@@ -523,7 +523,7 @@ function MyPostView({ post }: { post: Post }) {
               </div>
             </div>
             {mode === "remote" ? (
-              <div className="text-[11px] opacity-70">而家喺 {post.mallName}、有訂閱呢類着數嘅用戶。佢哋開 app 就會見到{pinEnabled ? "；置頂可以即刻推送通知俾佢哋" : ""}。</div>
+              <div className="text-[11px] opacity-70">而家喺 {post.mallName}、有訂閱呢類嘅用戶。佢哋開 app 就會見到{pinEnabled ? "；置頂可以即刻推送通知俾佢哋" : ""}。</div>
             ) : (
               <div className="text-[11px] opacity-70 flex items-center gap-1.5"><DemoBadge /> 示範數字；正式版顯示真實推送人數。</div>
             )}
@@ -720,7 +720,7 @@ function PinSheet({
               ? nearbyNames.length
                 ? `推送俾而家喺 ${mallName} 同附近商場（${nearbyNames.slice(0, 3).join("、")}）、開咗通知嘅人`
                 : `推送俾而家喺 ${mallName}、開咗通知嘅人（附近冇其他商場）`
-              : `推送俾而家喺 ${mallName}、開咗通知嘅人（泊車優惠單據只喺本商場用得，所以唔推去其他商場）`}
+              : `推送俾而家喺 ${mallName}、開咗通知嘅人（泊車單只喺本商場用得，所以唔推去其他商場）`}
           </li>
           <li>⏳ 配對成功、post 過期，或者你離開商場，置頂都會即刻結束</li>
         </ul>

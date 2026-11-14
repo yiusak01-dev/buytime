@@ -2,7 +2,7 @@ import { redeemPlaceText } from "@/lib/aah/malls";
 import type { AahMall } from "@/lib/aah/types";
 
 /**
- * 泊車優惠單據點樣交收：一齊去換，張單同信用卡底單唔使交俾陌生人。
+ * 泊車單點樣交收：一齊去換，張單同信用卡底單唔使交俾陌生人。
  * 換泊車地點只會用商場官網寫明、記低咗出處嘅資料；冇就唔寫樓層。
  */
 export function ParkingHandover({ mall, compact = false }: { mall?: AahMall | null; compact?: boolean }) {

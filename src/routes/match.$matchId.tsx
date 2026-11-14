@@ -201,7 +201,7 @@ function MatchPage() {
                 search={{ cat: m.scenario }}
                 className="flex items-center justify-between rounded-xl bg-[#FFF6D6] px-4 py-3 text-sm font-bold"
               >
-                <span>{alternatives.length > 0 ? `${m.mallName}仲有 ${alternatives.length} 個${SCENARIOS[m.scenario].label}着數` : `睇吓${m.mallName}其他着數`}</span>
+                <span>{alternatives.length > 0 ? `${m.mallName}仲有 ${alternatives.length} 個${SCENARIOS[m.scenario].label}` : `睇吓${m.mallName}仲有咩`}</span>
                 <span>→</span>
               </Link>
             )}

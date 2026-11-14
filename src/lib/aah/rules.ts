@@ -2,9 +2,9 @@ import type { AahMall, Direction, Post, ScenarioId } from "./types";
 
 /**
  * 啱啱好規則（數字喺管理頁「設定」改，唔寫死喺 code）：
- * - 唔支持炒飛：泊車優惠單據有參考價（商場停車場時租 × 比例 × 換到幾多個鐘）；超過參考價會提醒，超過幾多倍唔俾放
+ * - 唔支持炒飛：泊車單有參考價（商場停車場時租 × 比例 × 換到幾多個鐘）；超過參考價會提醒，超過幾多倍唔俾放
  *   餐廳排隊飛冇參考價：多謝費自己定，免費都得
- * - 每日上限：餐廳排隊飛、同一間分店、泊車優惠單據；香港時間每日 0 點重新計，取消咗都計
+ * - 每日上限：餐廳排隊飛、同一間分店、泊車單；香港時間每日 0 點重新計，取消咗都計
  * 伺服器（aah_create_post、aah__guard_price）會再檢查一次，呢度只係提早話俾用戶知。
  */
 export type Rules = {
@@ -99,7 +99,7 @@ export function factorWord(f: number): string {
 }
 
 /**
- * 計參考價同封頂：淨係管放出嚟嘅泊車優惠單據（商場時租 × 比例 × 可換幾多個鐘）。
+ * 計參考價同封頂：淨係管放出嚟嘅泊車單（商場時租 × 比例 × 可換幾多個鐘）。
  * 餐廳排隊飛冇參考價（多謝費自己定）；商場冇時租資料就冇參考價。
  */
 export function priceCheck(
@@ -162,7 +162,7 @@ export const limitText = {
   branch: (n: number, where?: string) =>
     `今日喺${where ?? "呢間分店"}已經放咗 ${n} 張。同一間分店每人每日最多 ${n} 張，唔想有人專登攞飛嚟炒。`,
   parking: (n: number) =>
-    `今日已經放咗 ${n} 張泊車優惠單據喇。每人每日最多 ${n} 張，免得有人專登收單炒賣，聽日再嚟啦！`,
+    `今日已經放咗 ${n} 張泊車單喇。每人每日最多 ${n} 張，免得有人專登收單炒賣，聽日再嚟啦！`,
   priceTooHigh: (cap: number, multiple?: number) =>
     `價錢太高放唔到：最多 $${cap}${multiple ? `（參考價${multipleWord(multiple)}）` : ""}。我哋唔想有黃牛。`,
 };

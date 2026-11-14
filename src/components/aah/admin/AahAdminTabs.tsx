@@ -590,7 +590,7 @@ type SettingDef = { key: string; label: string; hint?: string; kind: "money" | "
 
 const SETTING_GROUPS: { title: string; note?: string; items: SettingDef[] }[] = [
   {
-    title: "唔支持炒飛：泊車優惠單據參考價",
+    title: "唔支持炒飛：泊車單參考價",
     note: "參考價 = 商場停車場時租 × 下面嘅比例 × 換到幾多個鐘（星期六日用假日時租）。超過參考價會提醒放嘅人同要嘅人；超過倍數就放唔到。商場冇時租資料就冇參考價。餐廳排隊飛、優惠券同夾單唔管。",
     items: [
       { key: "parking_ref_rate_factor", label: "時租比例", hint: "0.5 = 時租一半；1 = 時租全數", unit: "倍時租", kind: "ratio", required: true },
@@ -603,7 +603,7 @@ const SETTING_GROUPS: { title: string; note?: string; items: SettingDef[] }[] = 
     items: [
       { key: "limit_dining_per_day", label: "每人每日最多放餐廳排隊飛", unit: "張", kind: "int", required: true },
       { key: "limit_dining_branch_per_day", label: "同一間分店（同一個商場同一個舖名）每人每日", unit: "張", kind: "int", required: true },
-      { key: "limit_parking_per_day", label: "每人每日最多放泊車優惠單據", unit: "張", kind: "int", required: true },
+      { key: "limit_parking_per_day", label: "每人每日最多放泊車單", unit: "張", kind: "int", required: true },
     ],
   },
   {

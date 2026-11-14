@@ -1,10 +1,16 @@
 // 用法：node scripts/brand/generate.cjs A（A 深綠底／B 黃底／C 米白底）— 會覆蓋 public 入面嘅 icon 同開 app 畫面
+// 只重出開 app 畫面：node scripts/brand/generate.cjs A --splash-only
+// ⚠ app icon／favicon／通知小圖示仲用緊舊 mark.cjs，要轉 master 之前先同設計確認
 // 由品牌標誌產生 app icon、通知小圖示同 iPhone 開 app 畫面
 const { chromium } = require('playwright');
 const fs = require('fs');
 const { C, mark } = require('./mark.cjs');
 const OUT = require('path').resolve(__dirname, '../../public');
 const style = process.argv[2] || 'A';
+// 開 app 畫面用 Logo Guidebook v1.1 嘅 master icon（PNG，唔重畫）同指定色
+const MASTER = 'data:image/png;base64,' + fs.readFileSync(require('path').join(OUT, 'brand/logo.png')).toString('base64');
+const BT = { yellow: '#FDB801', dark: '#094E3C' };
+const SPLASH_ONLY = process.argv.includes('--splash-only');
 const icon = (s, st = style) => {
   if (st === 'A') return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="${s}" height="${s}"><rect width="1024" height="1024" fill="${C.dark}"/><rect x="192" y="192" width="640" height="640" rx="150" fill="#fff"/><g transform="translate(262 300) scale(1.42)">${mark()}</g></svg>`;
   if (st === 'B') return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="${s}" height="${s}"><rect width="1024" height="1024" fill="#FFE04A"/><g transform="translate(182 250) scale(1.75)">${mark({ yellow: '#E9A800' })}</g></svg>`;
@@ -17,11 +23,11 @@ const badge = (s) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-20 -20 4
 const splashHtml = (w, h) => {
   const u = w / 390; // 以 390 闊為基準縮放
   return `<div style="width:${w}px;height:${h}px;background:${C.cream};display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'PingFang HK','Noto Sans CJK TC','Noto Sans TC',sans-serif;position:relative;overflow:hidden">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 370 320" width="${140 * u}" height="${140 * u * 320 / 370}">${mark()}</svg>
-    <div style="font-size:${50 * u}px;font-weight:900;color:${C.dark};letter-spacing:${2 * u}px;margin-top:${22 * u}px">啱啱好</div>
-    <div style="font-size:${16 * u}px;font-weight:700;color:${C.dark};opacity:.8;margin-top:${8 * u}px;letter-spacing:${3 * u}px">啱時間　啱地方　啱啱好</div>
-    <div style="position:absolute;bottom:${-70 * u}px;left:${-50 * u}px;width:${300 * u}px;height:${160 * u}px;border-radius:50%;background:${C.yellow}"></div>
-    <div style="position:absolute;bottom:${-100 * u}px;right:${-70 * u}px;width:${260 * u}px;height:${170 * u}px;border-radius:50%;background:${C.dark}"></div>
+    <img src="${MASTER}" style="width:${140 * u}px;height:${140 * u * 584 / 618}px">
+    <div style="font-size:${50 * u}px;font-weight:900;color:${BT.dark};letter-spacing:${2 * u}px;margin-top:${26 * u}px">啱啱好</div>
+    <div style="font-size:${16 * u}px;font-weight:700;color:${BT.dark};opacity:.8;margin-top:${8 * u}px;letter-spacing:${3 * u}px">啱時間　啱地方　啱啱好</div>
+    <div style="position:absolute;bottom:${-70 * u}px;left:${-50 * u}px;width:${300 * u}px;height:${160 * u}px;border-radius:50%;background:${BT.yellow}"></div>
+    <div style="position:absolute;bottom:${-100 * u}px;right:${-70 * u}px;width:${260 * u}px;height:${170 * u}px;border-radius:50%;background:${BT.dark}"></div>
   </div>`;
 };
 // iPhone 開 app 畫面：[闊, 高, 點寬, 點高, 倍數]
@@ -38,12 +44,14 @@ const IPHONES = [
     await p.setContent(`<html><body style="margin:0;${transparent ? 'background:transparent' : ''}">${html}</body></html>`);
     await p.screenshot({ path: file, omitBackground: transparent, clip: { x: 0, y: 0, width: w, height: h } });
   }
+  if (!SPLASH_ONLY) {
   await shot(icon(192), 192, 192, `${OUT}/icon-192.png`);
   await shot(icon(512), 512, 512, `${OUT}/icon-512.png`);
   await shot(icon(512), 512, 512, `${OUT}/icon-maskable-512.png`);
   await shot(icon(180), 180, 180, `${OUT}/apple-touch-icon.png`);
   await shot(favicon(32), 32, 32, `${OUT}/favicon-32.png`, true);
   await shot(badge(96), 96, 96, `${OUT}/badge-96.png`, true);
+  }
   fs.mkdirSync(`${OUT}/splash`, { recursive: true });
   const links = [];
   for (const [w, h, dw, dh, r] of IPHONES) {

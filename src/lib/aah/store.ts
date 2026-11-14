@@ -859,7 +859,7 @@ const local = {
                   status: "pending",
                   messages: [
                     ...i.messages,
-                    { from: x.authorId, text: "個着數重新放出，我再揀緊", at: Date.now() },
+                    { from: x.authorId, text: "重新放出咗，我再揀緊", at: Date.now() },
                   ],
                 }
               : i,

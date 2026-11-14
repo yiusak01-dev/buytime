@@ -1,3 +1,4 @@
+import { readHowSeen } from "./Onboarding";
 import { useEffect, useRef } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -17,7 +18,8 @@ export function AahRuntime() {
   const navigate = useNavigate();
   const { user, posts, matches } = useAahState();
   const { malls } = useAahMalls();
-  useAutoStartGeo(user.onboarded);
+  // 睇過新手教學就開定位（教學記錄喺 localStorage，帳戶資料未載入都得）
+  useAutoStartGeo(user.onboarded || readHowSeen());
   const geo = useGeo();
   const current = useCurrentMall(malls);
   const now = useNow(15000);
@@ -29,7 +31,7 @@ export function AahRuntime() {
   // 雲端模式：feed 讀本商場同附近商場；記錄「附近用戶」人數（唔儲存確實位置）
   useEffect(() => {
     const m = current.mall;
-    // 唔喺任何商場：讀全港最新，好奇打開嘅人都見到有咩着數
+    // 唔喺任何商場：讀全港最新，好奇打開嘅人都見到有人放咩
     if (!m) {
       aah.setFeedMalls(["*"]);
       return;
@@ -137,7 +139,7 @@ export function AahRuntime() {
     }
   }, [current.mall?.id, current.verified, geo.lat, geo.lng, posts, user.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 到埗通知：「啱啱好！附近有 X 個着數」，每個商場每日最多一次，0 個唔發
+  // 到埗通知：「啱啱好！附近有 X 樣等緊人接」，每個商場每日最多一次，0 個唔發
   useEffect(() => {
     const m = current.mall;
     if (!m || !user.onboarded || !user.notifyOpportunities) return;
@@ -151,8 +153,8 @@ export function AahRuntime() {
     aah.markArrivalShown(m.id);
     // 已經喺搵／放頁（/join 而家轉去搵）：列表同即時動態已經見到，唔使再彈
     if (pathname === "/" || pathname === "/give" || pathname === "/join") return;
-    toast(`啱啱好！附近有 ${count} 個着數`, {
-      description: `${m.name} 而家有 ${count} 個着數，即刻睇吓`,
+    toast(`啱啱好！附近有 ${count} 樣等緊人接`, {
+      description: `${m.name} 而家有 ${count} 樣放緊，即刻睇吓`,
       action: { label: "睇吓", onClick: () => navigate({ to: "/" }) },
       duration: 8000,
     });
@@ -233,7 +235,7 @@ export function AahRuntime() {
     }
   }, [now, geo.status, current.mall?.id, current.test, posts, user.id]);
 
-  // 對方取消咗配對：即刻話你知，同埋俾你睇附近其他着數
+  // 對方取消咗配對：即刻話你知，同埋俾你睇附近仲有咩
   const prevStatus = useRef<Map<string, string> | null>(null);
   useEffect(() => {
     const first = prevStatus.current == null;
@@ -253,7 +255,7 @@ export function AahRuntime() {
       if (!m.participants.some((p) => p.userId === user.id) || !m.cancelledBy || m.cancelledBy === user.id) continue;
       toast("對方取消咗配對", {
         description: m.lateCancel && m.arrived[user.id] ? "你已經到咗，已記錄對方臨時取消" : `${m.shop}・${m.mallName}`,
-        action: { label: "睇附近着數", onClick: () => navigate({ to: "/", search: { cat: m.scenario } }) },
+        action: { label: "睇附近有咩", onClick: () => navigate({ to: "/", search: { cat: m.scenario } }) },
         duration: 12000,
       });
     }

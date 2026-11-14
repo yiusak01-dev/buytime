@@ -14,7 +14,7 @@ export const Route = createFileRoute("/welcome")({
 const EXAMPLES: ScenarioId[] = ["parking", "dining", "offer"];
 
 /**
- * 第一次開 app（例如睇完 IG 廣告）：一頁講明係咩、兩邊有咩着數，撳「開始用」就入去。
+ * 第一次開 app（例如睇完 IG 廣告）：一頁講明係咩、兩邊有咩好處，撳「開始用」就入去。
  * 「開始用」順手問定位（用嚟搵附近商場）；唔俾都入得去，可以先睇全港。
  */
 function Welcome() {

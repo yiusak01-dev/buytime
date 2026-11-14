@@ -234,7 +234,7 @@ function NewPost() {
 
   const priceNum = free ? 0 : price === "" ? null : Number(price);
 
-  // 唔支持炒飛：泊車優惠單據參考價 = 商場時租 × 比例 × 鐘數（餐廳排隊飛冇參考價）
+  // 唔支持炒飛：泊車單參考價 = 商場時租 × 比例 × 鐘數（餐廳排隊飛冇參考價）
   const rules = getRules();
   const mallRate = mallRateToday(mall, now);
   const unitsFor = { hours: suggestion?.hours ?? fields.hours, rate: mallRate };
@@ -547,7 +547,7 @@ function NewPost() {
   }
 
   const wantMode = direction === "want";
-  const catName = s ? (wantMode ? `我要${s.id === "parking" ? "泊車" : "優惠"}` : GIVE_CATS[s.id].name) : "";
+  const catName = s ? (wantMode ? `我要${s.id === "parking" ? "泊車" : "優惠券"}` : GIVE_CATS[s.id].name) : "";
 
   return (
     <AppLayout hideNav>
@@ -704,7 +704,7 @@ function NewPost() {
               )}
 
               {s.id === "groupbuy" && (
-                <Section title="咩優惠？">
+                <Section title="夾咩？">
                   <div className="flex flex-wrap gap-2">
                     {GROUPBUY_DEALS.map((d) => (
                       <Chip key={d} active={fields.deal === d} onClick={() => setFields({ ...fields, deal: d })}>{d}</Chip>
@@ -715,7 +715,7 @@ function NewPost() {
                       value={fields.deal && !GROUPBUY_DEALS.includes(fields.deal) ? fields.deal : ""}
                       onChange={(e) => setFields({ ...fields, deal: e.target.value.slice(0, 30) })}
                       placeholder="或者自己寫，例如 滿 $500 減 $100"
-                      aria-label="自己寫優惠"
+                      aria-label="自己寫"
                       className="flex-1 min-w-0 bg-transparent outline-none"
                     />
                   </div>
@@ -746,7 +746,7 @@ function NewPost() {
                   </div>
                   {noRate && (
                     <div data-testid="no-rate" className="text-xs rounded-xl px-3 py-2 leading-relaxed bg-amber-50 text-amber-900">
-                      我哋未有{mall?.name ?? "呢個商場"}嘅停車場時租資料，所以冇參考價。放之前請確認呢個商場有「消費換免費泊車」優惠，同埋張單換得到。
+                      我哋未有{mall?.name ?? "呢個商場"}嘅停車場時租資料，所以冇參考價。放之前請確認呢個商場有「消費換免費泊車」，同埋張單換得到。
                     </div>
                   )}
                   {pc && (

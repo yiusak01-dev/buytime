@@ -1,32 +1,24 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Bell, Lock } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo } from "react";
+import { Bell } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
 import { TabHeader } from "@/components/aah/TabHeader";
-import { FeedRow, rowTitle } from "@/components/aah/FeedRow";
-import { priceLabel } from "@/components/aah/PostCard";
+import { FeedRow } from "@/components/aah/FeedRow";
+import { CatGroup, LockRow } from "@/components/aah/Group";
 import { CatIcon, LiveDot } from "@/components/aah/CatIcon";
 import { DemoBadge } from "@/components/aah/ui";
 import { useQuickInterest } from "@/components/aah/useQuickInterest";
 import { aah, isDemoForced, useAahMode, useAahState, MAX_PINNED_PER_MALL } from "@/lib/aah/store";
 import { useAahMalls, nearbyMalls, distanceM } from "@/lib/aah/malls";
-import { fmtAgo, geoStore, useNow, useViewMall } from "@/lib/aah/geo";
+import { useNow, useViewMall } from "@/lib/aah/geo";
 import { SCENARIOS } from "@/lib/aah/scenarios";
-import {
-  CAT_STYLE,
-  FIND_SCENARIOS,
-  FREE_LIMIT,
-  LIVE_TEXT,
-  PARKING_EXPLAIN,
-  VERBS,
-} from "@/lib/aah/theme";
+import { CAT_STYLE, FIND_SCENARIOS, FREE_LIMIT, VERBS } from "@/lib/aah/theme";
 import type { Post, ScenarioId } from "@/lib/aah/types";
 import type { QuickKind } from "./post.new";
-import { cn } from "@/lib/utils";
 import { logEvent } from "@/lib/aah/track";
 
-type HomeSearch = { cat?: ScenarioId };
+type HomeSearch = { cat?: ScenarioId; how?: "1" };
 
 export const Route = createFileRoute("/")({
   validateSearch: (s: Record<string, unknown>): HomeSearch => ({
@@ -34,6 +26,7 @@ export const Route = createFileRoute("/")({
       typeof s.cat === "string" && ["parking", "dining", "offer", "groupbuy"].includes(s.cat)
         ? (s.cat as ScenarioId)
         : undefined,
+    how: s.how === "1" || s.how === 1 ? "1" : undefined,
   }),
   head: () => ({
     meta: [
@@ -41,12 +34,12 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "香港商場即時配對：泊車優惠單據、餐廳排隊飛、優惠券、夾單。用唔着嘅轉俾人，大家都有着數。",
+          "香港商場即時配對：泊車單、餐廳排隊飛、優惠券、夾單。用唔着嘅交俾啱用嘅人。",
       },
-      { property: "og:title", content: "啱啱好 · 用唔着嘅轉俾人，大家都有着數" },
+      { property: "og:title", content: "啱啱好 · 有人用唔着，有人啱用" },
       {
         property: "og:description",
-        content: "泊車優惠單據、餐廳排隊飛、優惠券、夾單：同一個商場、同一時間，即時配對。",
+        content: "泊車單、餐廳排隊飛、優惠券、夾單：同一個商場、同一時間，即時配對。",
       },
       { property: "og:type", content: "website" },
     ],
@@ -54,32 +47,13 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-const HOW_KEY = "aah:howSeen";
-function readHowSeen(): boolean {
-  try {
-    return localStorage.getItem(HOW_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-/** 「2 分鐘前放：可換 2 個鐘・$23」：直接講係咩；只講最近 3 個鐘內嘅，舊嘅唔扮即時 */
-function tickerText(p: Post, now: number, showMall: boolean): string | null {
-  if (now - p.createdAt > 3 * 3600 * 1000) return null;
-  const where = showMall ? `喺${p.mallName}` : "";
-  const price = priceLabel(p);
-  return `${fmtAgo(p.createdAt, now)}有人${where}放咗${CAT_STYLE[p.scenario].name}：${rowTitle(p)}${price ? `・${price}` : ""}`;
-}
-
 function Home() {
-  const navigate = useNavigate();
   const { cat } = Route.useSearch();
   const { user, posts } = useAahState();
   const { malls, isSample } = useAahMalls();
   const view = useViewMall(malls);
   const now = useNow(15000);
   const mode = useAahMode();
-  const [howSeen, setHowSeen] = useState(readHowSeen);
   const { interest, ask, sheet } = useQuickInterest();
 
   const mall = view.mall;
@@ -92,31 +66,21 @@ function Home() {
     () => posts.filter((p) => p.status === "open" && p.leaveAt > now),
     [posts, now],
   );
-  // 「搵」：有人放出嚟嘅泊車收據、餐廳飛、優惠券、夾單（想要嘅喺「放」頁）
+  // 「搵」：有人放出嚟嘅泊車單、排隊飛、優惠券、夾單（想要嘅喺「放」版面）
   const findable = useMemo(
     () => live.filter((p) => FIND_SCENARIOS.includes(p.scenario) && p.direction !== "want"),
     [live],
   );
-  const scope = useMemo(
-    () => (mall ? findable.filter((p) => p.mallId === mall.id) : findable),
-    [findable, mall],
-  );
-  const countBy = useMemo(() => {
-    const m = new Map<ScenarioId, number>();
-    for (const p of scope) m.set(p.scenario, (m.get(p.scenario) ?? 0) + 1);
-    return m;
-  }, [scope]);
 
   const feed = useMemo(() => {
-    const byCat = (p: Post) => !cat || p.scenario === cat;
     const newest = (a: Post, b: Post) => b.createdAt - a.createdAt;
     if (!mall)
       return {
         main: [] as Post[],
-        others: findable.filter(byCat).sort(newest).slice(0, 40),
+        others: [...findable].sort(newest).slice(0, 40),
         othersLabel: "全港最新",
       };
-    const here = findable.filter((p) => p.mallId === mall.id && byCat(p));
+    const here = findable.filter((p) => p.mallId === mall.id);
     const pinned = here
       .filter((p) => (p.pinnedUntil ?? 0) > now)
       .sort((a, b) => (b.pinnedUntil ?? 0) - (a.pinnedUntil ?? 0))
@@ -125,7 +89,7 @@ function Home() {
     const rest = here.filter((p) => !pinnedIds.has(p.id)).sort(newest);
     const near = nearbyMalls(malls, mall);
     const nearIds = new Set(near.map((m) => m.id));
-    const nearLive = findable.filter((p) => nearIds.has(p.mallId) && byCat(p));
+    const nearLive = findable.filter((p) => nearIds.has(p.mallId));
     const nearbyPinned = nearLive.filter(
       (p) => (p.pinnedUntil ?? 0) > now && SCENARIOS[p.scenario].pushNearby,
     );
@@ -139,77 +103,42 @@ function Home() {
       // 附近都冇：出全港最新，好奇打開嘅人都有嘢睇
       if (others.length === 0 && nearbyPinned.length === 0) {
         others = findable
-          .filter((p) => p.mallId !== mall.id && byCat(p))
+          .filter((p) => p.mallId !== mall.id)
           .sort(newest)
           .slice(0, 20);
         othersLabel = "全港最新";
       }
     }
     return { main: [...pinned, ...nearbyPinned, ...rest], others, othersLabel };
-  }, [findable, mall, malls, now, cat]);
+  }, [findable, mall, malls, now]);
 
-  // 冇揀類別：按類別分段
-  const sections = useMemo(() => {
-    if (cat) return [{ id: cat, posts: feed.main }];
-    return FIND_SCENARIOS.map((id) => ({
-      id,
-      posts: feed.main.filter((p) => p.scenario === id),
-    })).filter((s) => s.posts.length);
-  }, [feed.main, cat]);
+  const groupsOf = (list: Post[]) =>
+    FIND_SCENARIOS.map((id) => ({ id, posts: list.filter((p) => p.scenario === id) })).filter(
+      (g) => g.posts.length,
+    );
+  const mainGroups = useMemo(() => groupsOf(feed.main), [feed.main]); // eslint-disable-line react-hooks/exhaustive-deps
+  const otherGroups = useMemo(() => groupsOf(feed.others), [feed.others]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 未登記：頭 3 個免費睇
+  // 未註冊：每組睇到頭 3 個，其餘鎖住
   const limited = !user.registered;
-  const flat = useMemo(
-    () => [...sections.flatMap((s) => s.posts), ...feed.others],
-    [sections, feed.others],
-  );
-  const visible = useMemo(
-    () => new Set((limited ? flat.slice(0, FREE_LIMIT) : flat).map((p) => p.id)),
-    [flat, limited],
-  );
-  const hidden = flat.length - visible.size;
-
-  // 搵頁淨係講有人放出嚟嘅（唔講想要嘅、唔講夾單）
-  const tickerPost = useMemo(() => {
-    const pool = mall ? findable.filter((p) => p.mallId === mall.id) : findable;
-    const src = pool.length ? pool : findable;
-    return src.reduce<Post | null>((a, p) => (!a || p.createdAt > a.createdAt ? p : a), null);
-  }, [findable, mall]);
-  const ticker = tickerPost
-    ? tickerText(tickerPost, now, !mall || tickerPost.mallId !== mall.id)
-    : null;
+  const unlock = () => ask("註冊咗就睇晒全部，免費");
 
   const hereCount = feed.main.length;
   const nothingAnywhere = live.length === 0;
 
-  // 搵唔到嘢：記低（每個商場、每個類別一次），每週問題報告用
+  // 搵唔到嘢：記低（每個商場一次），每週問題報告用
   useEffect(() => {
     if (!mall || hereCount > 0 || mode !== "remote") return;
-    const key = `aah:empty:${mall.id}:${cat ?? "all"}`;
+    const key = `aah:empty:${mall.id}:all`;
     try {
       if (window.sessionStorage.getItem(key)) return;
       window.sessionStorage.setItem(key, "1");
     } catch {
       /* 記唔到就照記 */
     }
-    logEvent("feed_empty", { mall: mall.id, cat: cat ?? "all" });
-  }, [mall?.id, cat, hereCount, mode]); // eslint-disable-line react-hooks/exhaustive-deps
-  const showCoach = !user.registered && !howSeen;
+    logEvent("feed_empty", { mall: mall.id, cat: "all" });
+  }, [mall?.id, hereCount, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  function dismissCoach() {
-    setHowSeen(true);
-    try {
-      localStorage.setItem(HOW_KEY, "1");
-    } catch {
-      /* 私隱模式：唔記得都冇問題 */
-    }
-    if (!user.onboarded) aah.updateUser({ onboarded: true });
-    // 搵最近嘅商場
-    void geoStore.start();
-  }
-  function pickCat(id: ScenarioId | undefined) {
-    navigate({ to: "/", search: id ? { cat: id } : {}, replace: true });
-  }
   const walkLabel = (p: Post) => {
     const m = mallById.get(p.mallId);
     if (!mall || !m || m.id === mall.id) return undefined;
@@ -225,8 +154,25 @@ function Home() {
       meId={user.id}
       onAct={interest}
       otherMall={other}
+      hideIcon
     />
   );
+  const renderGroups = (groups: { id: ScenarioId; posts: Post[] }[], other: (p: Post) => string | undefined) =>
+    groups.map((g) => {
+      const shown = limited ? g.posts.slice(0, FREE_LIMIT) : g.posts;
+      const locked = g.posts.length - shown.length;
+      return (
+        <CatGroup
+          key={`${g.id}-${cat ?? ""}`}
+          scenario={g.id}
+          count={g.posts.length}
+          defaultOpen={!cat || cat === g.id}
+        >
+          {shown.map((p) => row(p, other(p)))}
+          {locked > 0 && <LockRow count={locked} onClick={unlock} />}
+        </CatGroup>
+      );
+    });
 
   return (
     <AppLayout hideNav>
@@ -254,186 +200,26 @@ function Home() {
           </div>
         )}
 
-        {showCoach && <Coach onClose={dismissCoach} />}
-
-        {ticker && (
-          <div
-            className="bg-card rounded-[18px] px-3.5 py-2.5 flex items-center gap-2.5 shadow-[var(--shadow-card)]"
-            data-testid="live-ticker"
-          >
-            <LiveDot />
-            <span className="text-[13px] font-black shrink-0" style={{ color: LIVE_TEXT }}>
-              即時
-            </span>
-            <span className="text-[13px] font-bold line-clamp-2">{ticker}</span>
-          </div>
+        {cat && mall && !nothingAnywhere && hereCount > 0 && !mainGroups.some((g) => g.id === cat) && (
+          <EmptyFor mallName={mall.name} cat={cat} />
         )}
+        {renderGroups(mainGroups, walkLabel)}
 
-        {!nothingAnywhere && (
-          <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-0.5 scrollbar-hide">
-            <CatChip active={!cat} onClick={() => pickCat(undefined)}>
-              全部 {scope.length}
-            </CatChip>
-            {FIND_SCENARIOS.map((id) => (
-              <CatChip key={id} active={cat === id} onClick={() => pickCat(id)}>
-                {CAT_STYLE[id].short} {countBy.get(id) ?? 0}
-              </CatChip>
-            ))}
-          </div>
-        )}
+        {mall && hereCount === 0 && !nothingAnywhere && <EmptyHere mallName={mall.name} />}
 
-        {mall && !nothingAnywhere && (
-          <h1 className="text-[17px] font-black pt-1">
-            {mall.name} 而家有 {hereCount} 個着數
-            {view.nearest ? (
-              <span className="text-xs font-bold text-muted-foreground">・離你最近</span>
-            ) : null}
-          </h1>
-        )}
-
-        {sections.some((s) => s.posts.some((p) => visible.has(p.id))) && (
-          <div className="bg-card rounded-3xl px-3.5 py-1.5 shadow-[var(--shadow-card)]">
-            {sections.map((s) => {
-              const shown = s.posts.filter((p) => visible.has(p.id));
-              if (!shown.length) return null;
-              return (
-                <div key={s.id}>
-                  {!cat && (
-                    <div
-                      className="pt-2 pb-0.5 text-xs font-black"
-                      style={{ color: CAT_STYLE[s.id].fg }}
-                    >
-                      {CAT_STYLE[s.id].name}・{s.posts.length}
-                    </div>
-                  )}
-                  {shown.map((p) => row(p, walkLabel(p)))}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {mall && hereCount === 0 && !nothingAnywhere && (
-          <EmptyHere mallName={mall.name} cat={cat} />
-        )}
-
-        {feed.others.some((p) => visible.has(p.id)) && (
+        {otherGroups.length > 0 && (
           <>
             <div className="text-sm font-black pt-1">{feed.othersLabel}</div>
-            <div className="bg-card rounded-3xl px-3.5 py-1.5 shadow-[var(--shadow-card)]">
-              {feed.others.filter((p) => visible.has(p.id)).map((p) => row(p, p.mallName))}
-            </div>
+            {renderGroups(otherGroups, (p) => p.mallName)}
           </>
         )}
 
-        {hidden > 0 && <LockCard count={hidden} onClick={() => ask("登記咗就睇晒全部，免費")} />}
-
-        {!mall && feed.others.length === 0 && !nothingAnywhere && <EmptyCat cat={cat} />}
-
-        {nothingAnywhere && <ColdStart />}
+        {nothingAnywhere && <ColdStart where={mall?.name ?? "全港"} />}
       </div>
       {sheet}
     </AppLayout>
   );
 }
-
-function CatChip({
-  active,
-  onClick,
-  children,
-}: {
-  active?: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={!!active}
-      className={cn(
-        "shrink-0 h-9 px-3.5 rounded-full text-[13px] font-bold",
-        active ? "bg-[#2B2433] text-white" : "bg-card",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-/** 第一次打開：三個字點用，指住上面三個分頁 */
-function Coach({ onClose }: { onClose: () => void }) {
-  return (
-    <div
-      className="relative bg-[#2B2433] text-white rounded-3xl px-4 py-3.5 space-y-2"
-      data-testid="coach"
-    >
-      <span
-        aria-hidden="true"
-        className="absolute -top-1.5 left-16 w-3.5 h-3.5 bg-[#2B2433] rotate-45"
-      />
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[15px] font-black">第一次用？</span>
-        <button
-          onClick={onClose}
-          className="h-9 px-3.5 rounded-xl bg-white text-[#2B2433] text-[13px] font-black"
-        >
-          知道
-        </button>
-      </div>
-      <div className="text-sm leading-relaxed space-y-0.5">
-        <div>
-          <b className="text-[#C9C0FF] mr-3">搵</b>搵人放出嚟嘅泊車優惠單據、餐廳排隊飛、優惠券，或者加入人哋嘅夾單
-        </div>
-        <div>
-          <b className="text-[#FFC6A3] mr-3">放</b>你用唔着嘅，放出去換錢；或者開個夾單搵人一齊買
-        </div>
-        <div className="text-xs text-white/70 pt-1">泊車優惠單據：{PARKING_EXPLAIN}</div>
-      </div>
-    </div>
-  );
-}
-
-function LockCard({ count, onClick }: { count: number; onClick: () => void }) {
-  return (
-    <div
-      className="relative bg-card rounded-3xl p-3.5 shadow-[var(--shadow-card)] overflow-hidden h-32"
-      data-testid="lock-card"
-    >
-      <div aria-hidden="true" className="space-y-3.5 blur-[3px] opacity-60">
-        {[150, 120].map((w) => (
-          <div key={w} className="flex items-center gap-3">
-            <span className="w-10 h-10 rounded-full bg-[#FBE6EF]" />
-            <span className="space-y-1.5">
-              <span className="block h-3 rounded-full bg-[#D9CFC4]" style={{ width: w }} />
-              <span className="block h-2.5 rounded-full bg-[#E8DFD5]" style={{ width: w - 50 }} />
-            </span>
-          </div>
-        ))}
-      </div>
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/60">
-        <span className="text-[15px] font-black flex items-center gap-1.5">
-          <Lock className="w-4 h-4" />
-          仲有 {count} 個
-        </span>
-        <button
-          onClick={onClick}
-          className="h-11 px-5 rounded-[14px] text-white text-sm font-black"
-          style={{ background: VERBS.find.strong }}
-        >
-          登記睇晒（免費）
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/** 「話人知你要」：搵唔到嘅時候，下一步做咩 */
-const ASK_FOR: Partial<Record<ScenarioId, { label: string; quick: QuickKind }>> = {
-  parking: { label: "話人知你要泊車", quick: "want" },
-  offer: { label: "話人知你想要咩優惠", quick: "offerwant" },
-  groupbuy: { label: "自己開個夾單", quick: "groupbuy" },
-};
 
 function NotifyButton() {
   return (
@@ -449,43 +235,38 @@ function NotifyButton() {
   );
 }
 
-function EmptyHere({ mallName, cat }: { mallName: string; cat?: ScenarioId }) {
-  const ask = cat ? ASK_FOR[cat] : undefined;
+function EmptyHere({ mallName }: { mallName: string }) {
   return (
     <div className="bg-card rounded-3xl p-5 text-center space-y-3">
-      <div className="font-bold">
-        {cat ? `${mallName} 暫時未有人放${CAT_STYLE[cat].name}` : `${mallName} 暫時未有人放`}
-      </div>
+      <div className="font-bold">{mallName} 暫時未有人放</div>
       <div className="flex flex-col gap-2">
-        {ask ? (
-          <Link
-            to="/post/new"
-            search={{ quick: ask.quick }}
-            className="h-11 rounded-2xl font-black grid place-items-center text-white"
-            style={{ background: VERBS.find.strong }}
-          >
-            {ask.label}
-          </Link>
-        ) : (
-          <Link
-            to="/give"
-            className="h-11 rounded-2xl font-black grid place-items-center"
-            style={{ background: VERBS.give.soft, color: VERBS.give.text }}
-          >
-            有用唔着嘅？放出去
-          </Link>
-        )}
+        <Link
+          to="/give"
+          className="h-11 rounded-2xl font-black grid place-items-center"
+          style={{ background: VERBS.give.soft, color: VERBS.give.text }}
+        >
+          放出去
+        </Link>
         <NotifyButton />
       </div>
     </div>
   );
 }
 
-function EmptyCat({ cat }: { cat?: ScenarioId }) {
-  const ask = cat ? ASK_FOR[cat] : undefined;
+/** 連結指定咗類別，但呢個商場冇：講一句，俾個下一步 */
+const ASK_FOR: Partial<Record<ScenarioId, { label: string; quick: QuickKind }>> = {
+  parking: { label: "話人知你要泊車", quick: "want" },
+  offer: { label: "話人知你想要咩優惠券", quick: "offerwant" },
+  groupbuy: { label: "自己開個夾單", quick: "groupbuy" },
+};
+
+function EmptyFor({ mallName, cat }: { mallName: string; cat: ScenarioId }) {
+  const ask = ASK_FOR[cat];
   return (
-    <div className="bg-card rounded-3xl p-5 text-center space-y-3">
-      <div className="font-bold">{cat ? `暫時未有人放${CAT_STYLE[cat].name}` : "暫時未有人放"}</div>
+    <div className="bg-card rounded-3xl p-5 text-center space-y-3" data-testid="empty-cat">
+      <div className="font-bold">
+        {mallName} 暫時未有人放{CAT_STYLE[cat].short}
+      </div>
       <div className="flex flex-col gap-2">
         {ask && (
           <Link
@@ -503,24 +284,22 @@ function EmptyCat({ cat }: { cat?: ScenarioId }) {
   );
 }
 
-/** 示範例子：清楚標明唔係真 post，撳唔到 */
+/** 示範例子：寫死喺度，撳唔到 */
 const EXAMPLES: { scenario: ScenarioId; title: string; sub: string }[] = [
   { scenario: "parking", title: "可換 3 個鐘泊車", sub: "$30・慳 $42・APM" },
   { scenario: "dining", title: "鼎泰豐 飛號 A052・2 位", sub: "免費・唔去食，張飛轉俾人・朗豪坊" },
   { scenario: "offer", title: "屈臣氏 $50 現金券", sub: "$20・慳 $30・海港城" },
 ];
 
-function ColdStart() {
+/** 全港都未有人放：短短一句＋兩個掣，下面幾個例子 */
+function ColdStart({ where }: { where: string }) {
   return (
     <div className="space-y-3">
       <div className="bg-card rounded-3xl p-5 text-center space-y-3">
         <div className="font-bold flex items-center justify-center gap-2">
           <LiveDot />
-          啱啱開始，仲未有人放
+          {where} 暫時未有人放
         </div>
-        <p className="text-sm text-muted-foreground">
-          呢度係真嘅即時資料，有人放就即刻出現。你有用唔着嘅泊車優惠單據、餐廳排隊飛、優惠券，可以做第一個放出去。
-        </p>
         <div className="flex flex-col gap-2">
           <Link
             to="/give"
@@ -532,11 +311,12 @@ function ColdStart() {
           <NotifyButton />
         </div>
       </div>
+      <div className="text-sm font-black pt-1">已經有人喺度配對成功</div>
       <div className="bg-card/70 rounded-3xl px-3.5 py-1.5 border border-dashed border-border">
         {EXAMPLES.map((e) => (
           <div
             key={e.title}
-            aria-label="例子，已過期"
+            aria-label="例子"
             className="flex items-center gap-3 py-2.5 border-b border-[#F3ECE4] last:border-0"
           >
             <CatIcon scenario={e.scenario} />
@@ -544,8 +324,8 @@ function ColdStart() {
               <span className="block font-black text-[15px]">{e.title}</span>
               <span className="block text-xs text-muted-foreground">{e.sub}</span>
             </span>
-            <span className="text-[11px] font-bold bg-[#F3ECE4] text-muted-foreground px-2 py-0.5 rounded-full shrink-0">
-              已過期
+            <span className="text-[11px] font-bold bg-[#E3F5EA] text-[#16774A] px-2 py-0.5 rounded-full shrink-0">
+              配對成功
             </span>
           </div>
         ))}

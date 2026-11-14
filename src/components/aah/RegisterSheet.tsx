@@ -530,7 +530,7 @@ function Prefs({ onDone }: { onDone: () => void }) {
           <Check className="w-3.5 h-3.5" strokeWidth={3} />
           登記好喇
         </span>
-        <span className="text-muted-foreground">答咗，首頁會先出你啱用嘅着數。</span>
+        <span className="text-muted-foreground">答咗，首頁會先出你啱用嘅嘢。</span>
       </div>
 
       <div className="space-y-2">
@@ -607,7 +607,7 @@ function Prefs({ onDone }: { onDone: () => void }) {
           className="w-5 h-5 mt-0.5 shrink-0 accent-[#3B2F8F]"
         />
         <span>
-          有附近着數同商戶優惠，通知我
+          附近有人放嘢同商戶消息，通知我
           <span className="block text-xs text-muted-foreground">可以隨時喺「我的」熄</span>
         </span>
       </label>

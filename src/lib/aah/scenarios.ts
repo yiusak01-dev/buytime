@@ -45,7 +45,7 @@ export type ScenarioDef = {
 export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
   parking: {
     id: "parking",
-    label: "泊車優惠單據",
+    label: "泊車單",
     emoji: "🚗",
     color: "#2E9E6A",
     soft: "#E3F5EC",
@@ -122,7 +122,7 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
     shopLabel: "邊間舖？",
     shopSuggestions: ["百佳", "惠康", "屈臣氏", "萬寧", "UNIQLO", "H&M"],
     fields: [
-      { key: "title", label: "優惠內容", type: "text", placeholder: "例如 $50 現金券", required: true },
+      { key: "title", label: "券面寫咩", type: "text", placeholder: "例如 $50 現金券", required: true },
       { key: "faceValue", label: "面值（冇就留空）", type: "number", placeholder: "例如 50", suffix: "元", onlyFor: ["have"], decimal: true },
     ],
     hasPrice: true,
@@ -136,7 +136,7 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
         "實體券、印花要完整、冇用過。",
       ],
       taker: [
-        "接之前睇清楚優惠內容、有效期同限制，例如最低消費、指定貨品。",
+        "接之前睇清楚券面寫咩、有效期同限制，例如最低消費、指定貨品。",
         "電子券最好即場轉贈或者用，確認成功先俾錢。",
       ],
     },
@@ -152,7 +152,7 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
     shopLabel: "邊間舖？",
     shopSuggestions: ["Nike", "adidas", "UNIQLO", "H&M", "ZARA", "GU"],
     fields: [
-      { key: "deal", label: "咩優惠", type: "text", placeholder: "例如 第二件半價", required: true },
+      { key: "deal", label: "舖頭做緊咩", type: "text", placeholder: "例如 第二件半價", required: true },
       { key: "note", label: "想買咩（可以唔填）", type: "text", placeholder: "例如 波鞋" },
     ],
     hasPrice: false,
@@ -161,12 +161,12 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
     handoverHint: "見面一齊去收銀處，各自俾自己嗰份",
     tips: {
       giver: [
-        "優惠條件以舖頭為準，例如要同一張單、指定貨品。",
+        "條件以舖頭為準，例如要同一張單、指定貨品。",
         "喺 post 講清楚想買咩、每人大約俾幾多。",
         "見面一齊去收銀處，講好點樣夾錢先埋單。",
       ],
       taker: [
-        "優惠條件以舖頭為準，例如要同一張單、指定貨品。",
+        "條件以舖頭為準，例如要同一張單、指定貨品。",
         "加入前講清楚你想買咩、大約俾幾多。",
         "見面一齊去收銀處，講好點樣夾錢先埋單。",
       ],

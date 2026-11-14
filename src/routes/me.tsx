@@ -131,7 +131,7 @@ function MePage() {
           <div className="font-bold">進行中</div>
           {activeMatches.length === 0 && myOpenPosts.length === 0 ? (
             <div className="bg-card rounded-2xl p-5 text-sm text-muted-foreground text-center">
-              暫時冇。<Link to="/" className="underline font-semibold">去睇吓附近嘅着數</Link>
+              暫時冇。<Link to="/" className="underline font-semibold">去睇吓附近有咩</Link>
             </div>
           ) : (
             <>
@@ -196,12 +196,12 @@ function MePage() {
             })}
           </div>
           <label className="flex items-center justify-between">
-            <span className="text-sm">着數通知（到商場時）</span>
+            <span className="text-sm">到商場時通知我附近有咩</span>
             <Switch checked={user.notifyOpportunities} onCheckedChange={(v) => aah.updateUser({ notifyOpportunities: v })} />
           </label>
           <label className="flex items-center justify-between">
             <span className="text-sm">
-              推廣通知（商戶優惠、廣告）
+              推廣通知（商戶消息、廣告）
               <span className="block text-[11px] text-muted-foreground">預設唔開；開咗先會收，隨時可以熄</span>
             </span>
             <Switch checked={user.notifyPromotions} onCheckedChange={(v) => aah.updateUser({ notifyPromotions: v })} />
@@ -291,6 +291,7 @@ function MePage() {
         <FeedbackCard registered={user.registered} onRegister={() => setRegOpen(true)} />
 
         <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+          <Link to="/" search={{ how: "1" }} className="underline">點樣用</Link>
           <Link to="/help" className="underline">常見問題</Link>
           <Link to="/terms" className="underline">服務條款</Link>
           <Link to="/privacy" className="underline">私隱政策</Link>

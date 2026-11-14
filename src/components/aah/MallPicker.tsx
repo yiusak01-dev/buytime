@@ -7,7 +7,7 @@ import { testLocationAllowed } from "@/lib/aah/store";
 import type { AahMall } from "@/lib/aah/types";
 
 /**
- * 揀商場：冇搜尋時分三段 —— 附近（最近 5 個）、熱門（而家有着數嘅先，之後人流高嘅）、其他（按距離）。
+ * 揀商場：冇搜尋時分三段 —— 附近（最近 5 個）、熱門（而家有人放嘢嘅先，之後人流高嘅）、其他（按距離）。
  * 有搜尋就淨係列出符合嘅商場。
  */
 export function MallPicker({
@@ -62,7 +62,7 @@ export function MallPicker({
             ? "GPS 已經確認你喺商場，會優先用真實位置。"
             : testing
               ? "試用期間可以揀一個商場扮自己喺嗰度，試吓成個流程。"
-              : "揀一個商場睇吓而家有咩着數。要出 post 或者接，就要去到商場（出 post 嘅人開咗「接受去緊嘅人」，就可以喺路上接）。"}
+              : "揀一個商場睇吓而家有人放咩。要出 post 或者接，就要去到商場（出 post 嘅人開咗「接受去緊嘅人」，就可以喺路上接）。"}
         </p>
         <div className="flex items-center gap-2 border border-border rounded-2xl px-3 h-11">
           <Search className="w-4 h-4 text-muted-foreground" />
@@ -85,7 +85,7 @@ export function MallPicker({
                         <div className="font-semibold text-sm truncate">{m.name}</div>
                         <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
                           {m.district && <span>{m.district}</span>}
-                          {n > 0 && <span className="font-bold text-[#E8642A]">🔥 而家有 {n} 個着數</span>}
+                          {n > 0 && <span className="font-bold text-[#E8642A]">🔥 而家 {n} 樣等緊人接</span>}
                           {t && <span>{t}</span>}
                         </div>
                       </div>
