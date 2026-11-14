@@ -149,7 +149,7 @@ export function AahRuntime() {
       .posts.filter((p) => p.mallId === m.id && p.status === "open" && p.leaveAt > Date.now() && p.authorId !== user.id && user.notifyCats.includes(p.scenario)).length;
     if (count === 0) return;
     aah.markArrivalShown(m.id);
-    // 已經喺搵／放／夾頁：列表同即時動態已經見到，唔使再彈
+    // 已經喺搵／放頁（/join 而家轉去搵）：列表同即時動態已經見到，唔使再彈
     if (pathname === "/" || pathname === "/give" || pathname === "/join") return;
     toast(`啱啱好！附近有 ${count} 個着數`, {
       description: `${m.name} 而家有 ${count} 個着數，即刻睇吓`,

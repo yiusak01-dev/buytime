@@ -82,11 +82,6 @@ function Home() {
   const [howSeen, setHowSeen] = useState(readHowSeen);
   const { interest, ask, sheet } = useQuickInterest();
 
-  // 夾單喺「夾」頁
-  useEffect(() => {
-    if (cat === "groupbuy") navigate({ to: "/join", replace: true });
-  }, [cat, navigate]);
-
   const mall = view.mall;
   useEffect(() => {
     if (mall) aah.ensureDemoPosts(mall);
@@ -97,7 +92,7 @@ function Home() {
     () => posts.filter((p) => p.status === "open" && p.leaveAt > now),
     [posts, now],
   );
-  // 「搵」：有人放出嚟嘅泊車收據、餐廳飛、優惠券（想要嘅喺「放」頁、夾單喺「夾」頁）
+  // 「搵」：有人放出嚟嘅泊車收據、餐廳飛、優惠券、夾單（想要嘅喺「放」頁）
   const findable = useMemo(
     () => live.filter((p) => FIND_SCENARIOS.includes(p.scenario) && p.direction !== "want"),
     [live],
@@ -388,13 +383,10 @@ function Coach({ onClose }: { onClose: () => void }) {
       </div>
       <div className="text-sm leading-relaxed space-y-0.5">
         <div>
-          <b className="text-[#C9C0FF] mr-3">搵</b>搵人放出嚟嘅泊車優惠單據、餐廳排隊飛、優惠券
+          <b className="text-[#C9C0FF] mr-3">搵</b>搵人放出嚟嘅泊車優惠單據、餐廳排隊飛、優惠券，或者加入人哋嘅夾單
         </div>
         <div>
-          <b className="text-[#FFC6A3] mr-3">放</b>你用唔着嘅，放出去換錢
-        </div>
-        <div>
-          <b className="text-[#A9E5C4] mr-3">夾</b>第二件半價、買一送一，搵人一齊買
+          <b className="text-[#FFC6A3] mr-3">放</b>你用唔着嘅，放出去換錢；或者開個夾單搵人一齊買
         </div>
         <div className="text-xs text-white/70 pt-1">泊車優惠單據：{PARKING_EXPLAIN}</div>
       </div>
@@ -440,6 +432,7 @@ function LockCard({ count, onClick }: { count: number; onClick: () => void }) {
 const ASK_FOR: Partial<Record<ScenarioId, { label: string; quick: QuickKind }>> = {
   parking: { label: "話人知你要泊車", quick: "want" },
   offer: { label: "話人知你想要咩優惠", quick: "offerwant" },
+  groupbuy: { label: "自己開個夾單", quick: "groupbuy" },
 };
 
 function NotifyButton() {

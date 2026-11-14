@@ -73,10 +73,10 @@ export function TabHeader({ active }: { active: Verb }) {
       </div>
 
       <nav
-        aria-label="搵放夾"
-        className="grid grid-cols-3 gap-1.5 bg-card rounded-3xl p-1.5 shadow-[var(--shadow-card)]"
+        aria-label="搵放"
+        className="grid grid-cols-2 gap-1.5 bg-card rounded-3xl p-1.5 shadow-[var(--shadow-card)]"
       >
-        {(["find", "give", "join"] as Verb[]).map((v) => {
+        {(["find", "give"] as Verb[]).map((v) => {
           const s = VERBS[v];
           const on = v === active;
           return (

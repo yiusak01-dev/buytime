@@ -136,6 +136,7 @@ function Give() {
             </label>
             <GiveRow scenario="dining" sub="唔去食，張飛轉俾人" quick="dining" />
             <GiveRow scenario="offer" sub="用唔晒嘅優惠券" quick="offer" />
+            <GiveRow scenario="groupbuy" sub="一個人買唔抵？開個夾單搵人一齊買" quick="groupbuy" action="開" />
           </div>
         </div>
 
@@ -263,10 +264,12 @@ function GiveRow({
   scenario,
   sub,
   quick,
+  action = "放",
 }: {
   scenario: ScenarioId;
   sub: string;
   quick: QuickKind;
+  action?: string;
 }) {
   return (
     <Link
@@ -283,7 +286,7 @@ function GiveRow({
         className="h-10 px-3 rounded-xl text-sm font-black grid place-items-center shrink-0"
         style={{ background: G.soft, color: G.text }}
       >
-        放
+        {action}
       </span>
     </Link>
   );

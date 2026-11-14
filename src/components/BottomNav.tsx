@@ -1,10 +1,10 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Search, Plus, Users, UserRound } from "lucide-react";
+import { Search, Plus, UserRound } from "lucide-react";
 import { useMemo } from "react";
 import { useAahState } from "@/lib/aah/store";
 import { MUTED, VERBS } from "@/lib/aah/theme";
 
-/** 唔係搵／放／夾三頁時用（例如「我的」）：同頂部三個分頁一樣，加「我的」 */
+/** 唔係搵／放兩頁時用（例如「我的」）：同頂部兩個分頁一樣，加「我的」 */
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { matches, user } = useAahState();
@@ -32,13 +32,6 @@ export function BottomNav() {
       color: VERBS.give.text,
     },
     {
-      to: "/join" as const,
-      label: VERBS.join.word,
-      Icon: Users,
-      on: pathname === "/join",
-      color: VERBS.join.text,
-    },
-    {
       to: "/me" as const,
       label: "我的",
       Icon: UserRound,
@@ -50,7 +43,7 @@ export function BottomNav() {
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 pointer-events-none">
       <div className="relative max-w-lg mx-auto pointer-events-auto">
-        <div className="relative border-t border-border bg-card/95 backdrop-blur-md h-16 grid grid-cols-4 pb-[env(safe-area-inset-bottom)]">
+        <div className="relative border-t border-border bg-card/95 backdrop-blur-md h-16 grid grid-cols-3 pb-[env(safe-area-inset-bottom)]">
           {items.map(({ to, label, Icon, on, color }) => (
             <Link
               key={to}

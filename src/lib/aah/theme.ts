@@ -59,8 +59,8 @@ export const CAT_STYLE: Record<
   groupbuy: { name: "夾單", short: "夾單", bg: "#D6F2E2", fg: "#1E5C3F" },
 };
 
-/** 「搵」入面嘅類別（夾單喺「夾」頁） */
-export const FIND_SCENARIOS: ScenarioId[] = ["parking", "dining", "offer"];
+/** 「搵」入面嘅類別（「夾」頁已經併入嚟：夾單係其中一個類別） */
+export const FIND_SCENARIOS: ScenarioId[] = ["parking", "dining", "offer", "groupbuy"];
 
 /** 第一次用嘅人未必知咩係泊車優惠單據：喺有位嘅地方講一次 */
 export const PARKING_EXPLAIN = "商場消費單，夠數可以換免費泊車";
