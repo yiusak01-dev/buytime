@@ -162,7 +162,7 @@ function Home() {
       const shown = limited ? g.posts.slice(0, FREE_LIMIT) : g.posts;
       const locked = g.posts.length - shown.length;
       return (
-        <CatGroup
+        <CatGroup tone="find"
           key={`${g.id}-${cat ?? ""}`}
           scenario={g.id}
           count={g.posts.length}
@@ -175,7 +175,7 @@ function Home() {
     });
 
   return (
-    <AppLayout hideNav>
+    <AppLayout hideNav tint={VERBS.find.page}>
       <TabHeader active="find" />
 
       <div className="px-4 space-y-3">
@@ -319,7 +319,7 @@ function ColdStart({ where }: { where: string }) {
             aria-label="例子"
             className="flex items-center gap-3 py-2.5 border-b border-[#F3ECE4] last:border-0"
           >
-            <CatIcon scenario={e.scenario} />
+            <CatIcon tone="find" scenario={e.scenario} />
             <span className="flex-1 min-w-0">
               <span className="block font-black text-[15px]">{e.title}</span>
               <span className="block text-xs text-muted-foreground">{e.sub}</span>

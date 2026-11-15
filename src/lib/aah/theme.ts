@@ -17,12 +17,15 @@ export const VERBS: Record<
     word: string;
     sub: string;
     soft: string;
+    /** 成個版面嘅底色 */
+    page: string;
     strong: string;
     text: string;
     to: "/" | "/give" | "/join";
   }
 > = {
   find: {
+    page: "#F1EEFF",
     word: "搵",
     sub: "我想要",
     soft: "#E8E4FF",
@@ -31,6 +34,7 @@ export const VERBS: Record<
     to: "/",
   },
   give: {
+    page: "#FFEFE3",
     word: "放",
     sub: "我有，放出去",
     soft: "#FFD9C2",
@@ -39,6 +43,7 @@ export const VERBS: Record<
     to: "/give",
   },
   join: {
+    page: "#EAF7F0",
     word: "夾",
     sub: "搵人一齊買",
     soft: "#D6F2E2",

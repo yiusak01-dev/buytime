@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { ChevronDown, Lock } from "lucide-react";
 import { CatIcon } from "./CatIcon";
-import { CAT_STYLE, VERBS } from "@/lib/aah/theme";
+import { CAT_STYLE, VERBS, type Verb } from "@/lib/aah/theme";
 import type { ScenarioId } from "@/lib/aah/types";
 import { cn } from "@/lib/utils";
 
@@ -10,9 +10,12 @@ export function CatGroup({
   scenario,
   count,
   defaultOpen = true,
+  tone,
   children,
 }: {
   scenario: ScenarioId;
+  /** 成個版面一套色：搵＝紫、放＝橙 */
+  tone: Verb;
   count?: number;
   defaultOpen?: boolean;
   children: ReactNode;
@@ -30,8 +33,8 @@ export function CatGroup({
         aria-expanded={open}
         className="w-full flex items-center gap-2.5 px-3.5 py-3 text-left"
       >
-        <CatIcon scenario={scenario} size={30} />
-        <span className="flex-1 text-[16px] font-black" style={{ color: s.fg }}>
+        <CatIcon scenario={scenario} size={30} tone={tone} />
+        <span className="flex-1 text-[16px] font-black" style={{ color: VERBS[tone].strong }}>
           {s.short}
           {count != null && <span className="ml-1.5">{count}</span>}
         </span>

@@ -1,9 +1,9 @@
 import { BottomNav } from "./BottomNav";
 import type { ReactNode } from "react";
 
-export function AppLayout({ children, title, subtitle, headerRight, hideNav }: { children: ReactNode; title?: string; subtitle?: string; headerRight?: ReactNode; hideNav?: boolean }) {
+export function AppLayout({ children, title, subtitle, headerRight, hideNav, tint }: { children: ReactNode; tint?: string; title?: string; subtitle?: string; headerRight?: ReactNode; hideNav?: boolean }) {
   return (
-    <div className={hideNav ? "app-shell pb-6" : "app-shell pb-24"}>
+    <div className={hideNav ? "app-shell pb-6" : "app-shell pb-24"} style={tint ? { background: tint } : undefined}>
       {title && (
         <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md px-4 pt-4 pb-3 border-b border-border/60">
           <div className="flex items-center justify-between">

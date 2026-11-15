@@ -1,5 +1,5 @@
 import { Car, Tag, Ticket, Users } from "lucide-react";
-import { CAT_STYLE, LIVE } from "@/lib/aah/theme";
+import { CAT_STYLE, LIVE, VERBS, type Verb } from "@/lib/aah/theme";
 import type { ScenarioId } from "@/lib/aah/types";
 import { cn } from "@/lib/utils";
 
@@ -10,12 +10,15 @@ export function CatIcon({
   scenario,
   size = 40,
   className,
+  tone,
 }: {
   scenario: ScenarioId;
   size?: number;
   className?: string;
+  /** 跟版面一套色（搵＝紫、放＝橙）；唔俾就用類別自己隻色 */
+  tone?: Verb;
 }) {
-  const s = CAT_STYLE[scenario];
+  const s = tone ? { bg: VERBS[tone].soft, fg: VERBS[tone].strong } : CAT_STYLE[scenario];
   const Icon = ICONS[scenario];
   return (
     <span

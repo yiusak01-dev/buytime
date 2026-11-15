@@ -126,7 +126,7 @@ function Give() {
   };
 
   return (
-    <AppLayout hideNav>
+    <AppLayout hideNav tint={VERBS.give.page}>
       <TabHeader active="give" />
       <div className="px-4 space-y-3">
         {demand && (
@@ -139,7 +139,7 @@ function Give() {
           </span>
         )}
 
-        <CatGroup scenario="parking">
+        <CatGroup tone="give" scenario="parking">
           {/* 泊車單：一撳就開相機，影完自動讀總數 */}
           <label
             className="flex items-center gap-3 py-2 cursor-pointer active:scale-[0.99] transition-transform"
@@ -172,7 +172,7 @@ function Give() {
         </CatGroup>
 
         {ACTIONS.map((a) => (
-          <CatGroup key={a.id} scenario={a.id}>
+          <CatGroup tone="give" key={a.id} scenario={a.id}>
             <Link
               to="/post/new"
               search={{ quick: a.quick }}
@@ -207,7 +207,7 @@ function MyPost({ post, now }: { post: Post; now: number }) {
       data-testid="my-post"
     >
       <div className="flex items-center gap-3">
-        <CatIcon scenario={post.scenario} />
+        <CatIcon tone="give" scenario={post.scenario} />
         <div className="flex-1 min-w-0">
           <div className="font-black text-[15px] truncate">
             {rowTitle(post)}
