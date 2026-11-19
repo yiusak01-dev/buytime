@@ -141,13 +141,21 @@ jobs:
           done
           [ -z "$missing" ] || exit 1
           printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
-      # 唔簽名咁打包；上載嗰步由 App Store Connect 雲端簽名（唔使喺 Mac 裝證書）
+      # 試打包：唔簽名。正式：用 App Store Connect API 鎖匙自動簽名（雲端證書，唔使喺 Mac 裝），
+      # 咁推送權限（aps-environment）先會跟住入 app，上載嗰步再換做正式版簽名
       - name: Archive
+        env:
+          DRY: ${{ inputs.dry_run }}
         run: |
           set -o pipefail
+          if [ "$DRY" = "true" ]; then
+            SIGN=(CODE_SIGNING_ALLOWED=NO)
+          else
+            SIGN=(-allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" CODE_SIGN_STYLE=Automatic)
+          fi
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
             -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/App.xcarchive" \
-            CODE_SIGNING_ALLOWED=NO CURRENT_PROJECT_VERSION="$BUILD_NUMBER" ${APPLE_TEAM_ID:+DEVELOPMENT_TEAM=$APPLE_TEAM_ID} \
+            "${SIGN[@]}" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" ${APPLE_TEAM_ID:+DEVELOPMENT_TEAM=$APPLE_TEAM_ID} \
             archive 2>&1 | tee ios-archive.log | tail -25
           test -d "$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app"
           test -f "$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app/PrivacyInfo.xcprivacy"
@@ -175,6 +183,12 @@ jobs:
             -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             2>&1 | tee ios-upload.log | tail -40
           echo "### iOS 已上載 App Store Connect（build ${BUILD_NUMBER}），處理完會喺 TestFlight 出現" >> "$GITHUB_STEP_SUMMARY"
+          # 確認推送權限有入到 app
+          if codesign -d --entitlements - "$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app" 2>/dev/null | grep -q aps-environment; then
+            echo "推送權限：有" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::app 冇推送權限（aps-environment），iPhone 會收唔到通知"
+          fi
       - name: Remove key
         if: always()
         run: rm -f "$RUNNER_TEMP/AuthKey.p8"

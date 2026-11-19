@@ -83,6 +83,58 @@ async function sendFCM(token: string, title: string, body: string, url: string):
   }
 }
 
+// ── APNs（iPhone app 直接用 Apple 推送；未設定 APNS_KEY_P8 等 secret 就略過）──
+// secret：APNS_KEY_P8（.p8 檔全部內容）、APNS_KEY_ID、APNS_TEAM_ID；APNS_TOPIC 預設 hk.buytime.app
+let apnsJwt: { token: string; at: number } | null = null;
+async function apnsToken(): Promise<string | null> {
+  const pem = Deno.env.get("APNS_KEY_P8");
+  const kid = Deno.env.get("APNS_KEY_ID");
+  const iss = Deno.env.get("APNS_TEAM_ID");
+  if (!pem || !kid || !iss) return null;
+  // Apple 要求 20–60 分鐘內重用同一個 token
+  if (apnsJwt && Date.now() - apnsJwt.at < 40 * 60_000) return apnsJwt.token;
+  const raw = atob(pem.replace(/-----(BEGIN|END) PRIVATE KEY-----/g, "").replace(/\s/g, ""));
+  const key = await crypto.subtle.importKey("pkcs8", Uint8Array.from(raw, (ch) => ch.charCodeAt(0)), { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+  const input = `${b64url(JSON.stringify({ alg: "ES256", kid }))}.${b64url(JSON.stringify({ iss, iat: Math.floor(Date.now() / 1000) }))}`;
+  const sig = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, new TextEncoder().encode(input));
+  apnsJwt = { token: `${input}.${b64url(sig)}`, at: Date.now() };
+  return apnsJwt.token;
+}
+async function sendAPNs(token: string, title: string, body: string, url: string, tag: string | null): Promise<"ok" | "gone" | "skip" | "fail"> {
+  try {
+    const jwt = await apnsToken();
+    if (!jwt) return "skip";
+    const payload = JSON.stringify({ aps: { alert: { title, body }, sound: "default", ...(tag ? { "thread-id": tag } : {}) }, url });
+    const send = (host: string) =>
+      fetch(`https://${host}/3/device/${token}`, {
+        method: "POST",
+        headers: {
+          authorization: `bearer ${jwt}`,
+          "apns-topic": Deno.env.get("APNS_TOPIC") || "hk.buytime.app",
+          "apns-push-type": "alert",
+          "apns-priority": "10",
+          "apns-expiration": String(Math.floor(Date.now() / 1000) + TTL_SECONDS),
+          "content-type": "application/json",
+        },
+        body: payload,
+      });
+    // TestFlight／App Store 版用正式伺服器；由 Xcode 直接裝嘅測試版用 sandbox
+    let res = await send("api.push.apple.com");
+    let reason = res.ok ? "" : ((await res.json().catch(() => ({}))) as { reason?: string }).reason ?? "";
+    if (!res.ok && reason === "BadDeviceToken") {
+      res = await send("api.sandbox.push.apple.com");
+      reason = res.ok ? "" : ((await res.json().catch(() => ({}))) as { reason?: string }).reason ?? "";
+    }
+    if (res.ok) return "ok";
+    if (res.status === 410 || reason === "Unregistered" || reason === "BadDeviceToken") return "gone";
+    console.error("[aah-push] apns", res.status, reason);
+    return "fail";
+  } catch (e) {
+    console.error("[aah-push] apns error", e);
+    return "fail";
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
 
@@ -100,7 +152,7 @@ Deno.serve(async (req) => {
   }
 
   const payload = await req.json().catch(() => ({}));
-  if (payload.init) return json({ ok: true, ready: !!c.vapid_public });
+  if (payload.init) return json({ ok: true, ready: !!c.vapid_public, apns: !!(Deno.env.get("APNS_KEY_P8") && Deno.env.get("APNS_KEY_ID") && Deno.env.get("APNS_TEAM_ID")) });
 
   const { recipient_id, title, body, url, tag } = payload as Record<string, string | undefined>;
   if (!recipient_id || !title) return json({ error: "missing fields" }, 400);
@@ -119,6 +171,15 @@ Deno.serve(async (req) => {
   await Promise.all(
     subs.map(async (s: { endpoint: string; subscription: any }) => {
       const sub = s.subscription;
+      if (sub?.type === "apns") {
+        const r = await sendAPNs(sub.token, title, body ?? "", url ?? "/", tag ?? null);
+        if (r === "ok") sent++;
+        if (r === "gone") {
+          await admin.from("aah_push_subscriptions").delete().eq("endpoint", s.endpoint);
+          removed++;
+        }
+        return;
+      }
       if (sub?.type === "fcm") {
         const r = await sendFCM(sub.token, title, body ?? "", url ?? "/");
         if (r === "ok") sent++;

@@ -32,6 +32,15 @@ export async function initNative(go: (path: string) => void) {
       else void App.minimizeApp();
     });
 
+    // 撳推送通知：跳去通知講嘅嗰版（只接受 app 入面嘅路徑）
+    if (Capacitor.isPluginAvailable("PushNotifications")) {
+      const { PushNotifications } = await import("@capacitor/push-notifications");
+      void PushNotifications.addListener("pushNotificationActionPerformed", (a) => {
+        const url = (a.notification?.data as { url?: unknown } | undefined)?.url;
+        if (typeof url === "string" && url.startsWith("/") && !url.startsWith("//")) go(url);
+      });
+    }
+
     // 由連結打開 app：只接受自己網站嘅連結
     void App.addListener("appUrlOpen", ({ url }) => {
       try {

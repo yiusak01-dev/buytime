@@ -18,6 +18,10 @@ const config: CapacitorConfig = {
     allowMixedContent: false,
   },
   plugins: {
+    // 用緊 app 嗰陣都彈通知
+    PushNotifications: {
+      presentationOptions: ["badge", "sound", "alert"],
+    },
     SplashScreen: {
       launchShowDuration: 600,
       launchAutoHide: true,
