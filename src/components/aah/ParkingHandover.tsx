@@ -3,6 +3,7 @@ import type { AahMall } from "@/lib/aah/types";
 
 /**
  * 泊車單點樣交收：一齊去換，張單同信用卡底單唔使交俾陌生人。
+ * 提要嘅人睇清楚張單係咪呢個商場、今日嘅單：有人可能求其放第二個商場嘅單。
  * 換泊車地點只會用商場官網寫明、記低咗出處嘅資料；冇就唔寫樓層。
  */
 export function ParkingHandover({ mall, compact = false }: { mall?: AahMall | null; compact?: boolean }) {
@@ -15,7 +16,10 @@ export function ParkingHandover({ mall, compact = false }: { mall?: AahMall | nu
     >
       <div className="text-sm font-black">一齊去換泊車，張單唔使交俾對方</div>
       <ul className="text-[13px] leading-relaxed space-y-0.5">
-        <li>📍 喺{place}見面</li>
+        <li>
+          🔍 要嘅人：睇清楚張單係咪<b>{mall?.name ?? "呢個商場"}</b>嘅單、係咪今日，其他商場嘅單喺度換唔到
+        </li>
+        <li>📍 喺{place}見面，現場一齊換</li>
         <li>🧾 單據同信用卡底單由放嘅人自己交俾職員，換完攞返</li>
         {!compact && <li>🚗 要嘅人俾自己張泊車飛（或者講車牌）換，換到先俾錢</li>}
       </ul>
