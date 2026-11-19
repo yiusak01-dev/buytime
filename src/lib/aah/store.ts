@@ -31,6 +31,8 @@ export const MAX_PINNED_PER_MALL = 10;
 export const PIN_MINUTES = 15;
 export const PIN_PROMPT_AFTER_MIN = 15;
 export const CHAT_CLOSE_AFTER_MIN = 30;
+/** 全部人到齊之後，冇人撳「交收完成」幾耐自動完成（同伺服器 aah__auto_complete_handover 一樣） */
+export const HANDOVER_AUTO_MIN = 60;
 export const DINING_POSTS_PER_DAY = 3;
 export const LEAVE_GRACE_MIN = 5;
 
@@ -688,8 +690,10 @@ const local = {
         ...(userId === state.user.id ? [] : [sysMsg(`${name} 已經到咗`)]),
       ],
     }));
+    // 全部人到齊唔會即刻完成：對話照開，等其中一個撳「交收完成」
     const m = state.matches.find((x) => x.id === matchId)!;
-    if (m.participants.every((p) => m.arrived[p.userId])) local.completeMatch(matchId);
+    if (m.participants.every((p) => m.arrived[p.userId]))
+      patchMatch(matchId, (x) => ({ ...x, messages: [...x.messages, sysMsg("兩位都到咗。交收完成之後撳「交收完成」。")] }));
   },
 
   completeMatch(matchId: string) {
@@ -1323,11 +1327,11 @@ export const aah = {
     if (matchId) await R().setOutfit(matchId, outfit);
   },
 
-  /** 我到咗（或者確認對方到咗）。回傳 completed = 全部人到齊、已完成 */
+  /** 我到咗（或者確認對方到咗）。回傳 all_arrived = 全部人到齊（等撳「交收完成」） */
   async arrive(
     matchId: string,
     opts: { userId?: string; coords?: { lat: number; lng: number } } = {},
-  ): Promise<"completed" | "waiting"> {
+  ): Promise<"completed" | "all_arrived" | "waiting"> {
     const me = state.user.id;
     if (isRemote()) {
       return opts.userId && opts.userId !== me
@@ -1335,9 +1339,14 @@ export const aah = {
         : R().arrive(matchId, opts.coords);
     }
     local.arrive(matchId, opts.userId ?? me);
-    return state.matches.find((m) => m.id === matchId)?.status === "completed"
-      ? "completed"
-      : "waiting";
+    const m = state.matches.find((x) => x.id === matchId);
+    if (m?.status === "completed") return "completed";
+    return m && m.participants.every((p) => m.arrived[p.userId]) ? "all_arrived" : "waiting";
+  },
+  /** 交收完成：任何一方撳就完成配對 */
+  async completeHandover(matchId: string) {
+    if (isRemote()) return R().completeHandover(matchId);
+    local.completeMatch(matchId);
   },
   async cancelMatch(matchId: string, reason: string) {
     return isRemote() ? R().cancelMatch(matchId, reason) : local.cancelMatch(matchId, reason);

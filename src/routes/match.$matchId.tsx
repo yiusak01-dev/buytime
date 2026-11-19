@@ -4,10 +4,8 @@ import { ArrowLeft, MapPin, Clock, Flag, CheckCircle2, AlertTriangle } from "luc
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
 import { PushPrompt } from "@/components/aah/PushPrompt";
-import { Avatar, describeOutfit } from "@/components/aah/Avatar";
-import { OutfitEditor } from "@/components/aah/OutfitEditor";
 import { BottomSheet, Chip, DemoBadge, ScenarioTag } from "@/components/aah/ui";
-import { aah, aahErrorText, useAahMode, useAahState, todayKey, CHAT_CLOSE_AFTER_MIN, BAN_DAYS } from "@/lib/aah/store";
+import { aah, aahErrorText, useAahMode, useAahState, CHAT_CLOSE_AFTER_MIN, BAN_DAYS, HANDOVER_AUTO_MIN } from "@/lib/aah/store";
 import { geoStore } from "@/lib/aah/geo";
 import { useAahMalls } from "@/lib/aah/malls";
 import { useCurrentMall, useNow, fmtClock, fmtLeft } from "@/lib/aah/geo";
@@ -40,19 +38,12 @@ function MatchPage() {
 
   const [warnOpen, setWarnOpen] = useState(false);
   const [changeOpen, setChangeOpen] = useState(false);
-  const [outfitOpen, setOutfitOpen] = useState(false);
   const [text, setText] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [releaseAsk, setReleaseAsk] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastSent = useRef<{ text: string; at: number } | null>(null);
-
-  // 今日已經揀過衫就自動用返
-  useEffect(() => {
-    if (!m || m.status !== "active") return;
-    if (!m.outfits[user.id] && user.outfitToday?.date === todayKey()) void aah.setOutfitToday(user.outfitToday.outfit, m.id).catch(() => {});
-  }, [m?.id, m?.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 有新訊息先自動捲落去（第一次打開唔捲，等用家先睇到見面資料）
   const seenMsgs = useRef<number | null>(null);
@@ -86,6 +77,9 @@ function MatchPage() {
   const pastMeet = now > m.meetAt;
   const chatClosed = !active && now - (m.endedAt ?? now) > CHAT_CLOSE_AFTER_MIN * MIN;
   const missing = others.filter((o) => !m.arrived[o.userId]);
+  // 全部人到齊：對話照開，交收完成先撳「交收完成」（冇人撳就自動完成）
+  const allArrived = m.participants.every((p) => !!m.arrived[p.userId]);
+  const lastArrival = Math.max(0, ...m.participants.map((p) => m.arrived[p.userId] ?? 0));
   const inMall = current.mall?.id === m.mallId;
 
   function guardedSend(t: string) {
@@ -128,7 +122,8 @@ function MatchPage() {
     try {
       const r = await aah.arrive(m!.id, { coords: g.lat != null && g.lng != null ? { lat: g.lat, lng: g.lng } : undefined });
       if (r === "completed") toast.success("見到面喇！已完成");
-      else toast("已通知對方你到咗", { description: "舉起電話對一對公仔" });
+      else if (r === "all_arrived") toast.success("兩位都到咗", { description: "交收完成之後撳「交收完成」" });
+      else toast("已通知對方你到咗", { description: "喺對話講吓你喺邊、著咩，方便對方搵你" });
     } catch (e) {
       toast.error(aahErrorText(e));
     }
@@ -291,32 +286,27 @@ function MatchPage() {
           )}
         </div>
 
-        {/* 認人：公仔 */}
-        <div className="bg-card rounded-2xl p-4 shadow-[var(--shadow-card)]">
-          <div className="text-xs font-bold text-muted-foreground mb-2">見面認人</div>
-          <div className="flex gap-4 overflow-x-auto overflow-y-hidden overscroll-x-contain">
-            {others.map((o) => (
-              <div key={o.userId} className="flex flex-col items-center text-center w-28 shrink-0">
-                <Avatar outfit={m.outfits[o.userId]} size={64} />
-                <div className="text-sm font-bold mt-1">{o.name}</div>
-                <div className="text-[10px] text-muted-foreground leading-snug">{m.outfits[o.userId] ? describeOutfit(m.outfits[o.userId]) : "對方未揀衫"}</div>
-                {m.arrived[o.userId] && <div className="text-[11px] font-bold text-[#2E9E6A] mt-1">已經到咗</div>}
+        {/* 見面：邊個到咗（認人靠對話講） */}
+        {active && (
+          <div className="bg-card rounded-2xl p-4 shadow-[var(--shadow-card)] space-y-2" data-testid="arrival-status">
+            <div className="text-xs font-bold text-muted-foreground">見面</div>
+            {[...others, { userId: user.id, name: "你" }].map((o) => (
+              <div key={o.userId} className="flex items-center justify-between text-sm">
+                <span className="font-bold">{o.name}</span>
+                {m.arrived[o.userId] ? (
+                  <span className="text-[12px] font-bold text-[#2E9E6A]">已經到咗</span>
+                ) : (
+                  <span className="text-[12px] text-muted-foreground">未到</span>
+                )}
               </div>
             ))}
-            <div className="flex flex-col items-center text-center w-28 shrink-0 border-l border-border pl-4">
-              <Avatar outfit={m.outfits[user.id]} size={64} />
-              <div className="text-sm font-bold mt-1">你</div>
-              {active && (
-                <button onClick={() => setOutfitOpen(true)} className="text-[11px] underline text-muted-foreground mt-0.5">
-                  {m.outfits[user.id] ? "改打扮" : "你今日著咩？"}
-                </button>
-              )}
+            <div className="text-[11px] text-muted-foreground leading-snug">
+              {allArrived
+                ? `兩位都到咗。交收完成之後撳「交收完成」；冇人撳，${fmtClock(lastArrival + HANDOVER_AUTO_MIN * MIN)} 會自動完成。`
+                : "搵唔到對方？喺下面對話講你喺邊、著咩。"}
             </div>
           </div>
-          {active && !m.outfits[user.id] && (
-            <button onClick={() => setOutfitOpen(true)} className="mt-3 w-full h-11 rounded-2xl bg-[#F5C518] text-[#1a1a1a] font-bold">揀你今日嘅打扮，方便對方認你</button>
-          )}
-        </div>
+        )}
 
         {active && <PushPrompt reason="對方傳訊息、到咗、取消，都會即刻通知你。" />}
 
@@ -431,13 +421,23 @@ function MatchPage() {
                 <button className="h-10 px-4 rounded-full bg-[#1a1a1a] text-white text-sm font-bold">傳送</button>
               </form>
               <div className="flex gap-2">
-                <button
-                  onClick={arrive}
-                  disabled={iArrived}
-                  className="flex-1 h-14 rounded-2xl bg-[#F5C518] text-[#1a1a1a] font-black text-base shadow-lg disabled:opacity-60"
-                >
-                  {iArrived ? "已撳我到咗" : "我到咗"}
-                </button>
+                {allArrived ? (
+                  <button
+                    onClick={() => void act(aah.completeHandover(m.id), "完成！多謝你哋互相幫忙")}
+                    className="flex-1 h-14 rounded-2xl bg-[#2E9E6A] text-white font-black text-base shadow-lg"
+                    data-testid="handover-done"
+                  >
+                    交收完成
+                  </button>
+                ) : (
+                  <button
+                    onClick={arrive}
+                    disabled={iArrived}
+                    className="flex-1 h-14 rounded-2xl bg-[#F5C518] text-[#1a1a1a] font-black text-base shadow-lg disabled:opacity-60"
+                  >
+                    {iArrived ? "已撳我到咗，等緊對方" : "我到咗"}
+                  </button>
+                )}
                 <button onClick={() => setCancelOpen(true)} className="h-14 px-4 rounded-2xl border border-border bg-card text-sm font-semibold">
                   取消
                 </button>
@@ -473,16 +473,6 @@ function MatchPage() {
       </BottomSheet>
 
       <ChangeMeetSheet open={changeOpen} onClose={() => setChangeOpen(false)} match={m} />
-
-      <BottomSheet open={outfitOpen} onClose={() => setOutfitOpen(false)} title="你今日著咩？">
-        <OutfitEditor
-          initial={m.outfits[user.id] ?? user.outfitToday?.outfit}
-          onSave={(o) => {
-            void act(aah.setOutfitToday(o, m.id));
-            setOutfitOpen(false);
-          }}
-        />
-      </BottomSheet>
 
       <BottomSheet open={cancelOpen} onClose={() => setCancelOpen(false)} title="取消配對">
         <div className="space-y-2 pb-2">

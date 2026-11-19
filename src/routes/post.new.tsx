@@ -744,6 +744,11 @@ function NewPost() {
                     </div>
                     <Chip active={free} onClick={() => setFree(!free)}>免費</Chip>
                   </div>
+                  {!mall && s.id === "parking" && direction !== "want" && (
+                    <div data-testid="no-mall-price" className="text-xs rounded-xl px-3 py-2 leading-relaxed bg-background text-muted-foreground">
+                      去到商場會自動認到你喺邊，到時會按嗰個商場嘅換泊車規則同時租，計埋可以換幾多個鐘同建議價。
+                    </div>
+                  )}
                   {noRate && (
                     <div data-testid="no-rate" className="text-xs rounded-xl px-3 py-2 leading-relaxed bg-amber-50 text-amber-900">
                       我哋未有{mall?.name ?? "呢個商場"}嘅停車場時租資料，所以冇參考價。放之前請確認呢個商場有「消費換免費泊車」，同埋張單換得到。

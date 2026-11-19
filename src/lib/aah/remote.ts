@@ -549,13 +549,20 @@ export function createRemote(host: Host) {
     },
 
     async arrive(matchId: string, coords?: { lat: number; lng: number }) {
-      const r = await rpc("aah_mark_arrived", { p_match: matchId, p_lat: coords?.lat ?? null, p_lng: coords?.lng ?? null });
-      return r as "completed" | "waiting";
+      const r = await rpc("aah_mark_arrived_v2", { p_match: matchId, p_lat: coords?.lat ?? null, p_lng: coords?.lng ?? null });
+      scheduleRefresh();
+      return r as "completed" | "all_arrived" | "waiting";
     },
 
     async confirmPartnerMet(matchId: string, userId: string) {
-      const r = await rpc("aah_confirm_partner_met", { p_match: matchId, p_user: userId });
-      return r as "completed" | "waiting";
+      const r = await rpc("aah_confirm_partner_met_v2", { p_match: matchId, p_user: userId });
+      scheduleRefresh();
+      return r as "completed" | "all_arrived" | "waiting";
+    },
+
+    async completeHandover(matchId: string) {
+      await rpc("aah_complete_handover", { p_match: matchId });
+      scheduleRefresh();
     },
 
     async cancelMatch(matchId: string, reason: string) {
