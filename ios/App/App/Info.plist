@@ -52,7 +52,7 @@
 		<string>arm64</string>
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>用嚟確認你喺邊個商場，睇到身邊嘅着數同出 post。只會喺用緊 app 時讀取，唔會儲存你嘅準確位置。</string>
+	<string>用嚟確認你喺邊個商場，睇到身邊有人放咩，同埋放嘢出去。只會喺用緊 app 時讀取，唔會儲存你嘅準確位置。</string>
 	<key>NSCameraUsageDescription</key>
 	<string>影收據或者優惠券，自動讀出金額。</string>
 	<key>NSPhotoLibraryUsageDescription</key>
