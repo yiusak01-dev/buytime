@@ -9,7 +9,7 @@ import { CatGroup, LockRow } from "@/components/aah/Group";
 import { CatIcon, LiveDot } from "@/components/aah/CatIcon";
 import { DemoBadge } from "@/components/aah/ui";
 import { useQuickInterest } from "@/components/aah/useQuickInterest";
-import { aah, isDemoForced, useAahMode, useAahState, MAX_PINNED_PER_MALL } from "@/lib/aah/store";
+import { aah, isDemoForced, isOffline, useAahMode, useAahState, MAX_PINNED_PER_MALL } from "@/lib/aah/store";
 import { useAahMalls, nearbyMalls, distanceM } from "@/lib/aah/malls";
 import { useNow, useViewMall } from "@/lib/aah/geo";
 import { SCENARIOS } from "@/lib/aah/scenarios";
@@ -179,7 +179,15 @@ function Home() {
       <TabHeader active="find" />
 
       <div className="px-4 space-y-3">
-        {mode === "local" && (
+        {mode === "local" && isOffline() && (
+          <div data-testid="offline" className="flex items-center gap-2 text-xs text-red-800 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+            <span>連唔到網絡，而家睇唔到附近嘅 post，亦放唔到嘢出去。</span>
+            <button onClick={() => window.location.reload()} className="ml-auto shrink-0 font-black underline">
+              再試
+            </button>
+          </div>
+        )}
+        {mode === "local" && !isOffline() && (
           <div className="flex items-center gap-2 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
             <DemoBadge />
             <span>

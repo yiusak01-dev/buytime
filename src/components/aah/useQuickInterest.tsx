@@ -47,7 +47,7 @@ export function useQuickInterest() {
         toast.success("配對成功！");
         navigate({ to: "/match/$matchId", params: { matchId } });
       } else {
-        toast.success("已話佢知", { description: "佢一應你就會通知你" });
+        toast.success("已話佢知", { description: "佢一應你就會通知你", duration: 2000 });
       }
     } catch (e) {
       toast.error(aahErrorText(e));

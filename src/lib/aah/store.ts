@@ -1008,6 +1008,9 @@ let mode: AahMode = "detecting";
 let settings: RemoteSettings = { allowTestLocation: true, enforceGps: false, freePinTrial: true, ...DEFAULT_RULES };
 let remote: Remote | null = null;
 let modeListeners: Array<() => void> = [];
+/** 開 app 時連唔到伺服器（冇網絡）：唔好偷偷變示範模式，亦唔好整示範 post 扮真人 */
+let offline = false;
+export const isOffline = () => offline;
 const PREFS_KEY = "aah:prefs";
 const baseUser: User = { ...freshUser(), id: state.user.id };
 
@@ -1066,9 +1069,12 @@ async function init() {
     setMode("local");
     return;
   }
+  // supabase-js 自己會重試幾次（大約 7 秒），都唔得先當冇網絡
   const s = await detectRemote();
   if (!s) {
+    offline = true;
     setMode("local");
+    if (typeof window !== "undefined") window.addEventListener("online", () => window.location.reload(), { once: true });
     return;
   }
   settings = s;
@@ -1233,7 +1239,7 @@ export const aah = {
   },
 
   ensureDemoPosts(mall: AahMall) {
-    if (!isRemote() && mode === "local") local.ensureDemoPosts(mall);
+    if (!isRemote() && mode === "local" && !offline) local.ensureDemoPosts(mall);
   },
   setFeedMalls(ids: string[]) {
     if (isRemote()) R().setFeedMalls(ids);
@@ -1247,6 +1253,7 @@ export const aah = {
 
   /** opts.mallRate：商場今日時租，示範模式用嚟計泊車參考價（正式版由伺服器自己查） */
   async createPost(input: Parameters<typeof local.createPost>[0], opts?: { mallRate?: number | null }): Promise<Post> {
+    if (offline) throw new Error("連唔到網絡，放唔到出去。檢查下網絡再試。");
     if (!isRemote()) {
       // 示範模式都跟正式版一樣嘅上限同封頂（正式版由伺服器檢查）
       const limit = dailyLimitMessage(state.posts, state.user.id, input, settings);
