@@ -3,7 +3,7 @@
  * 讀唔準就由用戶自己改，所以只係「建議」，另外俾幾個讀到嘅金額撳嚟揀。
  */
 
-export type OcrLine = { text: string; h: number };
+export type OcrLine = { text: string; h: number; pass?: number };
 export type OcrAmounts = {
   /** 最似總數嘅金額 */
   best: number | null;
@@ -27,15 +27,20 @@ export async function readAmountsFromImage(file: File): Promise<OcrAmounts> {
     // 收據啲字好散：用「零散文字」模式先讀到
     await worker.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT });
     const lines: OcrLine[] = [];
-    const passes = base instanceof HTMLCanvasElement ? PASS_SIZES.map((n) => resizeCanvas(base, n)) : [{ image: base as File | HTMLCanvasElement, k: 1 }];
-    for (const { image, k } of passes) {
+    const passes =
+      base instanceof HTMLCanvasElement
+        ? PASS_SIZES.map((n) => resizeCanvas(base, n))
+        : [{ image: base as File | HTMLCanvasElement, k: 1 }];
+    for (const [pass, { image, k }] of passes.entries()) {
       const { data } = await worker.recognize(image, {}, { text: true, blocks: true });
       const before = lines.length;
       for (const b of data.blocks ?? [])
         for (const p of b.paragraphs)
           // 字高換返做原圖比例，兩次讀到嘅先可以比較
-          for (const l of p.lines) lines.push({ text: l.text, h: Math.max(1, l.bbox.y1 - l.bbox.y0) / k });
-      if (lines.length === before && data.text) for (const t of data.text.split(/\n+/)) lines.push({ text: t, h: 1 });
+          for (const l of p.lines)
+            lines.push({ text: l.text, h: Math.max(1, l.bbox.y1 - l.bbox.y0) / k, pass });
+      if (lines.length === before && data.text)
+        for (const t of data.text.split(/\n+/)) lines.push({ text: t, h: 1, pass });
     }
     return { ...pickAmounts(lines), text: lines.map((l) => l.text).join("\n") };
   } finally {
@@ -83,8 +88,8 @@ async function prepareImage(file: File): Promise<HTMLCanvasElement | File> {
     const total = w * h;
     let lo = 0;
     let hi = 255;
-    for (let acc = 0; lo < 255 && (acc += hist[lo]) < total * 0.02; ) lo++;
-    for (let acc = 0; hi > 0 && (acc += hist[hi]) < total * 0.02; ) hi--;
+    for (let acc = 0; lo < 255 && (acc += hist[lo]) < total * 0.02;) lo++;
+    for (let acc = 0; hi > 0 && (acc += hist[hi]) < total * 0.02;) hi--;
     if (hi - lo > 10) {
       const k = 255 / (hi - lo);
       for (let i = 0; i < d.length; i += 4) {
@@ -99,11 +104,16 @@ async function prepareImage(file: File): Promise<HTMLCanvasElement | File> {
   }
 }
 
-const TOTAL_WORDS = /(total|amount\s*due|grand|net\s*amount|合計|總計|總額|總數|實付|應付|實收|付款金額)/i;
+const TOTAL_WORDS =
+  /(total|amount\s*due|grand|net\s*amount|合計|總計|總額|總數|實付|應付|實收|付款金額)/i;
 // $627.6、HK$ 1,280.00、S627（OCR 成日將 $ 讀成 S）；前面有「-」係折扣，唔要
-const MONEY = /(^|[^\w.])(-?)\s*(?:HK\s*\$|\$|S(?=\d))\s*(\d{1,3}(?:,\d{3})+|\d{1,5})(?:[.](\d{1,2}))?(?![\d,])/gi;
+const MONEY =
+  /(^|[^\w.])(-?)\s*(?:HK\s*\$|\$|S(?=\d))\s*(\d{1,3}(?:,\d{3})+|\d{1,5})(?:[.](\d{1,2}))?(?![\d,])/gi;
 // 冇 $ 號但有兩個位小數，例如 627.60
 const DECIMAL = /(^|[^\w.,$\-])(\d{1,3}(?:,\d{3})+|\d{1,5})\.(\d{2})(?!\d)/g;
+
+const DATE_IN_LINE =
+  /\d{1,4}[/-]\d{1,2}[/-]\d{2,4}|\d{1,2}\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*\d{4}/i;
 
 type Cand = { value: number; h: number; kw: boolean };
 
@@ -119,12 +129,15 @@ export function pickAmounts(lines: OcrLine[]): OcrAmounts {
       const value = Number(m[3].replace(/,/g, "") + (m[4] ? `.${m[4]}` : ""));
       if (value > 0 && value < 100000) cands.push({ value, h: line.h, kw });
     }
-    for (const m of text.matchAll(DECIMAL)) {
-      const value = Number(`${m[2].replace(/,/g, "")}.${m[3]}`);
-      if (value > 0 && value < 100000 && !cands.some((c) => c.value === value && c.h === line.h)) cands.push({ value, h: line.h, kw });
-    }
+    // 有日期嘅行，「21.07」多數係時間，唔當金額
+    if (!DATE_IN_LINE.test(text))
+      for (const m of text.matchAll(DECIMAL)) {
+        const value = Number(`${m[2].replace(/,/g, "")}.${m[3]}`);
+        if (value > 0 && value < 100000 && !cands.some((c) => c.value === value && c.h === line.h))
+          cands.push({ value, h: line.h, kw });
+      }
   }
-  if (!cands.length) return { best: null, options: [] };
+  if (!cands.length) return pickBareAmounts(lines);
 
   const hs = cands.map((c) => c.h).sort((a, b) => a - b);
   const median = hs[Math.floor(hs.length / 2)] || 1;
@@ -135,7 +148,9 @@ export function pickAmounts(lines: OcrLine[]): OcrAmounts {
   for (let i = 0; i < ranked.length; i++) {
     const c = ranked[i];
     if (!Number.isInteger(c.value)) continue;
-    const better = ranked.find((d) => !Number.isInteger(d.value) && Math.floor(d.value) === c.value && score(d) > 0);
+    const better = ranked.find(
+      (d) => !Number.isInteger(d.value) && Math.floor(d.value) === c.value && score(d) > 0,
+    );
     if (better && score(c) > 0) ranked[i] = { ...c, value: better.value };
   }
   const options: number[] = [];
@@ -148,6 +163,57 @@ export function pickAmounts(lines: OcrLine[]): OcrAmounts {
     if (options.length >= 4) break;
   }
   return { best: options[0] ?? null, options };
+}
+
+// 日期、時間、電話：唔係金額，搵數字之前剷走
+const NOT_MONEY =
+  /\d{1,4}[/.-]\d{1,2}[/.-]\d{2,4}|\d{1,2}\s*[A-Za-z]{3,9}\s*\d{4}|\d{1,2}[:.]\d{2}(?:[:.]\s*\d{2})?|\d{6,}/g;
+const BARE = /(^|[^\w.,:/%-])(\d{2,5})(?![\w.,:/%])/g;
+const PAY_WORDS =
+  /(visa|master|amex|unionpay|cash|octopus|payme|alipay|wechat|eps|fps|total|tender)/i;
+
+/**
+ * 好多餐廳單（例如「應收合計 407」）冇 $ 號又冇小數，英文 OCR 亦讀唔到中文「合計」。
+ * 冇 $ 金額時先用呢個：揀「啱好等於小計 + 一成服務費」、同一次讀到兩次（合計同 VISA 各一次）、
+ * 或者喺 VISA／CASH 等付款字附近嘅數字。都冇就唔估。
+ */
+function pickBareAmounts(lines: OcrLine[]): OcrAmounts {
+  type Bare = { value: number; pass: number; i: number; h: number };
+  const all: Bare[] = [];
+  const payLines = new Set<string>();
+  lines.forEach((line, i) => {
+    const pass = line.pass ?? 0;
+    if (PAY_WORDS.test(line.text)) payLines.add(`${pass}:${i}`);
+    const text = line.text.replace(NOT_MONEY, " ");
+    for (const m of text.matchAll(BARE)) {
+      const value = Number(m[2]);
+      if (value >= 10 && value < 100000 && !(value >= 1990 && value <= 2099))
+        all.push({ value, pass, i, h: line.h });
+    }
+  });
+  if (!all.length) return { best: null, options: [] };
+  const values = [...new Set(all.map((b) => b.value))];
+  const score = (v: number) => {
+    const mine = all.filter((b) => b.value === v);
+    const perPass = new Map<number, number>();
+    for (const b of mine) perPass.set(b.pass, (perPass.get(b.pass) ?? 0) + 1);
+    const repeat = Math.max(...perPass.values());
+    // 小計 × 1.1（一成服務費），或者兩個數加埋
+    const service = values.some((x) => x !== v && x * 1.1 >= v - 1 && x * 1.1 <= v + 1);
+    const nearPay = mine.some(
+      (b) =>
+        [1, 2, 3].some((d) => payLines.has(`${b.pass}:${b.i - d}`)) ||
+        payLines.has(`${b.pass}:${b.i}`),
+    );
+    return (service ? 50 : 0) + (repeat >= 2 ? 30 : 0) + (nearPay ? 20 : 0);
+  };
+  const ranked = values.map((v) => ({ v, s: score(v) })).sort((a, b) => b.s - a.s || b.v - a.v);
+  if (ranked[0].s === 0) return { best: null, options: [] };
+  const options = ranked
+    .filter((r) => r.s > 0)
+    .slice(0, 4)
+    .map((r) => r.v);
+  return { best: options[0], options };
 }
 
 /** 舊介面：淨係要一個金額 */
