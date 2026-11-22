@@ -28,14 +28,21 @@ import {
 import { useAahMalls, nearbyMalls, demoAudience } from "@/lib/aah/malls";
 import { useCurrentMall, useNow, fmtClock, fmtLeft, fmtAgo, useGeo, geoStore } from "@/lib/aah/geo";
 import { distanceM } from "@/lib/aah/malls";
-import { acceptsEnRoute, etaChoices, fmtKm, sortInterests, suggestedInterest, LATE_GRACE_MIN } from "@/lib/aah/enroute";
+import {
+  acceptsEnRoute,
+  etaChoices,
+  fmtKm,
+  sortInterests,
+  suggestedInterest,
+  LATE_GRACE_MIN,
+} from "@/lib/aah/enroute";
 import type { InterestOpts } from "@/lib/aah/remote";
 import { SCENARIOS, payLabel, authorRole, receiptCountNote } from "@/lib/aah/scenarios";
 import { ScenarioTips } from "@/components/aah/ScenarioTips";
 import { ReportBlockSheet } from "@/components/aah/ReportBlockSheet";
 import { ParkingHandover } from "@/components/aah/ParkingHandover";
-import { postPriceCheck } from "@/lib/aah/rules";
-import { buyerParkingSaving } from "@/lib/aah/pricing";
+import { postPriceCheck, CONTACT_RE, CONTACT_WARNING } from "@/lib/aah/rules";
+import { buyerParkingSaving, quoteParkingReceipt } from "@/lib/aah/pricing";
 import type { Post } from "@/lib/aah/types";
 import { cn } from "@/lib/utils";
 
@@ -60,7 +67,12 @@ function PostPage() {
           <div className="text-4xl">🤷</div>
           <div className="font-bold">搵唔到呢個 post</div>
           <p className="text-sm text-muted-foreground">可能已經過期或者被取消。</p>
-          <Link to="/" className="inline-block h-11 px-5 leading-[44px] rounded-2xl bg-[#1a1a1a] text-white font-bold">返去首頁</Link>
+          <Link
+            to="/"
+            className="inline-block h-11 px-5 leading-[44px] rounded-2xl bg-[#1a1a1a] text-white font-bold"
+          >
+            返去首頁
+          </Link>
         </div>
       </AppLayout>
     );
@@ -72,12 +84,20 @@ function TopBar({ title, onReport }: { title: string; onReport?: () => void }) {
   const navigate = useNavigate();
   return (
     <header className="sticky top-0 z-30 bg-background/95 backdrop-blur px-4 pt-4 pb-3 flex items-center gap-3 border-b border-border/60">
-      <button onClick={() => (window.history.length > 1 ? window.history.back() : navigate({ to: "/" }))} aria-label="返回" className="w-9 h-9 grid place-items-center rounded-full hover:bg-accent">
+      <button
+        onClick={() => (window.history.length > 1 ? window.history.back() : navigate({ to: "/" }))}
+        aria-label="返回"
+        className="w-9 h-9 grid place-items-center rounded-full hover:bg-accent"
+      >
         <ArrowLeft className="w-5 h-5" />
       </button>
       <div className="font-black text-lg flex-1">{title}</div>
       {onReport && (
-        <button onClick={onReport} aria-label="舉報或封鎖" className="w-9 h-9 grid place-items-center rounded-full hover:bg-accent text-muted-foreground">
+        <button
+          onClick={onReport}
+          aria-label="舉報或封鎖"
+          className="w-9 h-9 grid place-items-center rounded-full hover:bg-accent text-muted-foreground"
+        >
           <Flag className="w-4 h-4" />
         </button>
       )}
@@ -97,24 +117,35 @@ function detailLine(p: Post): string {
             f.receiptDate ? "今日單據（影相讀到）" : "",
             f.receiptCount && f.receiptCount !== "1 張" ? `${f.receiptCount}單` : "",
             f.receiptType ? String(f.receiptType) : "",
-          ].filter(Boolean).join("・")
+          ]
+            .filter(Boolean)
+            .join("・")
         : "";
     case "dining":
       return f.calling ? `而家叫到 ${f.calling}` : "";
     case "offer":
       return "";
     case "groupbuy":
-      return [f.note ? String(f.note) : "", p.needCount ? `仲要 ${p.needCount} 人` : ""].filter(Boolean).join("・");
+      return [f.note ? String(f.note) : "", p.needCount ? `仲要 ${p.needCount} 人` : ""]
+        .filter(Boolean)
+        .join("・");
   }
 }
 
 /** 唔支持炒飛：泊車單價錢高過參考價（商場時租 × 比例 × 鐘數）就講；冇時租資料就唔顯示 */
 function FairPriceNote({ post, who }: { post: Post; who: "buyer" | "seller" }) {
   const { malls } = useAahMalls();
-  const pc = postPriceCheck(post, getRules(), malls.find((m) => m.id === post.mallId));
+  const pc = postPriceCheck(
+    post,
+    getRules(),
+    malls.find((m) => m.id === post.mallId),
+  );
   if (!pc || pc.level === "ok") return null;
   return (
-    <div data-testid="fair-price-note" className="text-sm rounded-2xl px-4 py-3 bg-amber-50 text-amber-900 border border-amber-200 leading-relaxed">
+    <div
+      data-testid="fair-price-note"
+      className="text-sm rounded-2xl px-4 py-3 bg-amber-50 text-amber-900 border border-amber-200 leading-relaxed"
+    >
       呢個價高過參考價 <b>${pc.ref}</b>（{pc.basis}）。
       {who === "buyer"
         ? "啱啱好唔支持炒飛。覺得佢炒賣，或者見面先話要加錢，可以撳右上角旗仔舉報。"
@@ -129,7 +160,10 @@ function PostSummary({ post, now }: { post: Post; now: number }) {
   const s = SCENARIOS[post.scenario];
   const saving = postSaving(post, mall, now);
   return (
-    <div className="bg-card rounded-2xl shadow-[var(--shadow-card)] overflow-hidden border-l-[6px]" style={{ borderLeftColor: s.color }}>
+    <div
+      className="bg-card rounded-2xl shadow-[var(--shadow-card)] overflow-hidden border-l-[6px]"
+      style={{ borderLeftColor: s.color }}
+    >
       <div className="p-4 space-y-2">
         <div className="flex items-start justify-between gap-2">
           <ScenarioTag scenario={post.scenario} direction={post.direction} />
@@ -147,20 +181,31 @@ function PostSummary({ post, now }: { post: Post; now: number }) {
             {String(post.fields.remark)}
           </div>
         )}
-        {saving != null && saving > 0 && <div className="text-2xl font-black text-[#2E9E6A]">慳 ${saving}</div>}
-        {post.payMethods.length > 0 && post.price != null && post.price > 0 && <div className="text-sm text-muted-foreground">點俾錢：{payLabel(post.payMethods)}</div>}
+        {saving != null && saving > 0 && (
+          <div className="text-2xl font-black text-[#2E9E6A]">慳 ${saving}</div>
+        )}
+        {post.payMethods.length > 0 && post.price != null && post.price > 0 && (
+          <div className="text-sm text-muted-foreground">點俾錢：{payLabel(post.payMethods)}</div>
+        )}
         <div className="flex items-center gap-3 text-xs flex-wrap pt-1">
           <span className="text-muted-foreground">
-            ⏰ {fmtClock(post.leaveAt)} 前{post.scenario === "dining" ? "叫號" : "喺度"}（{fmtLeft(post.leaveAt - now)}）
+            ⏰ {fmtClock(post.leaveAt)} 前{post.scenario === "dining" ? "叫號" : "喺度"}（
+            {fmtLeft(post.leaveAt - now)}）
           </span>
-          {post.verifiedOnSite && <span className="text-[#2E9E6A] font-semibold">📍 佢已確認喺商場</span>}
+          {post.verifiedOnSite && (
+            <span className="text-[#2E9E6A] font-semibold">📍 佢已確認喺商場</span>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-wrap pt-1" data-testid="live-chips">
           <span className="h-7 px-2.5 rounded-full bg-background text-xs font-bold inline-flex items-center gap-1.5">
             <LiveDot />
             {fmtAgo(post.createdAt, now)}放上嚟
           </span>
-          {post.viewCount > 0 && <span className="h-7 px-2.5 rounded-full bg-background text-xs font-bold inline-flex items-center">{post.viewCount} 人睇過</span>}
+          {post.viewCount > 0 && (
+            <span className="h-7 px-2.5 rounded-full bg-background text-xs font-bold inline-flex items-center">
+              {post.viewCount} 人睇過
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -178,9 +223,17 @@ function PostDetailView({ post }: { post: Post }) {
   const s = SCENARIOS[post.scenario];
   const mall = malls.find((m) => m.id === post.mallId);
   const [regOpen, setRegOpen] = useState(false);
-  const [pending, setPending] = useState<{ text: string; offer?: number; opts?: InterestOpts } | null>(null);
-  const [offer, setOffer] = useState(() => (post.price && post.price > 10 ? post.price - 5 : post.price ?? 0));
+  const [pending, setPending] = useState<{
+    text: string;
+    offer?: number;
+    opts?: InterestOpts;
+  } | null>(null);
+  const [offer, setOffer] = useState(() =>
+    post.price && post.price > 10 ? post.price - 5 : (post.price ?? 0),
+  );
   const [entry, setEntry] = useState("");
+  const [pickTime, setPickTime] = useState(false);
+  const [draft, setDraft] = useState("");
   const geo = useGeo();
   const [eta, setEta] = useState<number | null>(null);
 
@@ -193,7 +246,8 @@ function PostDetailView({ post }: { post: Post }) {
   const seenMsgs = useRef<number | null>(null);
   useEffect(() => {
     const n = mine?.messages.length ?? 0;
-    if (seenMsgs.current != null && n > seenMsgs.current) chatEnd.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    if (seenMsgs.current != null && n > seenMsgs.current)
+      chatEnd.current?.scrollIntoView({ behavior: "smooth", block: "end" });
     seenMsgs.current = n;
   }, [mine?.messages.length]);
 
@@ -220,7 +274,10 @@ function PostDetailView({ post }: { post: Post }) {
   // 我去緊
   const enRouteOk = acceptsEnRoute(post);
   const choices = etaChoices(post.leaveAt, now);
-  const myDist = geo.status === "ok" && geo.lat != null && geo.lng != null && mall ? distanceM(geo.lat, geo.lng, mall.lat, mall.lng) : null;
+  const myDist =
+    geo.status === "ok" && geo.lat != null && geo.lng != null && mall
+      ? distanceM(geo.lat, geo.lng, mall.lat, mall.lng)
+      : null;
   function goEnRoute(m: number) {
     const g = geoStore.get();
     if (g.status !== "ok" || g.lat == null || g.lng == null) {
@@ -234,7 +291,8 @@ function PostDetailView({ post }: { post: Post }) {
   function send(text: string, off?: number, opts?: InterestOpts) {
     // 防連撳：同一句 5 秒內唔重複發送
     const t0 = Date.now();
-    if (lastSent.current && lastSent.current.text === text && t0 - lastSent.current.at < 5000) return;
+    if (lastSent.current && lastSent.current.text === text && t0 - lastSent.current.at < 5000)
+      return;
     lastSent.current = { text, at: t0 };
     const me = aah.get().user;
     if (isBanned(me)) return;
@@ -260,15 +318,46 @@ function PostDetailView({ post }: { post: Post }) {
     }
   }
 
+  // 張單換到幾多個鐘：出 post 時有計就用；冇就按今日商場規則同單據金額計（唔夠門檻 = 0）
+  const receiptQuote = useMemo(() => {
+    if (post.scenario !== "parking" || post.direction !== "have" || !mall) return null;
+    const amt = Number(post.fields.receiptAmount ?? 0);
+    return amt > 0 ? quoteParkingReceipt(mall, amt, now) : null;
+  }, [post, mall, now]);
+  const offeredHours = Number(post.fields.hours ?? 0) || receiptQuote?.hours || 0;
+  const cantRedeem = !!receiptQuote?.belowThreshold && !Number(post.fields.hours ?? 0);
+
+  // 入場時間由用家自己揀（唔估；開 app 嗰下唔等於入場時間）
   const parkingCalc = useMemo(() => {
-    if (post.scenario !== "parking" || post.direction !== "have" || !mall || !entry) return null;
+    if (post.scenario !== "parking" || post.direction !== "have" || !mall || !entry || cantRedeem)
+      return null;
     const m = entry.match(/^(\d{1,2}):(\d{2})$/);
     if (!m) return null;
     const hkNow = new Date(now + 8 * 3600 * 1000);
-    const ts = Date.UTC(hkNow.getUTCFullYear(), hkNow.getUTCMonth(), hkNow.getUTCDate(), Number(m[1]), Number(m[2])) - 8 * 3600 * 1000;
-    if (ts > now) return null;
-    return buyerParkingSaving(mall, Number(post.fields.hours ?? 0), ts, now);
-  }, [post, mall, entry, now]);
+    let ts =
+      Date.UTC(
+        hkNow.getUTCFullYear(),
+        hkNow.getUTCMonth(),
+        hkNow.getUTCDate(),
+        Number(m[1]),
+        Number(m[2]),
+      ) -
+      8 * 3600 * 1000;
+    if (ts > now) ts -= 24 * 3600 * 1000;
+    return buyerParkingSaving(mall, offeredHours, ts, now);
+  }, [post, mall, entry, now, offeredHours, cantRedeem]);
+  const hoursAgo = (h: number) => {
+    const d = new Date(now - h * 3600000 + 8 * 3600 * 1000);
+    return `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
+  };
+
+  function sendDraft() {
+    const t = draft.trim();
+    if (!t) return;
+    if (CONTACT_RE.test(t)) toast.warning(CONTACT_WARNING, { duration: 6000 });
+    send(t);
+    setDraft("");
+  }
 
   const joinWord = post.scenario === "groupbuy" ? "我夾" : "有興趣";
 
@@ -297,48 +386,127 @@ function PostDetailView({ post }: { post: Post }) {
           </div>
         )}
 
-        {post.scenario === "parking" && post.direction === "have" && receiptCountNote(post.fields.receiptCount, "taker", mall?.stacking) && (
-          <div className="text-xs rounded-xl px-3 py-2.5 bg-amber-50 text-amber-900 border border-amber-200">
-            ⚠️ {receiptCountNote(post.fields.receiptCount, "taker", mall?.stacking)}
-          </div>
-        )}
+        {post.scenario === "parking" &&
+          post.direction === "have" &&
+          receiptCountNote(post.fields.receiptCount, "taker", mall?.stacking) && (
+            <div className="text-xs rounded-xl px-3 py-2.5 bg-amber-50 text-amber-900 border border-amber-200">
+              ⚠️ {receiptCountNote(post.fields.receiptCount, "taker", mall?.stacking)}
+            </div>
+          )}
 
-        {parkingCalc === null && post.scenario === "parking" && post.direction === "have" && (
-          <div className="bg-card rounded-2xl p-4 space-y-2">
-            <div className="text-sm font-bold">你幾點入停車場？計吓實際慳幾多</div>
-            <input type="time" value={entry} onChange={(e) => setEntry(e.target.value)} className="h-11 px-3 rounded-xl border border-border bg-background outline-none" />
+        {cantRedeem && receiptQuote && (
+          <div
+            data-testid="cant-redeem"
+            className="text-sm rounded-2xl px-4 py-3 bg-amber-50 text-amber-900 border border-amber-200"
+          >
+            <b>呢張單今日自己一張換唔到泊車。</b>
+            {post.mallName}今日（{receiptQuote.dayLabel}）要消費滿 ${receiptQuote.minThreshold}{" "}
+            先換到，呢張單 ${post.fields.receiptAmount}
+            。你有今日嘅單可以加埋先得，接之前同對方講清楚。
           </div>
         )}
+        {parkingCalc === null &&
+          !cantRedeem &&
+          post.scenario === "parking" &&
+          post.direction === "have" && (
+            <div className="bg-card rounded-2xl p-4 space-y-2">
+              <div className="text-sm font-bold">你幾點入停車場？揀咗就計到你慳幾多</div>
+              <div className="flex gap-2 flex-wrap">
+                {[1, 2, 3].map((h) => (
+                  <Chip key={h} onClick={() => setEntry(hoursAgo(h))}>
+                    大約 {h} 個鐘前
+                  </Chip>
+                ))}
+                <Chip active={pickTime} onClick={() => setPickTime(true)}>
+                  自己揀時間
+                </Chip>
+              </div>
+              {pickTime && (
+                <input
+                  type="time"
+                  aria-label="入場時間"
+                  onChange={(e) => setEntry(e.target.value)}
+                  className="h-11 px-3 rounded-xl border border-border bg-background outline-none"
+                />
+              )}
+            </div>
+          )}
         {parkingCalc && (
           <div className="bg-[#E3F5EC] text-[#1d6b47] rounded-2xl p-4 text-sm space-y-1">
-            <div>你 {entry} 入場，泊咗 {parkingCalc.parked} 個鐘，按今日（{parkingCalc.dayLabel}）收費要俾 ${parkingCalc.fee}。</div>
-            <div className="font-black text-base">用呢張單據慳 ${parkingCalc.saving}{post.price ? `，扣埋 $${post.price} 淨慳 $${Math.max(0, parkingCalc.saving - post.price)}` : ""}</div>
-            {parkingCalc.payAfter > 0 && <div className="text-xs">用咗單據之後，停車場仲要俾 ${parkingCalc.payAfter}。</div>}
-            <button onClick={() => setEntry("")} className="text-xs underline">改時間</button>
+            <div>
+              你 {entry} 入場，泊咗 {parkingCalc.parked} 個鐘，按今日（{parkingCalc.dayLabel}
+              ）收費要俾 ${parkingCalc.fee}。
+            </div>
+            <div className="font-black text-base">
+              用呢張單據慳 ${parkingCalc.saving}
+              {post.price
+                ? `，扣埋 $${post.price} 淨慳 $${Math.max(0, parkingCalc.saving - post.price)}`
+                : ""}
+            </div>
+            {parkingCalc.payAfter > 0 && (
+              <div className="text-xs">用咗單據之後，停車場仲要俾 ${parkingCalc.payAfter}。</div>
+            )}
+            <button
+              onClick={() => {
+                setEntry("");
+                setPickTime(false);
+              }}
+              className="text-xs underline"
+            >
+              改入場時間
+            </button>
           </div>
         )}
 
         {post.scenario === "parking" && <ParkingHandover mall={mall} />}
-        <ScenarioTips scenario={post.scenario} role={post.direction === "join" ? "taker" : authorRole(post.direction) === "giver" ? "taker" : "giver"} mall={mall} title="接之前要知" />
+        <ScenarioTips
+          scenario={post.scenario}
+          role={
+            post.direction === "join"
+              ? "taker"
+              : authorRole(post.direction) === "giver"
+                ? "taker"
+                : "giver"
+          }
+          mall={mall}
+          title="接之前要知"
+        />
         <div className="text-xs bg-card rounded-xl px-3 py-2.5 text-muted-foreground">
           💡 {s.handoverHint}。{post.price ? "見面交收時先俾錢，唔好預先轉數。" : ""}
         </div>
 
         {/* 開通知提示放喺對話上面：捲落去睇對話時一齊見到 */}
         {mine?.status === "pending" && (
-          <PushPrompt reason="對方一覆你就會通知你，閂咗 app 都收到。" onShown={() => chatEnd.current?.scrollIntoView({ behavior: "smooth", block: "end" })} />
+          <PushPrompt
+            reason="對方一覆你就會通知你，閂咗 app 都收到。"
+            onShown={() => chatEnd.current?.scrollIntoView({ behavior: "smooth", block: "end" })}
+          />
         )}
 
         {/* 對話（配對前） */}
         {mine && (
           <div className="bg-card rounded-2xl p-4 space-y-2">
-            <div className="text-xs font-bold text-muted-foreground">同 {post.authorName} 嘅對話</div>
+            <div className="text-xs font-bold text-muted-foreground">
+              同 {post.authorName} 嘅對話
+            </div>
             {mine.messages.map((m, i) => (
-              <div key={i} className={cn("flex", m.from === user.id ? "justify-end" : "justify-start")}>
-                <div className={cn("px-3 py-2 rounded-2xl text-sm max-w-[80%]", m.from === user.id ? "bg-[#1a1a1a] text-white" : "bg-accent")}>{m.text}</div>
+              <div
+                key={i}
+                className={cn("flex", m.from === user.id ? "justify-end" : "justify-start")}
+              >
+                <div
+                  className={cn(
+                    "px-3 py-2 rounded-2xl text-sm max-w-[80%]",
+                    m.from === user.id ? "bg-[#1a1a1a] text-white" : "bg-accent",
+                  )}
+                >
+                  {m.text}
+                </div>
               </div>
             ))}
-            {mine.status === "pending" && <div className="text-xs text-muted-foreground text-center pt-1">等緊對方覆…</div>}
+            {mine.status === "pending" && (
+              <div className="text-xs text-muted-foreground text-center pt-1">等緊對方覆…</div>
+            )}
             <div ref={chatEnd} className="scroll-mb-44" />
           </div>
         )}
@@ -348,18 +516,76 @@ function PostDetailView({ post }: { post: Post }) {
       <div className="fixed bottom-0 inset-x-0 z-30">
         <div className="max-w-lg mx-auto px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 bg-gradient-to-t from-background via-background to-transparent space-y-2">
           {!open ? (
-            <div className="text-center text-sm font-semibold bg-card rounded-2xl py-4">{post.status === "matched" ? "已經俾咗人" : "呢個 post 已經結束"}</div>
+            <div className="text-center text-sm font-semibold bg-card rounded-2xl py-4">
+              {post.status === "matched" ? "已經俾咗人" : "呢個 post 已經結束"}
+            </div>
           ) : banned ? (
             <div className="text-center text-sm bg-card rounded-2xl p-4">
-              你嘅帳戶停用緊，暫時唔可以接 post。<Link to="/me" className="underline font-semibold">申訴</Link>
+              你嘅帳戶停用緊，暫時唔可以接 post。
+              <Link to="/me" className="underline font-semibold">
+                申訴
+              </Link>
             </div>
           ) : mine?.status === "declined" ? (
-            <div className="text-center text-sm bg-card rounded-2xl p-4">唔好意思，對方已經俾咗人</div>
+            <div className="text-center text-sm bg-card rounded-2xl p-4">
+              唔好意思，對方已經俾咗人
+            </div>
+          ) : mine?.status === "pending" ? (
+            <>
+              {!inRange && mine.enRoute && mine.etaAt && (
+                <div className="text-xs text-center text-muted-foreground">
+                  你話咗 {fmtClock(mine.etaAt)} 前到 {post.mallName}；去到會自動話對方知。
+                </div>
+              )}
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+                <button
+                  onClick={() => send("你仲喺唔喺附近？")}
+                  className="shrink-0 h-9 px-3 rounded-full border border-border bg-card text-sm font-semibold"
+                >
+                  你仲喺唔喺附近？
+                </button>
+                {post.price != null && post.price > 0 && (
+                  <button
+                    onClick={() => send(`$${offer} 得唔得？`, offer)}
+                    className="shrink-0 h-9 px-3 rounded-full border border-border bg-card text-sm font-semibold"
+                  >
+                    ${offer} 得唔得？
+                  </button>
+                )}
+              </div>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  sendDraft();
+                }}
+                className="flex gap-2"
+              >
+                <input
+                  data-testid="interest-input"
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  maxLength={80}
+                  placeholder={`同 ${post.authorName} 講…（喺 app 傾就夠，唔使留電話）`}
+                  className="flex-1 min-w-0 h-12 px-4 rounded-2xl border border-border bg-card outline-none text-sm"
+                />
+                <button
+                  type="submit"
+                  disabled={!draft.trim()}
+                  aria-label="傳送"
+                  className="h-12 px-4 rounded-2xl bg-[#1a1a1a] text-white font-bold disabled:opacity-40"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </form>
+            </>
           ) : !inRange && mine?.enRoute && mine.etaAt ? (
             <div className="bg-card rounded-2xl p-4 text-center space-y-1 shadow-lg">
-              <div className="font-bold">你話咗 {fmtClock(mine.etaAt)} 前到 {post.mallName}</div>
+              <div className="font-bold">
+                你話咗 {fmtClock(mine.etaAt)} 前到 {post.mallName}
+              </div>
               <div className="text-xs text-muted-foreground">
-                去到商場會自動話對方知你到咗。過咗 {fmtClock(mine.etaAt + LATE_GRACE_MIN * 60000)} 都未到，對方可以取消，會記你一次臨時取消。
+                去到商場會自動話對方知你到咗。過咗 {fmtClock(mine.etaAt + LATE_GRACE_MIN * 60000)}{" "}
+                都未到，對方可以取消，會記你一次臨時取消。
               </div>
             </div>
           ) : !inRange && enRouteOk && !mine ? (
@@ -367,11 +593,14 @@ function PostDetailView({ post }: { post: Post }) {
               <div>
                 <div className="font-bold">未到 {post.mallName}？話對方知你去緊</div>
                 <div className="text-xs text-muted-foreground">
-                  {myDist != null ? `你而家距離約 ${fmtKm(myDist)}。` : ""}對方會見到你幾點到，由佢揀接唔接。
+                  {myDist != null ? `你而家距離約 ${fmtKm(myDist)}。` : ""}
+                  對方會見到你幾點到，由佢揀接唔接。
                 </div>
               </div>
               {choices.length === 0 ? (
-                <div className="text-sm text-amber-800">趕唔切喇：呢個 post {fmtClock(post.leaveAt)} 就完，要早 5 分鐘到。</div>
+                <div className="text-sm text-amber-800">
+                  趕唔切喇：呢個 post {fmtClock(post.leaveAt)} 就完，要早 5 分鐘到。
+                </div>
               ) : (
                 <>
                   <div className="flex gap-2 flex-wrap">
@@ -382,7 +611,8 @@ function PostDetailView({ post }: { post: Post }) {
                     ))}
                   </div>
                   <div className="text-[11px] text-amber-800">
-                    配對咗之後中途唔嚟，或者過咗講好時間 5 分鐘都未到，會記一次臨時取消（30 日內兩次停用一個月）。出 post 嘅人喺你去緊時無故取消，佢都會被記。
+                    配對咗之後中途唔嚟，或者過咗講好時間 5 分鐘都未到，會記一次臨時取消（30
+                    日內兩次停用一個月）。出 post 嘅人喺你去緊時無故取消，佢都會被記。
                   </div>
                   <button
                     disabled={eta == null}
@@ -397,8 +627,13 @@ function PostDetailView({ post }: { post: Post }) {
           ) : !inRange ? (
             <div className="text-center text-sm bg-card rounded-2xl p-4 space-y-3 shadow-lg">
               <div>
-                去到 {post.mallName}{s.pushNearby ? " 或者附近商場" : ""} 就撳得「{joinWord}」
-                {current.test && !testLocationAllowed() ? "（GPS 確認咗你喺度就得）" : !enRouteOk && post.scenario !== "groupbuy" ? "（對方揀咗只限喺場嘅人）" : ""}
+                去到 {post.mallName}
+                {s.pushNearby ? " 或者附近商場" : ""} 就撳得「{joinWord}」
+                {current.test && !testLocationAllowed()
+                  ? "（GPS 確認咗你喺度就得）"
+                  : !enRouteOk && post.scenario !== "groupbuy"
+                    ? "（對方揀咗只限喺場嘅人）"
+                    : ""}
               </div>
               {geo.status !== "ok" && (
                 <button
@@ -415,14 +650,34 @@ function PostDetailView({ post }: { post: Post }) {
           ) : (
             <>
               <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-                <button onClick={() => send("你仲喺唔喺附近？")} className="shrink-0 h-10 px-3 rounded-full border border-border bg-card text-sm font-semibold">
+                <button
+                  onClick={() => send("你仲喺唔喺附近？")}
+                  className="shrink-0 h-10 px-3 rounded-full border border-border bg-card text-sm font-semibold"
+                >
                   你仲喺唔喺附近？
                 </button>
                 {post.price != null && post.price > 0 && (
                   <div className="shrink-0 flex items-center gap-1 h-10 pl-1 pr-1 rounded-full border border-border bg-card">
-                    <button aria-label="減" onClick={() => setOffer((o) => Math.max(0, o - 5))} className="w-8 h-8 grid place-items-center rounded-full hover:bg-accent"><Minus className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => send(`$${offer} 得唔得？`, offer)} className="text-sm font-semibold px-1">${offer} 得唔得？</button>
-                    <button aria-label="加" onClick={() => setOffer((o) => o + 5)} className="w-8 h-8 grid place-items-center rounded-full hover:bg-accent"><Plus className="w-3.5 h-3.5" /></button>
+                    <button
+                      aria-label="減"
+                      onClick={() => setOffer((o) => Math.max(0, o - 5))}
+                      className="w-8 h-8 grid place-items-center rounded-full hover:bg-accent"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => send(`$${offer} 得唔得？`, offer)}
+                      className="text-sm font-semibold px-1"
+                    >
+                      ${offer} 得唔得？
+                    </button>
+                    <button
+                      aria-label="加"
+                      onClick={() => setOffer((o) => o + 5)}
+                      className="w-8 h-8 grid place-items-center rounded-full hover:bg-accent"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 )}
               </div>
@@ -468,13 +723,22 @@ function MyPostView({ post }: { post: Post }) {
   const suggested = pending.length > 1 ? suggestedInterest(pending) : undefined;
   const age = now - post.createdAt;
   const pinEnabled = getRules().pinEnabled;
-  const showPinPrompt = pinEnabled && post.status === "open" && !pinned && post.interests.length === 0 && age >= PIN_PROMPT_AFTER_MIN * 60000;
+  const showPinPrompt =
+    pinEnabled &&
+    post.status === "open" &&
+    !pinned &&
+    post.interests.length === 0 &&
+    age >= PIN_PROMPT_AFTER_MIN * 60000;
 
   useEffect(() => {
-    if (post.status === "matched" && post.matchId) navigate({ to: "/match/$matchId", params: { matchId: post.matchId } });
+    if (post.status === "matched" && post.matchId)
+      navigate({ to: "/match/$matchId", params: { matchId: post.matchId } });
   }, [post.status, post.matchId, navigate]);
 
-  const joined = post.scenario === "groupbuy" && post.matchId ? post.interests.filter((i) => i.status === "accepted").length : 0;
+  const joined =
+    post.scenario === "groupbuy" && post.matchId
+      ? post.interests.filter((i) => i.status === "accepted").length
+      : 0;
   const mode = useAahMode();
 
   async function act(p: Promise<unknown>, ok?: string) {
@@ -489,7 +753,8 @@ function MyPostView({ post }: { post: Post }) {
   async function accept(userId: string, price?: number) {
     try {
       const matchId = await aah.acceptInterest(post.id, userId, price);
-      if (matchId && post.scenario !== "groupbuy") navigate({ to: "/match/$matchId", params: { matchId } });
+      if (matchId && post.scenario !== "groupbuy")
+        navigate({ to: "/match/$matchId", params: { matchId } });
     } catch (e) {
       toast.error(aahErrorText(e));
     }
@@ -510,42 +775,88 @@ function MyPostView({ post }: { post: Post }) {
           <div className="bg-[#1a1a1a] text-white rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div className="font-black text-lg">等緊有人接</div>
-              <div className="text-xs flex items-center gap-1 opacity-80"><Clock className="w-3.5 h-3.5" />{fmtLeft(post.leaveAt - now)}</div>
+              <div className="text-xs flex items-center gap-1 opacity-80">
+                <Clock className="w-3.5 h-3.5" />
+                {fmtLeft(post.leaveAt - now)}
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div className="bg-white/10 rounded-xl p-3">
-                <div className="flex items-center gap-1 opacity-70 text-xs"><Send className="w-3.5 h-3.5" />{mode === "remote" ? "附近用戶" : "已推送"}</div>
+                <div className="flex items-center gap-1 opacity-70 text-xs">
+                  <Send className="w-3.5 h-3.5" />
+                  {mode === "remote" ? "附近用戶" : "已推送"}
+                </div>
                 <div className="text-xl font-black">{post.pushedCount} 人</div>
               </div>
               <div className="bg-white/10 rounded-xl p-3">
-                <div className="flex items-center gap-1 opacity-70 text-xs"><Eye className="w-3.5 h-3.5" />睇過</div>
+                <div className="flex items-center gap-1 opacity-70 text-xs">
+                  <Eye className="w-3.5 h-3.5" />
+                  睇過
+                </div>
                 <div className="text-xl font-black">{post.viewCount} 人</div>
               </div>
             </div>
             {mode === "remote" ? (
-              <div className="text-[11px] opacity-70">而家喺 {post.mallName}、有訂閱呢類嘅用戶。佢哋開 app 就會見到{pinEnabled ? "；置頂可以即刻推送通知俾佢哋" : ""}。</div>
+              <div className="text-[11px] opacity-70">
+                而家喺 {post.mallName}、有訂閱呢類嘅用戶。佢哋開 app 就會見到
+                {pinEnabled ? "；置頂可以即刻推送通知俾佢哋" : ""}。
+              </div>
             ) : (
-              <div className="text-[11px] opacity-70 flex items-center gap-1.5"><DemoBadge /> 示範數字；正式版顯示真實推送人數。</div>
+              <div className="text-[11px] opacity-70 flex items-center gap-1.5">
+                <DemoBadge /> 示範數字；正式版顯示真實推送人數。
+              </div>
             )}
-            {pinned && <div className="text-xs bg-[#F5C518] text-[#1a1a1a] rounded-lg px-2 py-1 font-bold inline-block">置頂中・仲有 {Math.max(1, Math.round(((post.pinnedUntil ?? 0) - now) / 60000))} 分鐘</div>}
-            {post.scenario === "groupbuy" && <div className="text-sm">已經有 {joined} 人加入，仲要 {Math.max(0, (post.needCount ?? 1) - joined)} 人</div>}
+            {pinned && (
+              <div className="text-xs bg-[#F5C518] text-[#1a1a1a] rounded-lg px-2 py-1 font-bold inline-block">
+                置頂中・仲有 {Math.max(1, Math.round(((post.pinnedUntil ?? 0) - now) / 60000))} 分鐘
+              </div>
+            )}
+            {post.scenario === "groupbuy" && (
+              <div className="text-sm">
+                已經有 {joined} 人加入，仲要 {Math.max(0, (post.needCount ?? 1) - joined)} 人
+              </div>
+            )}
             {post.scenario === "groupbuy" && post.matchId && (
-              <Link to="/match/$matchId" params={{ matchId: post.matchId }} className="block text-center h-10 leading-[40px] rounded-xl bg-[#F5C518] text-[#1a1a1a] font-bold">
+              <Link
+                to="/match/$matchId"
+                params={{ matchId: post.matchId }}
+                className="block text-center h-10 leading-[40px] rounded-xl bg-[#F5C518] text-[#1a1a1a] font-bold"
+              >
                 同已加入嘅人傾
               </Link>
             )}
           </div>
         ) : (
           <div className="bg-card rounded-2xl p-4 space-y-3">
-            <div className="font-black text-lg">{post.status === "expired" ? "已經過咗預計時間" : post.status === "cancelled" ? "已經取消" : "已經配對"}</div>
+            <div className="font-black text-lg">
+              {post.status === "expired"
+                ? "已經過咗預計時間"
+                : post.status === "cancelled"
+                  ? "已經取消"
+                  : "已經配對"}
+            </div>
             {post.status === "expired" && (
               <div className="flex gap-2">
-                <button onClick={() => act(aah.extendPost(post.id, 15))} className="flex-1 h-11 rounded-2xl bg-[#1a1a1a] text-white font-bold">延長 15 分鐘</button>
-                <button onClick={() => act(aah.extendPost(post.id, 30))} className="flex-1 h-11 rounded-2xl border border-border font-bold">延長 30 分鐘</button>
+                <button
+                  onClick={() => act(aah.extendPost(post.id, 15))}
+                  className="flex-1 h-11 rounded-2xl bg-[#1a1a1a] text-white font-bold"
+                >
+                  延長 15 分鐘
+                </button>
+                <button
+                  onClick={() => act(aah.extendPost(post.id, 30))}
+                  className="flex-1 h-11 rounded-2xl border border-border font-bold"
+                >
+                  延長 30 分鐘
+                </button>
               </div>
             )}
             {post.matchId && (
-              <Link to="/match/$matchId" params={{ matchId: post.matchId }} className="block text-center h-11 leading-[44px] rounded-2xl bg-[#F5C518] font-bold">
+              <Link
+                to="/match/$matchId"
+                params={{ matchId: post.matchId }}
+                className="block text-center h-11 leading-[44px] rounded-2xl bg-[#F5C518] font-bold"
+              >
                 去配對畫面
               </Link>
             )}
@@ -555,8 +866,16 @@ function MyPostView({ post }: { post: Post }) {
         {showPinPrompt && (
           <div className="bg-[#FFF6D6] border border-[#F5C518] rounded-2xl p-4 space-y-2">
             <div className="font-bold">15 分鐘都未有人理</div>
-            <div className="text-sm">置頂 15 分鐘，同時推送俾而家喺{s.pushNearby ? "呢度同附近商場" : ` ${post.mallName} `}嘅人？</div>
-            <button onClick={() => setPinOpen(true)} className="h-11 px-4 rounded-2xl bg-[#1a1a1a] text-white font-bold">{pinIsFree(mode) ? "免費置頂 15 分鐘" : "置頂 15 分鐘"}</button>
+            <div className="text-sm">
+              置頂 15 分鐘，同時推送俾而家喺{s.pushNearby ? "呢度同附近商場" : ` ${post.mallName} `}
+              嘅人？
+            </div>
+            <button
+              onClick={() => setPinOpen(true)}
+              className="h-11 px-4 rounded-2xl bg-[#1a1a1a] text-white font-bold"
+            >
+              {pinIsFree(mode) ? "免費置頂 15 分鐘" : "置頂 15 分鐘"}
+            </button>
           </div>
         )}
 
@@ -569,34 +888,59 @@ function MyPostView({ post }: { post: Post }) {
           <section className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="font-bold">有興趣嘅人（{pending.length}）</div>
-              {post.autoAccept && <span className="text-[11px] text-muted-foreground">第一個喺場嘅人會自動配對</span>}
+              {post.autoAccept && (
+                <span className="text-[11px] text-muted-foreground">第一個喺場嘅人會自動配對</span>
+              )}
             </div>
             {pending.length > 1 && (
-              <div className="text-[11px] text-muted-foreground">已喺場嘅排前；去緊嘅按邊個快到排。⭐ 係系統建議（穩陣交收為主，唔睇價錢），最後由你揀。</div>
+              <div className="text-[11px] text-muted-foreground">
+                已喺場嘅排前；去緊嘅按邊個快到排。⭐
+                係系統建議（穩陣交收為主，唔睇價錢），最後由你揀。
+              </div>
             )}
             {pending.length === 0 ? (
               <div className="bg-card rounded-2xl p-5 text-center text-sm text-muted-foreground">
-                未有人，有人撳「有興趣」會即刻通知你。{acceptsEnRoute(post) ? "未到商場、去緊嘅人都可以撳。" : ""}
+                未有人，有人撳「有興趣」會即刻通知你。
+                {acceptsEnRoute(post) ? "未到商場、去緊嘅人都可以撳。" : ""}
               </div>
             ) : (
               pending.map((it) => (
-                <div key={it.userId} className={cn("bg-card rounded-2xl p-4 space-y-3", suggested?.userId === it.userId && "ring-2 ring-[#F5C518]")}>
+                <div
+                  key={it.userId}
+                  className={cn(
+                    "bg-card rounded-2xl p-4 space-y-3",
+                    suggested?.userId === it.userId && "ring-2 ring-[#F5C518]",
+                  )}
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="font-bold flex items-center gap-1.5 flex-wrap">
                         {it.name}
-                        {suggested?.userId === it.userId && <span className="text-[10px] font-bold bg-[#F5C518] text-[#1a1a1a] px-1.5 py-0.5 rounded-full">⭐ 建議</span>}
+                        {suggested?.userId === it.userId && (
+                          <span className="text-[10px] font-bold bg-[#F5C518] text-[#1a1a1a] px-1.5 py-0.5 rounded-full">
+                            ⭐ 建議
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap mt-1 text-[11px]">
                         {it.enRoute ? (
                           <span className="font-semibold bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded-full">
-                            去緊・約 {it.etaAt ? fmtClock(it.etaAt) : "?"} 到{fmtKm(it.distanceM) ? `（${fmtKm(it.distanceM)}）` : ""}
+                            去緊・約 {it.etaAt ? fmtClock(it.etaAt) : "?"} 到
+                            {fmtKm(it.distanceM) ? `（${fmtKm(it.distanceM)}）` : ""}
                           </span>
                         ) : (
-                          <span className="font-semibold bg-[#E3F5EC] text-[#1d6b47] px-1.5 py-0.5 rounded-full">已喺場</span>
+                          <span className="font-semibold bg-[#E3F5EC] text-[#1d6b47] px-1.5 py-0.5 rounded-full">
+                            已喺場
+                          </span>
                         )}
-                        {it.completed != null && <span className="text-muted-foreground">完成 {it.completed} 次</span>}
-                        {(it.noShows ?? 0) > 0 && <span className="font-semibold text-destructive">冇出現 {it.noShows} 次</span>}
+                        {it.completed != null && (
+                          <span className="text-muted-foreground">完成 {it.completed} 次</span>
+                        )}
+                        {(it.noShows ?? 0) > 0 && (
+                          <span className="font-semibold text-destructive">
+                            冇出現 {it.noShows} 次
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
@@ -612,19 +956,33 @@ function MyPostView({ post }: { post: Post }) {
                   </div>
                   <div className="space-y-1.5">
                     {it.messages.map((m, i) => (
-                      <div key={i} className="inline-block mr-1.5 px-3 py-1.5 rounded-2xl bg-accent text-sm">{m.text}</div>
+                      <div
+                        key={i}
+                        className="inline-block mr-1.5 px-3 py-1.5 rounded-2xl bg-accent text-sm"
+                      >
+                        {m.text}
+                      </div>
                     ))}
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <button onClick={() => accept(it.userId, post.price ?? undefined)} className="h-10 px-3 rounded-full bg-[#1a1a1a] text-white text-sm font-bold">
+                    <button
+                      onClick={() => accept(it.userId, post.price ?? undefined)}
+                      className="h-10 px-3 rounded-full bg-[#1a1a1a] text-white text-sm font-bold"
+                    >
                       {post.scenario === "groupbuy" ? "好呀，一齊夾" : "仲喺度，嚟啦"}
                     </button>
                     {it.offer != null && it.offer !== post.price && (
-                      <button onClick={() => accept(it.userId, it.offer)} className="h-10 px-3 rounded-full bg-[#F5C518] text-[#1a1a1a] text-sm font-bold">
+                      <button
+                        onClick={() => accept(it.userId, it.offer)}
+                        className="h-10 px-3 rounded-full bg-[#F5C518] text-[#1a1a1a] text-sm font-bold"
+                      >
                         OK，${it.offer} 得
                       </button>
                     )}
-                    <button onClick={() => act(aah.declineInterest(post.id, it.userId))} className="h-10 px-3 rounded-full border border-border text-sm font-semibold">
+                    <button
+                      onClick={() => act(aah.declineInterest(post.id, it.userId))}
+                      className="h-10 px-3 rounded-full border border-border text-sm font-semibold"
+                    >
                       唔好意思，已經俾咗人
                     </button>
                   </div>
@@ -634,29 +992,57 @@ function MyPostView({ post }: { post: Post }) {
           </section>
         )}
 
-        {post.status === "open" && <PushPrompt reason="有人撳「有興趣」會即刻通知你，閂咗 app 都收到。" />}
+        {post.status === "open" && (
+          <PushPrompt reason="有人撳「有興趣」會即刻通知你，閂咗 app 都收到。" />
+        )}
 
         {post.status === "open" && (
           <div className="space-y-2">
             {pinEnabled && (
-              <button onClick={() => setPinOpen(true)} className="w-full h-12 rounded-2xl border border-border bg-card font-bold inline-flex items-center justify-center gap-2">
+              <button
+                onClick={() => setPinOpen(true)}
+                className="w-full h-12 rounded-2xl border border-border bg-card font-bold inline-flex items-center justify-center gap-2"
+              >
                 <Pin className="w-4 h-4" /> {pinned ? "再置頂 15 分鐘" : "置頂 15 分鐘"}
               </button>
             )}
-            <button onClick={() => act(aah.cancelPost(post.id), "已取消 post")} className="w-full h-11 rounded-2xl text-sm text-destructive font-semibold">
+            <button
+              onClick={() => act(aah.cancelPost(post.id), "已取消 post")}
+              className="w-full h-11 rounded-2xl text-sm text-destructive font-semibold"
+            >
               取消呢個 post
             </button>
-            {mode === "local" && <details className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 text-sm">
-              <summary className="font-semibold text-amber-900">示範控制</summary>
-              <div className="pt-3 space-y-2">
-                <button onClick={() => aah.demoSomeoneInterested(post.id)} className="w-full h-10 rounded-xl bg-white border border-amber-300 font-semibold">模擬有人有興趣</button>
-              </div>
-            </details>}
+            {mode === "local" && (
+              <details className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 text-sm">
+                <summary className="font-semibold text-amber-900">示範控制</summary>
+                <div className="pt-3 space-y-2">
+                  <button
+                    onClick={() => aah.demoSomeoneInterested(post.id)}
+                    className="w-full h-10 rounded-xl bg-white border border-amber-300 font-semibold"
+                  >
+                    模擬有人有興趣
+                  </button>
+                </div>
+              </details>
+            )}
           </div>
         )}
       </div>
 
-      <PinSheet open={pinOpen} onClose={() => setPinOpen(false)} post={post} posts={posts} pinCredits={user.pinCredits} mallName={post.mallName} nearbyNames={mall ? nearbyMalls(malls, mall).map((m) => m.name) : []} nearbyAudience={mall ? nearbyMalls(malls, mall).reduce((s2, m) => s2 + demoAudience(m.id), 0) : 0} mallAudience={mall ? demoAudience(mall.id) : 0} now={now} />
+      <PinSheet
+        open={pinOpen}
+        onClose={() => setPinOpen(false)}
+        post={post}
+        posts={posts}
+        pinCredits={user.pinCredits}
+        mallName={post.mallName}
+        nearbyNames={mall ? nearbyMalls(malls, mall).map((m) => m.name) : []}
+        nearbyAudience={
+          mall ? nearbyMalls(malls, mall).reduce((s2, m) => s2 + demoAudience(m.id), 0) : 0
+        }
+        mallAudience={mall ? demoAudience(mall.id) : 0}
+        now={now}
+      />
     </AppLayout>
   );
 }
@@ -700,7 +1086,10 @@ function PinSheet({
     try {
       await aah.pinPost(post.id, { useCredit, extraPushed: extra });
       toast.success(`已置頂 ${effective} 分鐘`, {
-        description: s.pushNearby && nearbyNames.length ? `同時推送俾而家喺 ${mallName}、${nearbyNames.slice(0, 2).join("、")} 嘅人` : `同時推送俾而家喺 ${mallName} 嘅人`,
+        description:
+          s.pushNearby && nearbyNames.length
+            ? `同時推送俾而家喺 ${mallName}、${nearbyNames.slice(0, 2).join("、")} 嘅人`
+            : `同時推送俾而家喺 ${mallName} 嘅人`,
       });
       onClose();
     } catch (e) {
@@ -716,7 +1105,8 @@ function PinSheet({
         <ul className="text-sm space-y-2">
           <li>📌 喺 feed 最頂顯示 15 分鐘，加「急」字標籤</li>
           <li>
-            📣 {s.pushNearby
+            📣{" "}
+            {s.pushNearby
               ? nearbyNames.length
                 ? `推送俾而家喺 ${mallName} 同附近商場（${nearbyNames.slice(0, 3).join("、")}）、開咗通知嘅人`
                 : `推送俾而家喺 ${mallName}、開咗通知嘅人（附近冇其他商場）`
@@ -724,21 +1114,39 @@ function PinSheet({
           </li>
           <li>⏳ 配對成功、post 過期，或者你離開商場，置頂都會即刻結束</li>
         </ul>
-        {leftMin < PIN_MINUTES && <div className="text-xs bg-amber-50 text-amber-900 rounded-xl px-3 py-2">你 {fmtClock(post.leaveAt)} 走，置頂只會維持 {Math.max(0, leftMin)} 分鐘。</div>}
+        {leftMin < PIN_MINUTES && (
+          <div className="text-xs bg-amber-50 text-amber-900 rounded-xl px-3 py-2">
+            你 {fmtClock(post.leaveAt)} 走，置頂只會維持 {Math.max(0, leftMin)} 分鐘。
+          </div>
+        )}
         {full ? (
-          <div className="text-sm bg-card rounded-xl p-3">置頂位已滿（最多 {MAX_PINNED_PER_MALL} 個），約 {Math.max(1, Math.ceil((freeAt - now) / 60000))} 分鐘後有位。</div>
+          <div className="text-sm bg-card rounded-xl p-3">
+            置頂位已滿（最多 {MAX_PINNED_PER_MALL} 個），約{" "}
+            {Math.max(1, Math.ceil((freeAt - now) / 60000))} 分鐘後有位。
+          </div>
         ) : (
           <>
             {/* 免費期間唔使用積分次數，留返俾日後用 */}
             {!pinIsFree(mode) && pinCredits > 0 && (
-              <button onClick={() => doPin(true)} className="w-full h-12 rounded-2xl bg-[#F5C518] text-[#1a1a1a] font-black">
+              <button
+                onClick={() => doPin(true)}
+                className="w-full h-12 rounded-2xl bg-[#F5C518] text-[#1a1a1a] font-black"
+              >
                 用 1 次積分置頂（你有 {pinCredits} 次）
               </button>
             )}
-            <button disabled={busy} onClick={() => doPin(false)} className="w-full h-12 rounded-2xl bg-[#1a1a1a] text-white font-black disabled:opacity-50">
+            <button
+              disabled={busy}
+              onClick={() => doPin(false)}
+              className="w-full h-12 rounded-2xl bg-[#1a1a1a] text-white font-black disabled:opacity-50"
+            >
               {pinIsFree(mode) ? "免費置頂 15 分鐘" : "置頂 15 分鐘"}
             </button>
-            {pinIsFree(mode) && <p className="text-[11px] text-muted-foreground text-center">現階段置頂免費，每人每日最多 3 次。</p>}
+            {pinIsFree(mode) && (
+              <p className="text-[11px] text-muted-foreground text-center">
+                現階段置頂免費，每人每日最多 3 次。
+              </p>
+            )}
           </>
         )}
       </div>

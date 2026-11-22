@@ -417,7 +417,7 @@ function MatchPage() {
                 }}
                 className="flex gap-2"
               >
-                <input value={text} onChange={(e) => setText(e.target.value)} placeholder="打少少字（喺 app 傾就夠，唔使留電話）" className="flex-1 h-10 px-3 rounded-full border border-border bg-card outline-none text-base" />
+                <input value={text} maxLength={80} onChange={(e) => setText(e.target.value)} placeholder="打少少字（喺 app 傾就夠，唔使留電話）" className="flex-1 h-10 px-3 rounded-full border border-border bg-card outline-none text-base" />
                 <button className="h-10 px-4 rounded-full bg-[#1a1a1a] text-white text-sm font-bold">傳送</button>
               </form>
               <div className="flex gap-2">

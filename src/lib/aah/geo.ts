@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { AahMall } from "./types";
-import { findMallAt, nearestMalls } from "./malls";
+import { distanceM, findMallAt, nearestMalls } from "./malls";
 import { useAahState } from "./store";
 
 export type GeoStatus = "idle" | "locating" | "ok" | "denied" | "unavailable";
@@ -127,13 +127,26 @@ export type CurrentMall = {
   test: boolean;
 };
 
+/**
+ * 室內 GPS 會飄：認到你喺某個商場之後，15 分鐘內只要仲喺 500 米內就當你仲喺度，
+ * 唔好一飄出 200 米就變「唔喺商場」（打唔到字、撳唔到掣）。
+ */
+const STICKY_MS = 15 * 60_000;
+const STICKY_M = 500;
+let lastAt: { id: string; at: number } | null = null;
+
 export function useCurrentMall(malls: AahMall[]): CurrentMall {
   const g = useGeo();
   const { user } = useAahState();
   return useMemo(() => {
     if (g.status === "ok" && g.lat != null && g.lng != null) {
       const m = findMallAt(malls, g.lat, g.lng);
-      if (m) return { mall: m, verified: true, test: false };
+      if (m) {
+        lastAt = { id: m.id, at: Date.now() };
+        return { mall: m, verified: true, test: false };
+      }
+      const prev = lastAt && Date.now() - lastAt.at < STICKY_MS ? malls.find((x) => x.id === lastAt!.id) : undefined;
+      if (prev && distanceM(g.lat, g.lng, prev.lat, prev.lng) <= STICKY_M) return { mall: prev, verified: true, test: false };
     }
     if (user.testMallId) {
       const m = malls.find((x) => x.id === user.testMallId) ?? null;
