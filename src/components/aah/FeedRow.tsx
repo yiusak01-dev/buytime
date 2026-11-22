@@ -15,6 +15,7 @@ export function rowTitle(p: Post): string {
   switch (p.scenario) {
     case "parking":
       if (p.direction === "want") return `想要 ${f.hours} 個鐘泊車`;
+      if (f.fragment) return `碎單 $${f.receiptAmount}（差 $${f.shortBy} 先夠換）`;
       return f.hours ? `可換 ${f.hours} 個鐘泊車` : `單據 $${f.receiptAmount}`;
     case "dining":
       return `${p.shop} 飛號 ${f.queueNo}・${f.partySize} 位`;

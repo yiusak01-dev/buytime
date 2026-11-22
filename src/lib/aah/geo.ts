@@ -30,7 +30,8 @@ async function startNative(): Promise<GeoStatus> {
   try {
     const { Geolocation } = await import("@capacitor/geolocation");
     let perm = await Geolocation.checkPermissions();
-    if (perm.location !== "granted" && perm.coarseLocation !== "granted") perm = await Geolocation.requestPermissions();
+    if (perm.location !== "granted" && perm.coarseLocation !== "granted")
+      perm = await Geolocation.requestPermissions();
     if (perm.location !== "granted" && perm.coarseLocation !== "granted") {
       setGeo({ status: "denied" });
       return "denied";
@@ -38,19 +39,28 @@ async function startNative(): Promise<GeoStatus> {
     setGeo({ ...geo, status: geo.status === "ok" ? "ok" : "locating" });
     return await new Promise<GeoStatus>((resolve) => {
       let resolved = false;
-      void Geolocation.watchPosition({ enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }, (pos, err) => {
-        if (pos) {
-          setGeo({ status: "ok", lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy, at: Date.now() });
-          if (!resolved) {
+      void Geolocation.watchPosition(
+        { enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 },
+        (pos, err) => {
+          if (pos) {
+            setGeo({
+              status: "ok",
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              accuracy: pos.coords.accuracy,
+              at: Date.now(),
+            });
+            if (!resolved) {
+              resolved = true;
+              resolve("ok");
+            }
+          } else if (err && !resolved) {
             resolved = true;
-            resolve("ok");
+            setGeo({ status: "unavailable" });
+            resolve("unavailable");
           }
-        } else if (err && !resolved) {
-          resolved = true;
-          setGeo({ status: "unavailable" });
-          resolve("unavailable");
-        }
-      }).then((id) => {
+        },
+      ).then((id) => {
         nativeWatch = id;
       });
     });
@@ -85,7 +95,13 @@ export const geoStore = {
       let resolved = false;
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
-          setGeo({ status: "ok", lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy, at: Date.now() });
+          setGeo({
+            status: "ok",
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+            at: Date.now(),
+          });
           if (!resolved) {
             resolved = true;
             resolve("ok");
@@ -145,8 +161,12 @@ export function useCurrentMall(malls: AahMall[]): CurrentMall {
         lastAt = { id: m.id, at: Date.now() };
         return { mall: m, verified: true, test: false };
       }
-      const prev = lastAt && Date.now() - lastAt.at < STICKY_MS ? malls.find((x) => x.id === lastAt!.id) : undefined;
-      if (prev && distanceM(g.lat, g.lng, prev.lat, prev.lng) <= STICKY_M) return { mall: prev, verified: true, test: false };
+      const prev =
+        lastAt && Date.now() - lastAt.at < STICKY_MS
+          ? malls.find((x) => x.id === lastAt!.id)
+          : undefined;
+      if (prev && distanceM(g.lat, g.lng, prev.lat, prev.lng) <= STICKY_M)
+        return { mall: prev, verified: true, test: false };
     }
     if (user.testMallId) {
       const m = malls.find((x) => x.id === user.testMallId) ?? null;
@@ -184,7 +204,12 @@ export function useNow(intervalMs = 1000) {
 }
 
 export function fmtClock(ts: number) {
-  return new Date(ts).toLocaleTimeString("zh-HK", { hour: "numeric", minute: "2-digit", hour12: false, timeZone: "Asia/Hong_Kong" });
+  return new Date(ts).toLocaleTimeString("zh-HK", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Hong_Kong",
+  });
 }
 
 export function fmtLeft(ms: number) {

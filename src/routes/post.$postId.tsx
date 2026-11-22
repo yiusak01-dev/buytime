@@ -37,7 +37,7 @@ import {
   LATE_GRACE_MIN,
 } from "@/lib/aah/enroute";
 import type { InterestOpts } from "@/lib/aah/remote";
-import { SCENARIOS, payLabel, authorRole, receiptCountNote } from "@/lib/aah/scenarios";
+import { SCENARIOS, payLabel, authorRole, receiptCountNote, stackRule } from "@/lib/aah/scenarios";
 import { ScenarioTips } from "@/components/aah/ScenarioTips";
 import { ReportBlockSheet } from "@/components/aah/ReportBlockSheet";
 import { ParkingHandover } from "@/components/aah/ParkingHandover";
@@ -113,6 +113,7 @@ function detailLine(p: Post): string {
       return p.direction === "have"
         ? [
             f.receiptAmount ? `單據 $${f.receiptAmount}` : "",
+            f.fragment ? "碎單（要加埋其他單）" : "",
             f.receiptShop ? `${f.receiptShop}單` : "",
             f.receiptDate ? "今日單據（影相讀到）" : "",
             f.receiptCount && f.receiptCount !== "1 張" ? `${f.receiptCount}單` : "",
@@ -325,7 +326,10 @@ function PostDetailView({ post }: { post: Post }) {
     return amt > 0 ? quoteParkingReceipt(mall, amt, now) : null;
   }, [post, mall, now]);
   const offeredHours = Number(post.fields.hours ?? 0) || receiptQuote?.hours || 0;
-  const cantRedeem = !!receiptQuote?.belowThreshold && !Number(post.fields.hours ?? 0);
+  const cantRedeem =
+    (!!post.fields.fragment || !!receiptQuote?.belowThreshold) && !Number(post.fields.hours ?? 0);
+  const stack = stackRule(mall?.stacking);
+  const minSpend = Number(post.fields.minSpend ?? 0) || receiptQuote?.minThreshold || 0;
 
   // 入場時間由用家自己揀（唔估；開 app 嗰下唔等於入場時間）
   const parkingCalc = useMemo(() => {
@@ -394,15 +398,22 @@ function PostDetailView({ post }: { post: Post }) {
             </div>
           )}
 
-        {cantRedeem && receiptQuote && (
+        {cantRedeem && minSpend > 0 && (
           <div
             data-testid="cant-redeem"
-            className="text-sm rounded-2xl px-4 py-3 bg-amber-50 text-amber-900 border border-amber-200"
+            className="text-sm rounded-2xl px-4 py-3 bg-amber-50 text-amber-900 border border-amber-200 space-y-1"
           >
-            <b>呢張單今日自己一張換唔到泊車。</b>
-            {post.mallName}今日（{receiptQuote.dayLabel}）要消費滿 ${receiptQuote.minThreshold}{" "}
-            先換到，呢張單 ${post.fields.receiptAmount}
-            。你有今日嘅單可以加埋先得，接之前同對方講清楚。
+            <div>
+              <b>碎單：呢張單自己一張換唔到泊車。</b>
+              {`${post.mallName}今日要消費滿 $${minSpend} 先換到，呢張單 $${String(post.fields.receiptAmount)}，差 $${Math.max(0, Math.ceil(minSpend - Number(post.fields.receiptAmount ?? 0)))}。`}
+            </div>
+            <div>
+              {stack.max === 1
+                ? "呢個商場資料顯示唔准幾張單加埋計，可能換唔到。"
+                : stack.known
+                  ? `商場准最多 ${stack.max} 張唔同舖嘅單加埋計${stack.minEach ? `（每張最少 $${stack.minEach}）` : ""}：你有今日另一間舖嘅單加埋就換到。`
+                  : "未知商場准唔准幾張單加埋計，接之前去登記處問清楚。"}
+            </div>
           </div>
         )}
         {parkingCalc === null &&

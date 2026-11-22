@@ -5,13 +5,22 @@ import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
 import { PushPrompt } from "@/components/aah/PushPrompt";
 import { BottomSheet, Chip, DemoBadge, ScenarioTag } from "@/components/aah/ui";
-import { aah, aahErrorText, useAahMode, useAahState, CHAT_CLOSE_AFTER_MIN, BAN_DAYS, HANDOVER_AUTO_MIN } from "@/lib/aah/store";
+import {
+  aah,
+  aahErrorText,
+  useAahMode,
+  useAahState,
+  CHAT_CLOSE_AFTER_MIN,
+  BAN_DAYS,
+  HANDOVER_AUTO_MIN,
+} from "@/lib/aah/store";
 import { geoStore } from "@/lib/aah/geo";
 import { useAahMalls } from "@/lib/aah/malls";
 import { useCurrentMall, useNow, fmtClock, fmtLeft } from "@/lib/aah/geo";
 import { LATE_GRACE_MIN, CANCEL_GRACE_MIN, cancelIsLate } from "@/lib/aah/enroute";
 import { SCENARIOS, payLabel, authorRole } from "@/lib/aah/scenarios";
 import { ReportBlockSheet } from "@/components/aah/ReportBlockSheet";
+import { rowTitle } from "@/components/aah/FeedRow";
 import { ScenarioTips } from "@/components/aah/ScenarioTips";
 import { ParkingHandover } from "@/components/aah/ParkingHandover";
 import { CONTACT_RE, CONTACT_WARNING } from "@/lib/aah/rules";
@@ -35,6 +44,13 @@ function MatchPage() {
   const current = useCurrentMall(malls);
   const now = useNow(5000);
   const m = matches.find((x) => x.id === matchId);
+  // 標題講清楚係咩（例如「可換 3 個鐘泊車」），唔好淨係寫「停車場」
+  const matchPost = m ? posts.find((p) => p.id === m.postId) : undefined;
+  const matchTitle = matchPost
+    ? rowTitle(matchPost)
+    : m?.scenario === "parking"
+      ? "泊車單"
+      : (m?.shop ?? "");
 
   const [warnOpen, setWarnOpen] = useState(false);
   const [changeOpen, setChangeOpen] = useState(false);
@@ -50,11 +66,15 @@ function MatchPage() {
   useEffect(() => {
     const n = m?.messages.length;
     if (n == null) return;
-    if (seenMsgs.current != null && n > seenMsgs.current) bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    if (seenMsgs.current != null && n > seenMsgs.current)
+      bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
     seenMsgs.current = n;
   }, [m?.messages.length]);
 
-  const others = useMemo(() => (m ? m.participants.filter((p) => p.userId !== user.id) : []), [m, user.id]);
+  const others = useMemo(
+    () => (m ? m.participants.filter((p) => p.userId !== user.id) : []),
+    [m, user.id],
+  );
   const mode = useAahMode();
 
   if (!m || !m.participants.some((p) => p.userId === user.id)) {
@@ -63,7 +83,12 @@ function MatchPage() {
         <div className="p-8 text-center space-y-3">
           <div className="text-4xl">🤷</div>
           <div className="font-bold">搵唔到呢個配對</div>
-          <Link to="/me" className="inline-block h-11 px-5 leading-[44px] rounded-2xl bg-[#1a1a1a] text-white font-bold">返去我的配對</Link>
+          <Link
+            to="/me"
+            className="inline-block h-11 px-5 leading-[44px] rounded-2xl bg-[#1a1a1a] text-white font-bold"
+          >
+            返去我的配對
+          </Link>
         </div>
       </AppLayout>
     );
@@ -90,7 +115,8 @@ function MatchPage() {
     }
     // 防連撳：同一句 5 秒內唔重複發送
     const now2 = Date.now();
-    if (lastSent.current && lastSent.current.text === t && now2 - lastSent.current.at < 5000) return;
+    if (lastSent.current && lastSent.current.text === t && now2 - lastSent.current.at < 5000)
+      return;
     lastSent.current = { text: t, at: now2 };
     void act(aah.sendMessage(m!.id, t));
   }
@@ -102,7 +128,15 @@ function MatchPage() {
   const iAmEnRoute = m.enRouteUser === user.id;
   const enRouteMins = Math.max(1, Math.round((now - m.createdAt) / MIN));
   const cancelledByOther = m.status === "cancelled" && !!m.cancelledBy && m.cancelledBy !== user.id;
-  const alternatives = posts.filter((p) => p.mallId === m.mallId && p.scenario === m.scenario && p.status === "open" && p.leaveAt > now && p.authorId !== user.id && p.id !== m.postId);
+  const alternatives = posts.filter(
+    (p) =>
+      p.mallId === m.mallId &&
+      p.scenario === m.scenario &&
+      p.status === "open" &&
+      p.leaveAt > now &&
+      p.authorId !== user.id &&
+      p.id !== m.postId,
+  );
 
   async function act(p: Promise<unknown>, ok?: string) {
     try {
@@ -120,9 +154,12 @@ function MatchPage() {
     }
     const g = geoStore.get();
     try {
-      const r = await aah.arrive(m!.id, { coords: g.lat != null && g.lng != null ? { lat: g.lat, lng: g.lng } : undefined });
+      const r = await aah.arrive(m!.id, {
+        coords: g.lat != null && g.lng != null ? { lat: g.lat, lng: g.lng } : undefined,
+      });
       if (r === "completed") toast.success("見到面喇！已完成");
-      else if (r === "all_arrived") toast.success("兩位都到咗", { description: "交收完成之後撳「交收完成」" });
+      else if (r === "all_arrived")
+        toast.success("兩位都到咗", { description: "交收完成之後撳「交收完成」" });
       else toast("已通知對方你到咗", { description: "喺對話講吓你喺邊、著咩，方便對方搵你" });
     } catch (e) {
       toast.error(aahErrorText(e));
@@ -133,10 +170,19 @@ function MatchPage() {
     ? m.enRouteUser === user.id
       ? ["出發咗", "塞車，遲 5 分鐘", "就到", "唔好意思，有急事", `喺${m.meetPlace}等`]
       : [`喺${m.meetPlace}等`, "唔使急，慢慢嚟", "到咗未？", "唔好意思，有急事"]
-    : [`喺${m.meetPlace}等`, "5 分鐘到", "10 分鐘到", "等我 2 分鐘", "搵唔到你", "唔好意思，有急事"];
+    : [
+        `喺${m.meetPlace}等`,
+        "5 分鐘到",
+        "10 分鐘到",
+        "等我 2 分鐘",
+        "搵唔到你",
+        "唔好意思，有急事",
+      ];
 
   // 我去緊：對方講咗幾點到
-  const enRouteName = m.enRouteUser ? m.participants.find((p) => p.userId === m.enRouteUser)?.name ?? "對方" : null;
+  const enRouteName = m.enRouteUser
+    ? (m.participants.find((p) => p.userId === m.enRouteUser)?.name ?? "對方")
+    : null;
   const graceEnd = m.etaAt ? m.etaAt + LATE_GRACE_MIN * MIN : null;
   const showEnRoute = active && !!m.enRouteUser && !!m.etaAt && !m.arrived[m.enRouteUser];
 
@@ -156,7 +202,11 @@ function MatchPage() {
     <AppLayout hideNav>
       <header className="sticky top-0 z-30 bg-background/95 backdrop-blur px-4 pt-4 pb-3 border-b border-border/60">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate({ to: "/me" })} aria-label="返回" className="w-9 h-9 grid place-items-center rounded-full hover:bg-accent">
+          <button
+            onClick={() => navigate({ to: "/me" })}
+            aria-label="返回"
+            className="w-9 h-9 grid place-items-center rounded-full hover:bg-accent"
+          >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex-1 min-w-0">
@@ -165,11 +215,22 @@ function MatchPage() {
               <span className="text-xs text-muted-foreground truncate">{m.mallName}</span>
             </div>
             <div className="font-black text-base truncate mt-0.5">
-              {m.shop}・{m.price == null ? "夾單" : m.price === 0 ? "免費" : m.scenario === "dining" ? `多謝費 $${m.price}` : `$${m.price}`}
+              {matchTitle}・
+              {m.price == null
+                ? "夾單"
+                : m.price === 0
+                  ? "免費"
+                  : m.scenario === "dining"
+                    ? `多謝費 $${m.price}`
+                    : `$${m.price}`}
             </div>
           </div>
           {others.length > 0 && (
-            <button onClick={() => setReportOpen(true)} aria-label="舉報或封鎖" className="w-9 h-9 grid place-items-center rounded-full hover:bg-accent text-muted-foreground">
+            <button
+              onClick={() => setReportOpen(true)}
+              aria-label="舉報或封鎖"
+              className="w-9 h-9 grid place-items-center rounded-full hover:bg-accent text-muted-foreground"
+            >
               <Flag className="w-4 h-4" />
             </button>
           )}
@@ -179,13 +240,17 @@ function MatchPage() {
       <div className="px-4 pt-4 pb-60 space-y-4">
         {/* 狀態 */}
         {m.status === "completed" && (
-          <div className="bg-[#E3F5EC] text-[#1d6b47] rounded-2xl p-4 flex items-center gap-2 font-bold"><CheckCircle2 className="w-5 h-5" /> 已完成</div>
+          <div className="bg-[#E3F5EC] text-[#1d6b47] rounded-2xl p-4 flex items-center gap-2 font-bold">
+            <CheckCircle2 className="w-5 h-5" /> 已完成
+          </div>
         )}
         {m.status === "cancelled" && (
           <div className="bg-card rounded-2xl p-4 space-y-3">
             <div className="font-bold">{cancelledByOther ? "對方取消咗配對" : "配對已取消"}</div>
             {cancelledByOther && m.lateCancel && iArrived && (
-              <div className="text-sm text-muted-foreground">你已經到咗，對方先取消。已經記錄咗對方一次臨時取消。</div>
+              <div className="text-sm text-muted-foreground">
+                你已經到咗，對方先取消。已經記錄咗對方一次臨時取消。
+              </div>
             )}
             {m.cancelledBy === user.id && m.lateCancel && (
               <div className="text-sm text-amber-800">對方已經到咗先取消，記咗一次臨時取消。</div>
@@ -196,14 +261,20 @@ function MatchPage() {
                 search={{ cat: m.scenario }}
                 className="flex items-center justify-between rounded-xl bg-[#FFF6D6] px-4 py-3 text-sm font-bold"
               >
-                <span>{alternatives.length > 0 ? `${m.mallName}仲有 ${alternatives.length} 個${SCENARIOS[m.scenario].label}` : `睇吓${m.mallName}仲有咩`}</span>
+                <span>
+                  {alternatives.length > 0
+                    ? `${m.mallName}仲有 ${alternatives.length} 個${SCENARIOS[m.scenario].label}`
+                    : `睇吓${m.mallName}仲有咩`}
+                </span>
                 <span>→</span>
               </Link>
             )}
           </div>
         )}
         {m.status === "noshow" &&
-          (!m.arrived[user.id] && !(user.bannedUntil && user.bannedUntil > now) && user.appeal?.status === "approved" ? (
+          (!m.arrived[user.id] &&
+          !(user.bannedUntil && user.bannedUntil > now) &&
+          user.appeal?.status === "approved" ? (
             <div className="bg-[#E3F5EC] text-[#1d6b47] rounded-2xl p-4 space-y-1">
               <div className="font-black">申訴成功</div>
               <div className="text-sm">已經撤銷呢次冇出現，帳戶已經恢復。</div>
@@ -213,28 +284,42 @@ function MatchPage() {
             <div className="bg-red-50 border border-red-200 rounded-2xl p-4 space-y-2">
               <div className="font-black text-red-900">對方報告你冇出現</div>
               <div className="text-sm text-red-900">
-                {user.bannedUntil && user.bannedUntil > now ? `帳戶停用到 ${new Date(user.bannedUntil).toLocaleDateString("zh-HK")}。` : ""}
+                {user.bannedUntil && user.bannedUntil > now
+                  ? `帳戶停用到 ${new Date(user.bannedUntil).toLocaleDateString("zh-HK")}。`
+                  : ""}
                 如果有誤會（例如電話冇電、停車場收唔到 GPS），可以喺 48 小時內申訴。
               </div>
-              <Link to="/me" className="flex items-center justify-center h-11 rounded-2xl bg-red-700 text-white font-bold">去申訴</Link>
+              <Link
+                to="/me"
+                className="flex items-center justify-center h-11 rounded-2xl bg-red-700 text-white font-bold"
+              >
+                去申訴
+              </Link>
             </div>
           ) : (
-            <div className="bg-red-50 text-red-800 rounded-2xl p-4 font-bold">已記錄對方冇出現，配對已結束</div>
+            <div className="bg-red-50 text-red-800 rounded-2xl p-4 font-bold">
+              已記錄對方冇出現，配對已結束
+            </div>
           ))}
 
         {/* 我去緊：倒數，同遲到時取消並重新放出 */}
-        {showEnRoute && m.etaAt && graceEnd && (
-          m.enRouteUser === user.id ? (
+        {showEnRoute &&
+          m.etaAt &&
+          graceEnd &&
+          (m.enRouteUser === user.id ? (
             <div className="bg-amber-50 border border-amber-200 text-amber-950 rounded-2xl p-4 space-y-1">
               <div className="font-bold">你講咗 {fmtClock(m.etaAt)} 前到</div>
               <div className="text-sm">
                 {now < m.etaAt ? `${fmtLeft(m.etaAt - now)}。` : "已經過咗講好嘅時間。"}
-                到咗見面地點撳「我到咗」。過咗 {fmtClock(graceEnd)} 都未到，對方可以取消，會記你一次臨時取消。
+                到咗見面地點撳「我到咗」。過咗 {fmtClock(graceEnd)}{" "}
+                都未到，對方可以取消，會記你一次臨時取消。
               </div>
             </div>
           ) : (
             <div className="bg-amber-50 border border-amber-200 text-amber-950 rounded-2xl p-4 space-y-2">
-              <div className="font-bold">{enRouteName} 去緊，講咗 {fmtClock(m.etaAt)} 前到</div>
+              <div className="font-bold">
+                {enRouteName} 去緊，講咗 {fmtClock(m.etaAt)} 前到
+              </div>
               <div className="text-sm">
                 {now < m.etaAt
                   ? `${fmtLeft(m.etaAt - now)}。`
@@ -247,37 +332,77 @@ function MatchPage() {
                   <div className="text-xs">你撳咗「我到咗」之後，就可以取消並重新放出個 post。</div>
                 ) : releaseAsk ? (
                   <div className="space-y-2">
-                    <div className="text-xs">確定？會記 {enRouteName} 一次臨時取消，之前有興趣嘅人會收到通知。</div>
+                    <div className="text-xs">
+                      確定？會記 {enRouteName} 一次臨時取消，之前有興趣嘅人會收到通知。
+                    </div>
                     <div className="flex gap-2">
-                      <button onClick={() => void releaseLate()} className="flex-1 h-11 rounded-2xl bg-[#1a1a1a] text-white font-bold">確定取消</button>
-                      <button onClick={() => setReleaseAsk(false)} className="flex-1 h-11 rounded-2xl border border-amber-300 font-bold">再等等</button>
+                      <button
+                        onClick={() => void releaseLate()}
+                        className="flex-1 h-11 rounded-2xl bg-[#1a1a1a] text-white font-bold"
+                      >
+                        確定取消
+                      </button>
+                      <button
+                        onClick={() => setReleaseAsk(false)}
+                        className="flex-1 h-11 rounded-2xl border border-amber-300 font-bold"
+                      >
+                        再等等
+                      </button>
                     </div>
                   </div>
                 ) : (
-                  <button onClick={() => setReleaseAsk(true)} className="w-full h-11 rounded-2xl bg-[#1a1a1a] text-white font-bold">
+                  <button
+                    onClick={() => setReleaseAsk(true)}
+                    className="w-full h-11 rounded-2xl bg-[#1a1a1a] text-white font-bold"
+                  >
                     對方遲到・取消並重新放出
                   </button>
                 ))}
             </div>
-          )
-        )}
+          ))}
 
         {/* 見面地點時間 */}
         <div className="bg-card rounded-2xl p-4 space-y-3 shadow-[var(--shadow-card)]">
           <div className="flex items-center justify-between">
             <div className="text-xs font-bold text-muted-foreground">見面</div>
-            {allConfirmed ? <span className="text-xs font-bold text-[#2E9E6A]">雙方已確認</span> : iConfirmed ? <span className="text-xs text-muted-foreground">等對方確認</span> : null}
+            {allConfirmed ? (
+              <span className="text-xs font-bold text-[#2E9E6A]">雙方已確認</span>
+            ) : iConfirmed ? (
+              <span className="text-xs text-muted-foreground">等對方確認</span>
+            ) : null}
           </div>
-          <div className="flex items-center gap-2 text-lg font-black"><MapPin className="w-5 h-5 text-[#E8642A]" />{m.meetPlace}</div>
-          <div className="flex items-center gap-2 text-sm"><Clock className="w-4 h-4 text-muted-foreground" />{fmtClock(m.meetAt)}{pastMeet && active ? "（已經過咗約定時間）" : ""}</div>
+          <div className="flex items-center gap-2 text-lg font-black">
+            <MapPin className="w-5 h-5 text-[#E8642A]" />
+            {m.meetPlace}
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <Clock className="w-4 h-4 text-muted-foreground" />
+            {fmtClock(m.meetAt)}
+            {pastMeet && active ? "（已經過咗約定時間）" : ""}
+          </div>
           {active && !iConfirmed && (
             <div className="flex gap-2">
-              <button onClick={() => setWarnOpen(true)} className="flex-1 h-11 rounded-2xl bg-[#1a1a1a] text-white font-bold">OK，就咁</button>
-              <button onClick={() => setChangeOpen(true)} className="flex-1 h-11 rounded-2xl border border-border font-bold">改地點／時間</button>
+              <button
+                onClick={() => setWarnOpen(true)}
+                className="flex-1 h-11 rounded-2xl bg-[#1a1a1a] text-white font-bold"
+              >
+                OK，就咁
+              </button>
+              <button
+                onClick={() => setChangeOpen(true)}
+                className="flex-1 h-11 rounded-2xl border border-border font-bold"
+              >
+                改地點／時間
+              </button>
             </div>
           )}
           {active && iConfirmed && (
-            <button onClick={() => setChangeOpen(true)} className="text-xs underline text-muted-foreground">改地點／時間</button>
+            <button
+              onClick={() => setChangeOpen(true)}
+              className="text-xs underline text-muted-foreground"
+            >
+              改地點／時間
+            </button>
           )}
           {m.scenario === "parking" ? (
             <ParkingHandover mall={malls.find((x) => x.id === m.mallId)} />
@@ -288,7 +413,10 @@ function MatchPage() {
 
         {/* 見面：邊個到咗（認人靠對話講） */}
         {active && (
-          <div className="bg-card rounded-2xl p-4 shadow-[var(--shadow-card)] space-y-2" data-testid="arrival-status">
+          <div
+            className="bg-card rounded-2xl p-4 shadow-[var(--shadow-card)] space-y-2"
+            data-testid="arrival-status"
+          >
             <div className="text-xs font-bold text-muted-foreground">見面</div>
             {[...others, { userId: user.id, name: "你" }].map((o) => (
               <div key={o.userId} className="flex items-center justify-between text-sm">
@@ -311,64 +439,122 @@ function MatchPage() {
         {active && <PushPrompt reason="對方傳訊息、到咗、取消，都會即刻通知你。" />}
 
         {/* 呢類交收要留意嘅規則（按我係俾嘢定接收） */}
-        {active && (() => {
-          const dir = posts.find((p) => p.id === m.postId)?.direction ?? "have";
-          const iAmAuthor = m.authorId === user.id;
-          const role = m.scenario === "groupbuy" ? (iAmAuthor ? "giver" : "taker") : iAmAuthor ? authorRole(dir) : authorRole(dir) === "giver" ? "taker" : "giver";
-          return <ScenarioTips scenario={m.scenario} role={role} mall={malls.find((x) => x.id === m.mallId)} />;
-        })()}
+        {active &&
+          (() => {
+            const dir = posts.find((p) => p.id === m.postId)?.direction ?? "have";
+            const iAmAuthor = m.authorId === user.id;
+            const role =
+              m.scenario === "groupbuy"
+                ? iAmAuthor
+                  ? "giver"
+                  : "taker"
+                : iAmAuthor
+                  ? authorRole(dir)
+                  : authorRole(dir) === "giver"
+                    ? "taker"
+                    : "giver";
+            return (
+              <ScenarioTips
+                scenario={m.scenario}
+                role={role}
+                mall={malls.find((x) => x.id === m.mallId)}
+              />
+            );
+          })()}
 
         {/* 交收提示 */}
         {m.price != null && m.price > 0 && (
           <div className="bg-card rounded-2xl p-4 text-sm space-y-1.5">
             <div className="font-bold">交收提示</div>
             <div>・見面先俾錢，唔好預先轉數</div>
-            {m.payMethods.some((p) => p !== "cash") && <div>・用 {payLabel(m.payMethods.filter((p) => p !== "cash"))} 就掃對方 QR code，唔使交換電話</div>}
+            {m.payMethods.some((p) => p !== "cash") && (
+              <div>
+                ・用 {payLabel(m.payMethods.filter((p) => p !== "cash"))} 就掃對方 QR
+                code，唔使交換電話
+              </div>
+            )}
             <div>・收錢嗰位要睇自己電話嘅收款通知，唔好只睇對方截圖</div>
             <div>・講好嘅價就係呢個價。見面先話要加錢，可以撳右上角旗仔舉報「炒飛、私下加價」</div>
           </div>
         )}
-        {m.scenario === "groupbuy" && <div className="bg-card rounded-2xl p-4 text-sm">🛍 見面一齊去收銀處，各自俾自己嗰份。</div>}
+        {m.scenario === "groupbuy" && (
+          <div className="bg-card rounded-2xl p-4 text-sm">
+            🛍 見面一齊去收銀處，各自俾自己嗰份。
+          </div>
+        )}
 
         {/* 過咗約定時間：對方到咗未？ */}
         {active && pastMeet && iArrived && missing.length > 0 && (
           <div className="bg-[#FFF6D6] border border-[#F5C518] rounded-2xl p-4 space-y-3">
-            <div className="font-bold flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" />對方到咗未？</div>
+            <div className="font-bold flex items-center gap-1.5">
+              <AlertTriangle className="w-4 h-4" />
+              對方到咗未？
+            </div>
             {missing.map((o) => (
               <div key={o.userId} className="flex items-center gap-2">
                 <div className="flex-1 text-sm font-semibold">{o.name}</div>
-                <button onClick={() => act(aah.arrive(m.id, { userId: o.userId }))} className="h-9 px-3 rounded-full bg-[#1a1a1a] text-white text-sm font-bold">到咗喇</button>
+                <button
+                  onClick={() => act(aah.arrive(m.id, { userId: o.userId }))}
+                  className="h-9 px-3 rounded-full bg-[#1a1a1a] text-white text-sm font-bold"
+                >
+                  到咗喇
+                </button>
                 {o.userId === m.enRouteUser ? (
-                  <span className="text-[11px] text-muted-foreground max-w-[7rem] leading-tight">未到：用上面「取消並重新放出」</span>
+                  <span className="text-[11px] text-muted-foreground max-w-[7rem] leading-tight">
+                    未到：用上面「取消並重新放出」
+                  </span>
                 ) : m.confirmedBy.includes(o.userId) ? (
                   <button
                     onClick={() => {
-                      void act(aah.reportNoShow(m.id, o.userId), `已記錄對方冇出現，對方帳戶會停用 ${BAN_DAYS} 日；佢可以申訴。`);
+                      void act(
+                        aah.reportNoShow(m.id, o.userId),
+                        `已記錄對方冇出現，對方帳戶會停用 ${BAN_DAYS} 日；佢可以申訴。`,
+                      );
                     }}
                     className="h-9 px-3 rounded-full border border-border text-sm font-semibold"
                   >
                     冇出現
                   </button>
                 ) : (
-                  <span className="text-[11px] text-muted-foreground max-w-[7rem] leading-tight">對方未確認見面，唔使等可以直接取消</span>
+                  <span className="text-[11px] text-muted-foreground max-w-[7rem] leading-tight">
+                    對方未確認見面，唔使等可以直接取消
+                  </span>
                 )}
               </div>
             ))}
           </div>
         )}
         {active && pastMeet && !iArrived && now - m.meetAt > 10 * MIN && (
-          <div className="text-xs bg-amber-50 text-amber-900 rounded-xl px-3 py-2">你仲未撳「我到咗」。如果已經見咗面，記得撳。</div>
+          <div className="text-xs bg-amber-50 text-amber-900 rounded-xl px-3 py-2">
+            你仲未撳「我到咗」。如果已經見咗面，記得撳。
+          </div>
         )}
 
         {/* 對話 */}
         <div className="space-y-2">
           {m.messages.map((msg) =>
             msg.from === "system" ? (
-              <div key={msg.id} className="text-center text-[11px] text-muted-foreground px-6">{msg.text}</div>
+              <div key={msg.id} className="text-center text-[11px] text-muted-foreground px-6">
+                {msg.text}
+              </div>
             ) : (
-              <div key={msg.id} className={cn("flex", msg.from === user.id ? "justify-end" : "justify-start")}>
-                <div className={cn("px-3 py-2 rounded-2xl text-sm max-w-[78%]", msg.from === user.id ? "bg-[#1a1a1a] text-white" : "bg-card shadow-[var(--shadow-card)]")}>
-                  {msg.from !== user.id && m.participants.length > 2 && <div className="text-[10px] font-bold opacity-60">{m.participants.find((p) => p.userId === msg.from)?.name}</div>}
+              <div
+                key={msg.id}
+                className={cn("flex", msg.from === user.id ? "justify-end" : "justify-start")}
+              >
+                <div
+                  className={cn(
+                    "px-3 py-2 rounded-2xl text-sm max-w-[78%]",
+                    msg.from === user.id
+                      ? "bg-[#1a1a1a] text-white"
+                      : "bg-card shadow-[var(--shadow-card)]",
+                  )}
+                >
+                  {msg.from !== user.id && m.participants.length > 2 && (
+                    <div className="text-[10px] font-bold opacity-60">
+                      {m.participants.find((p) => p.userId === msg.from)?.name}
+                    </div>
+                  )}
                   {msg.text}
                 </div>
               </div>
@@ -382,8 +568,18 @@ function MatchPage() {
           <details className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 text-sm">
             <summary className="font-semibold text-amber-900">示範控制</summary>
             <div className="pt-3 space-y-2">
-              <button onClick={() => aah.demoPartnerArrives(m.id)} className="w-full h-10 rounded-xl bg-white border border-amber-300 font-semibold">模擬對方到咗</button>
-              <button onClick={() => aah.demoPartnerReportsMe(m.id)} className="w-full h-10 rounded-xl bg-white border border-amber-300 font-semibold">模擬對方報我冇出現</button>
+              <button
+                onClick={() => aah.demoPartnerArrives(m.id)}
+                className="w-full h-10 rounded-xl bg-white border border-amber-300 font-semibold"
+              >
+                模擬對方到咗
+              </button>
+              <button
+                onClick={() => aah.demoPartnerReportsMe(m.id)}
+                className="w-full h-10 rounded-xl bg-white border border-amber-300 font-semibold"
+              >
+                模擬對方報我冇出現
+              </button>
             </div>
           </details>
         )}
@@ -393,7 +589,9 @@ function MatchPage() {
       <div className="fixed bottom-0 inset-x-0 z-30">
         <div className="max-w-lg mx-auto px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 bg-gradient-to-t from-background via-background to-transparent space-y-2">
           {chatClosed ? (
-            <div className="text-center text-sm bg-card rounded-2xl py-4 text-muted-foreground">對話已關閉</div>
+            <div className="text-center text-sm bg-card rounded-2xl py-4 text-muted-foreground">
+              對話已關閉
+            </div>
           ) : !active ? (
             <div className="text-center text-xs bg-card rounded-2xl py-3 text-muted-foreground">
               配對已結束，對話會喺 {fmtClock((m.endedAt ?? now) + CHAT_CLOSE_AFTER_MIN * MIN)} 關閉
@@ -402,7 +600,11 @@ function MatchPage() {
             <>
               <div className="flex gap-2 overflow-x-auto scrollbar-hide">
                 {presets.map((t) => (
-                  <button key={t} onClick={() => guardedSend(t)} className="shrink-0 h-10 px-3 rounded-full border border-border bg-card text-sm font-semibold">
+                  <button
+                    key={t}
+                    onClick={() => guardedSend(t)}
+                    className="shrink-0 h-10 px-3 rounded-full border border-border bg-card text-sm font-semibold"
+                  >
                     {t}
                   </button>
                 ))}
@@ -417,8 +619,16 @@ function MatchPage() {
                 }}
                 className="flex gap-2"
               >
-                <input value={text} maxLength={80} onChange={(e) => setText(e.target.value)} placeholder="打少少字（喺 app 傾就夠，唔使留電話）" className="flex-1 h-10 px-3 rounded-full border border-border bg-card outline-none text-base" />
-                <button className="h-10 px-4 rounded-full bg-[#1a1a1a] text-white text-sm font-bold">傳送</button>
+                <input
+                  value={text}
+                  maxLength={80}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder="打少少字（喺 app 傾就夠，唔使留電話）"
+                  className="flex-1 h-10 px-3 rounded-full border border-border bg-card outline-none text-base"
+                />
+                <button className="h-10 px-4 rounded-full bg-[#1a1a1a] text-white text-sm font-bold">
+                  傳送
+                </button>
               </form>
               <div className="flex gap-2">
                 {allArrived ? (
@@ -438,7 +648,10 @@ function MatchPage() {
                     {iArrived ? "已撳我到咗，等緊對方" : "我到咗"}
                   </button>
                 )}
-                <button onClick={() => setCancelOpen(true)} className="h-14 px-4 rounded-2xl border border-border bg-card text-sm font-semibold">
+                <button
+                  onClick={() => setCancelOpen(true)}
+                  className="h-14 px-4 rounded-2xl border border-border bg-card text-sm font-semibold"
+                >
                   取消
                 </button>
               </div>
@@ -451,14 +664,25 @@ function MatchPage() {
       <BottomSheet open={warnOpen} onClose={() => setWarnOpen(false)} title="確認見面之前">
         <div className="space-y-4 pb-2">
           <div className="bg-red-50 text-red-900 rounded-2xl p-4 text-sm space-y-2">
-            <div className="font-black flex items-center gap-1.5"><AlertTriangle className="w-4 h-4" />冇出現會被停用一個月</div>
-            <div>確認之後，如果你最後冇出現，對方報告並經 GPS 核實，你嘅帳戶會停用 {BAN_DAYS} 日。</div>
+            <div className="font-black flex items-center gap-1.5">
+              <AlertTriangle className="w-4 h-4" />
+              冇出現會被停用一個月
+            </div>
+            <div>
+              確認之後，如果你最後冇出現，對方報告並經 GPS 核實，你嘅帳戶會停用 {BAN_DAYS} 日。
+            </div>
             {m.enRouteUser ? (
-              <div>配對咗 {CANCEL_GRACE_MIN} 分鐘之後，去緊嘅人仲喺路上，邊個無故取消都會記一次臨時取消；遲到 {LATE_GRACE_MIN} 分鐘都一樣。</div>
+              <div>
+                配對咗 {CANCEL_GRACE_MIN}{" "}
+                分鐘之後，去緊嘅人仲喺路上，邊個無故取消都會記一次臨時取消；遲到 {LATE_GRACE_MIN}{" "}
+                分鐘都一樣。
+              </div>
             ) : (
               <div>有急事？喺約定時間（{fmtClock(m.meetAt)}）之前撳「取消」，唔會被罰。</div>
             )}
-            <div>覺得被誤會（例如電話冇電、停車場收唔到 GPS），可以喺 48 小時內喺「我的配對」申訴。</div>
+            <div>
+              覺得被誤會（例如電話冇電、停車場收唔到 GPS），可以喺 48 小時內喺「我的配對」申訴。
+            </div>
           </div>
           <button
             onClick={() => {
@@ -480,19 +704,26 @@ function MatchPage() {
             <div className="bg-red-50 text-red-900 rounded-2xl p-4 text-sm space-y-1.5">
               <div className="font-black flex items-center gap-1.5">
                 <AlertTriangle className="w-4 h-4" />
-                {!enRouteLate ? "對方已經到咗等緊你" : iAmEnRoute ? "對方喺度等緊你" : `對方已經出發咗 ${enRouteMins} 分鐘`}
+                {!enRouteLate
+                  ? "對方已經到咗等緊你"
+                  : iAmEnRoute
+                    ? "對方喺度等緊你"
+                    : `對方已經出發咗 ${enRouteMins} 分鐘`}
               </div>
               <div>而家取消會記一次「臨時取消」；30 日內兩次會停用帳戶。</div>
               <div>真係有急事，可以先喺對話同對方講聲，俾個面對方。</div>
               {(user.lateCancels30d ?? 0) >= 1 ? (
-                <div className="font-bold">你 30 日內已經有 {user.lateCancels30d} 次臨時取消，今次取消帳戶會停用一個月。</div>
+                <div className="font-bold">
+                  你 30 日內已經有 {user.lateCancels30d} 次臨時取消，今次取消帳戶會停用一個月。
+                </div>
               ) : (
                 <div>30 日內第二次臨時取消，帳戶會停用一個月。</div>
               )}
             </div>
           ) : m.enRouteUser && !m.arrived[m.enRouteUser] ? (
             <p className="text-sm text-muted-foreground">
-              配對咗未夠 {CANCEL_GRACE_MIN} 分鐘，而家取消唔會被罰。過咗 {CANCEL_GRACE_MIN} 分鐘，{iAmEnRoute ? "你" : "對方"}喺路上時取消就會記一次臨時取消。
+              配對咗未夠 {CANCEL_GRACE_MIN} 分鐘，而家取消唔會被罰。過咗 {CANCEL_GRACE_MIN} 分鐘，
+              {iAmEnRoute ? "你" : "對方"}喺路上時取消就會記一次臨時取消。
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">對方未到，而家取消唔會被罰。</p>
@@ -504,11 +735,18 @@ function MatchPage() {
                 const late = lateIfCancel;
                 setCancelOpen(false);
                 void aah.cancelMatch(m.id, t).then(
-                  () => (late ? toast("已取消，記咗一次臨時取消", { description: "30 日內兩次會停用帳戶" }) : toast("已取消配對")),
+                  () =>
+                    late
+                      ? toast("已取消，記咗一次臨時取消", { description: "30 日內兩次會停用帳戶" })
+                      : toast("已取消配對"),
                   (e) => toast.error(aahErrorText(e)),
                 );
               }}
-              className={lateIfCancel ? "w-full h-12 rounded-2xl border border-red-300 text-red-700 font-semibold" : "w-full h-12 rounded-2xl border border-border font-semibold"}
+              className={
+                lateIfCancel
+                  ? "w-full h-12 rounded-2xl border border-red-300 text-red-700 font-semibold"
+                  : "w-full h-12 rounded-2xl border border-border font-semibold"
+              }
             >
               {t}
             </button>
@@ -526,10 +764,24 @@ function MatchPage() {
   );
 }
 
-function ChangeMeetSheet({ open, onClose, match }: { open: boolean; onClose: () => void; match: Match }) {
+function ChangeMeetSheet({
+  open,
+  onClose,
+  match,
+}: {
+  open: boolean;
+  onClose: () => void;
+  match: Match;
+}) {
   const s = SCENARIOS[match.scenario];
   const places = useMemo(() => {
-    const base = match.scenario === "parking" ? s.meetPlaces : [`${match.shop}門口`, ...s.meetPlaces.filter((p) => !p.includes("門口") || p === "商場正門")];
+    const base =
+      match.scenario === "parking"
+        ? s.meetPlaces
+        : [
+            `${match.shop}門口`,
+            ...s.meetPlaces.filter((p) => !p.includes("門口") || p === "商場正門"),
+          ];
     return Array.from(new Set(base));
   }, [match, s]);
   const [place, setPlace] = useState(match.meetPlace);
@@ -541,7 +793,9 @@ function ChangeMeetSheet({ open, onClose, match }: { open: boolean; onClose: () 
           <div className="text-sm font-bold">喺邊度見？</div>
           <div className="flex flex-wrap gap-2">
             {places.map((p) => (
-              <Chip key={p} active={place === p} onClick={() => setPlace(p)}>{p}</Chip>
+              <Chip key={p} active={place === p} onClick={() => setPlace(p)}>
+                {p}
+              </Chip>
             ))}
           </div>
         </div>
@@ -549,13 +803,17 @@ function ChangeMeetSheet({ open, onClose, match }: { open: boolean; onClose: () 
           <div className="text-sm font-bold">幾時見？</div>
           <div className="flex flex-wrap gap-2">
             {[5, 10, 15, 20].map((n) => (
-              <Chip key={n} active={mins === n} onClick={() => setMins(n)}>{n} 分鐘後</Chip>
+              <Chip key={n} active={mins === n} onClick={() => setMins(n)}>
+                {n} 分鐘後
+              </Chip>
             ))}
           </div>
         </div>
         <button
           onClick={() => {
-            aah.changeMeet(match.id, place, Date.now() + mins * MIN).catch((e) => toast.error(aahErrorText(e)));
+            aah
+              .changeMeet(match.id, place, Date.now() + mins * MIN)
+              .catch((e) => toast.error(aahErrorText(e)));
             onClose();
           }}
           className="w-full h-12 rounded-2xl bg-[#1a1a1a] text-white font-bold"

@@ -53,16 +53,56 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
     shopLabel: null,
     shopSuggestions: [],
     fields: [
-      { key: "receiptAmount", label: "單據消費金額", type: "number", placeholder: "例如 520 或 627.6", suffix: "元", required: true, onlyFor: ["have"], decimal: true },
-      { key: "receiptCount", label: "幾多張單？", type: "choice", options: ["1 張", "2 張", "3 張或以上"], required: true, onlyFor: ["have"] },
-      { key: "receiptType", label: "單據類型", type: "choice", options: ["紙單", "電子單"], required: true, onlyFor: ["have"] },
-      { key: "receiptCategory", label: "入面有冇食肆（餐廳）單？", type: "choice", options: ["有食肆單", "冇食肆單"], required: true, onlyFor: ["have"], onlyIfDiningRule: true },
-      { key: "hours", label: "想要幾多個鐘", type: "number", placeholder: "例如 2", suffix: "個鐘", required: true, onlyFor: ["want"] },
+      {
+        key: "receiptAmount",
+        label: "單據消費金額",
+        type: "number",
+        placeholder: "例如 520 或 627.6",
+        suffix: "元",
+        required: true,
+        onlyFor: ["have"],
+        decimal: true,
+      },
+      {
+        key: "receiptCount",
+        label: "幾多張單？",
+        type: "choice",
+        options: ["1 張", "2 張", "3 張或以上"],
+        required: true,
+        onlyFor: ["have"],
+      },
+      {
+        key: "receiptType",
+        label: "單據類型",
+        type: "choice",
+        options: ["紙單", "電子單"],
+        required: true,
+        onlyFor: ["have"],
+      },
+      {
+        key: "receiptCategory",
+        label: "入面有冇食肆（餐廳）單？",
+        type: "choice",
+        options: ["有食肆單", "冇食肆單"],
+        required: true,
+        onlyFor: ["have"],
+        onlyIfDiningRule: true,
+      },
+      {
+        key: "hours",
+        label: "想要幾多個鐘",
+        type: "number",
+        placeholder: "例如 2",
+        suffix: "個鐘",
+        required: true,
+        onlyFor: ["want"],
+      },
     ],
     hasPrice: true,
     timeQuestion: "你大約幾點離開商場？",
     meetPlaces: ["詢問處／換泊車處", "停車場繳費處", "商場正門"],
-    handoverHint: "喺詢問處或者換泊車嘅地方見面，一齊去換；單據同信用卡底單唔使交俾對方，換完由放嘅人攞返",
+    handoverHint:
+      "喺詢問處或者換泊車嘅地方見面，一齊去換；單據同信用卡底單唔使交俾對方，換完由放嘅人攞返",
     tips: {
       giver: [
         "每個商場換泊車條款唔同：消費金額、換幾多個鐘、平日同假期都唔同，出 post 前睇清楚商場最新條款。",
@@ -91,7 +131,14 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
     shopSuggestions: ["鼎泰豐", "添好運", "譚仔三哥", "大家樂", "美心皇宮", "一蘭"],
     fields: [
       { key: "queueNo", label: "飛號", type: "text", placeholder: "例如 A038", required: true },
-      { key: "partySize", label: "幾多位", type: "number", placeholder: "例如 2", suffix: "位", required: true },
+      {
+        key: "partySize",
+        label: "幾多位",
+        type: "number",
+        placeholder: "例如 2",
+        suffix: "位",
+        required: true,
+      },
       { key: "calling", label: "而家叫到幾號", type: "text", placeholder: "例如 A021" },
     ],
     hasPrice: true,
@@ -123,8 +170,22 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
     shopLabel: "邊間舖？",
     shopSuggestions: ["百佳", "惠康", "屈臣氏", "萬寧", "UNIQLO", "H&M"],
     fields: [
-      { key: "title", label: "券面寫咩", type: "text", placeholder: "例如 $50 現金券", required: true },
-      { key: "faceValue", label: "面值（冇就留空）", type: "number", placeholder: "例如 50", suffix: "元", onlyFor: ["have"], decimal: true },
+      {
+        key: "title",
+        label: "券面寫咩",
+        type: "text",
+        placeholder: "例如 $50 現金券",
+        required: true,
+      },
+      {
+        key: "faceValue",
+        label: "面值（冇就留空）",
+        type: "number",
+        placeholder: "例如 50",
+        suffix: "元",
+        onlyFor: ["have"],
+        decimal: true,
+      },
     ],
     hasPrice: true,
     timeQuestion: "你大約幾點離開商場？",
@@ -153,7 +214,13 @@ export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
     shopLabel: "邊間舖？",
     shopSuggestions: ["Nike", "adidas", "UNIQLO", "H&M", "ZARA", "GU"],
     fields: [
-      { key: "deal", label: "舖頭做緊咩", type: "text", placeholder: "例如 第二件半價", required: true },
+      {
+        key: "deal",
+        label: "舖頭做緊咩",
+        type: "text",
+        placeholder: "例如 第二件半價",
+        required: true,
+      },
       { key: "note", label: "想買咩（可以唔填）", type: "text", placeholder: "例如 波鞋" },
     ],
     hasPrice: false,
@@ -200,7 +267,12 @@ export function payLabel(ids: PayMethod[]) {
 }
 
 /** 卡片上嗰行關鍵資料 */
-export function keyInfo(s: ScenarioId, dir: Direction, f: Record<string, string | number>, needCount?: number): string {
+export function keyInfo(
+  s: ScenarioId,
+  dir: Direction,
+  f: Record<string, string | number>,
+  needCount?: number,
+): string {
   switch (s) {
     case "parking":
       return dir === "have"
@@ -232,7 +304,10 @@ export function cleanMoneyInput(v: string, maxInt = 6): string {
   const s = v.replace(/[^\d.]/g, "");
   const dot = s.indexOf(".");
   if (dot < 0) return s.slice(0, maxInt);
-  return `${s.slice(0, dot).slice(0, maxInt)}.${s.slice(dot + 1).replace(/\./g, "").slice(0, 2)}`;
+  return `${s.slice(0, dot).slice(0, maxInt)}.${s
+    .slice(dot + 1)
+    .replace(/\./g, "")
+    .slice(0, 2)}`;
 }
 
 /**
@@ -247,7 +322,22 @@ export function maxReceipts(stacking: string | null | undefined): number | null 
   return m ? Number(m[1]) : null;
 }
 
-export function receiptCountNote(count: string | number | undefined, role: "giver" | "taker", stacking?: string | null): string | null {
+/** 夾單規則：最多幾張、每張最少幾錢（例如「✅ 最多2張 (唔同商戶，每張≥$100)」） */
+export function stackRule(stacking: string | null | undefined): {
+  max: number | null;
+  minEach: number | null;
+  known: boolean;
+} {
+  const max = maxReceipts(stacking);
+  const each = stacking ? /每張\s*[≥>=]+\s*\$?\s*(\d+)/.exec(stacking) : null;
+  return { max, minEach: each ? Number(each[1]) : null, known: max != null };
+}
+
+export function receiptCountNote(
+  count: string | number | undefined,
+  role: "giver" | "taker",
+  stacking?: string | null,
+): string | null {
   const own = "平台只係俾大家配對，換唔換到、有冇風險，要雙方自己衡量。";
   const n = count === "2 張" ? 2 : count === "3 張或以上" ? 3 : 1;
   const max = maxReceipts(stacking);

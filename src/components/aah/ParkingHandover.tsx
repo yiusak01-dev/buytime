@@ -21,7 +21,7 @@ export function ParkingHandover({ mall, compact = false }: { mall?: AahMall | nu
         </li>
         <li>📍 喺{place}見面，現場一齊換</li>
         <li>🧾 單據同信用卡底單由放嘅人自己交俾職員，換完攞返</li>
-        {!compact && <li>🚗 要嘅人俾自己張泊車飛（或者講車牌）換，換到先俾錢</li>}
+        {!compact && <li>🚗 要嘅人自己同職員報車牌，換到先俾錢</li>}
       </ul>
     </div>
   );

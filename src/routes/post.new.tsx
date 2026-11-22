@@ -6,18 +6,60 @@ import { Switch } from "@/components/ui/switch";
 import { AppLayout } from "@/components/AppLayout";
 import { Chip, Section, DemoBadge } from "@/components/aah/ui";
 import { RegisterSheet } from "@/components/aah/RegisterSheet";
-import { aah, aahErrorText, getSettings, getRules, testLocationAllowed, useAahState, isBanned } from "@/lib/aah/store";
-import { dailyLimitMessage, priceCheck, limitText, multipleWord, mallRateToday } from "@/lib/aah/rules";
+import {
+  aah,
+  aahErrorText,
+  getSettings,
+  getRules,
+  testLocationAllowed,
+  useAahState,
+  isBanned,
+} from "@/lib/aah/store";
+import {
+  dailyLimitMessage,
+  priceCheck,
+  limitText,
+  multipleWord,
+  mallRateToday,
+} from "@/lib/aah/rules";
 import { logEvent } from "@/lib/aah/track";
 import { ParkingHandover } from "@/components/aah/ParkingHandover";
-import { checkReceiptDate, findOtherMallInText, findShopInText, shopInList, shopMatches, normShop, type MallShop, type ReceiptDateCheck } from "@/lib/aah/receipt";
+import {
+  checkReceiptDate,
+  findOtherMallInText,
+  findShopInText,
+  shopInList,
+  shopMatches,
+  normShop,
+  type MallShop,
+  type ReceiptDateCheck,
+} from "@/lib/aah/receipt";
 import { useMallShops } from "@/lib/aah/shops";
 import type { AahMall } from "@/lib/aah/types";
 import { useAahMalls, demoAudience } from "@/lib/aah/malls";
 import { useCurrentMall, fmtClock, useNow } from "@/lib/aah/geo";
-import { SCENARIOS, SCENARIO_LIST, GROUPBUY_DEALS, PAY_METHODS, authorRole, diningFlag, receiptCountNote, cleanMoneyInput, payLabel } from "@/lib/aah/scenarios";
+import {
+  SCENARIOS,
+  SCENARIO_LIST,
+  GROUPBUY_DEALS,
+  PAY_METHODS,
+  authorRole,
+  diningFlag,
+  receiptCountNote,
+  cleanMoneyInput,
+  payLabel,
+  stackRule,
+} from "@/lib/aah/scenarios";
 import { ScenarioTips } from "@/components/aah/ScenarioTips";
-import { quoteParkingReceipt, quoteParkingWant, quoteOffer, mallDiningExtra, mallHasDiningRule, diningTierToday } from "@/lib/aah/pricing";
+import { calcParkingHours } from "@/lib/parking-rules";
+import {
+  quoteParkingReceipt,
+  quoteParkingWant,
+  quoteOffer,
+  mallDiningExtra,
+  mallHasDiningRule,
+  diningTierToday,
+} from "@/lib/aah/pricing";
 import type { FieldDef } from "@/lib/aah/scenarios";
 import { readAmountsFromImage, fmtAmount } from "@/lib/aah/ocr";
 import { takePendingPhoto } from "@/lib/aah/pendingPhoto";
@@ -48,7 +90,12 @@ const MIN = 60000;
 /** 「更多設定」入面嘅欄位（有預設，唔改都得） */
 const MORE_KEYS = new Set(["receiptCount", "receiptType", "receiptCategory", "calling", "note"]);
 /** 類別色（深少少，白字睇得清） */
-const GIVE_TILE_COLOR: Record<ScenarioId, string> = { parking: "#1E7F52", dining: "#2F62C9", offer: "#B8336A", groupbuy: "#C2531A" };
+const GIVE_TILE_COLOR: Record<ScenarioId, string> = {
+  parking: "#1E7F52",
+  dining: "#2F62C9",
+  offer: "#B8336A",
+  groupbuy: "#C2531A",
+};
 const REMARK_MAX = 80;
 const REMARK_PLACEHOLDER: Record<ScenarioId, string> = {
   parking: "例如：一張餐廳單加一張超市單",
@@ -92,11 +139,16 @@ function NewPost() {
   const s = scenario ? SCENARIOS[scenario] : null;
   // 商場舖頭名單（冇名單就唔判斷）；影單據讀到嘅日期同舖名
   const shops = useMallShops(mall);
-  const [receiptCheck, setReceiptCheck] = useState<{ date: ReceiptDateCheck; shop: MallShop | null; otherMall: AahMall | null } | null>(null);
+  const [receiptCheck, setReceiptCheck] = useState<{
+    date: ReceiptDateCheck;
+    shop: MallShop | null;
+    otherMall: AahMall | null;
+  } | null>(null);
   const diningExtra = mallDiningExtra(mall);
   const hasDiningRule = mallHasDiningRule(mall);
   const diningTier = diningTierToday(mall, now);
-  const fieldShown = (f: FieldDef) => (!f.onlyFor || f.onlyFor.includes(direction)) && (!f.onlyIfDiningRule || hasDiningRule);
+  const fieldShown = (f: FieldDef) =>
+    (!f.onlyFor || f.onlyFor.includes(direction)) && (!f.onlyIfDiningRule || hasDiningRule);
 
   /** 最常見嘅選擇做預設（用戶睇到、可以改），慳返幾下撳 */
   function defaultFields(id: ScenarioId, dir: Direction): Record<string, string> {
@@ -135,7 +187,12 @@ function NewPost() {
 
   // 商場有食肆單規則：預設「冇食肆單」（保守計鐘），計數卡會提你有食肆單可以換多啲
   useEffect(() => {
-    if (scenario === "parking" && direction === "have" && hasDiningRule && !fields.receiptCategory) {
+    if (
+      scenario === "parking" &&
+      direction === "have" &&
+      hasDiningRule &&
+      !fields.receiptCategory
+    ) {
       setFields((x) => (x.receiptCategory ? x : { ...x, receiptCategory: "冇食肆單" }));
     }
   }, [scenario, direction, hasDiningRule, fields.receiptCategory]);
@@ -146,7 +203,15 @@ function NewPost() {
     if (!m) return null;
     // 用香港時間計今日嗰個鐘數
     const hkNow = new Date(now + 8 * 3600 * 1000);
-    const target = Date.UTC(hkNow.getUTCFullYear(), hkNow.getUTCMonth(), hkNow.getUTCDate(), Number(m[1]), Number(m[2])) - 8 * 3600 * 1000;
+    const target =
+      Date.UTC(
+        hkNow.getUTCFullYear(),
+        hkNow.getUTCMonth(),
+        hkNow.getUTCDate(),
+        Number(m[1]),
+        Number(m[2]),
+      ) -
+      8 * 3600 * 1000;
     return target > now ? target : null;
   }, [leaveMode, customTime, now]);
 
@@ -162,6 +227,10 @@ function NewPost() {
     max: number | null;
     basis: string | null;
     hours: number;
+    /** 碎單：自己一張唔夠今日門檻，要加埋其他單 */
+    fragment?: { shortBy: number; minSpend: number; minHours: number; share: number };
+    /** 放唔到嘅原因（例如商場唔准夾單） */
+    blocked?: string;
   };
   const suggestion = useMemo((): Suggestion | null => {
     if (!s || !mall) return null;
@@ -170,23 +239,55 @@ function NewPost() {
       if (!amt) return null;
       const dining = diningFlag(fields);
       const q = quoteParkingReceipt(mall, amt, now, { dining });
-      if (q.belowThreshold) {
-        return {
+      if (q.belowThreshold && q.minThreshold) {
+        // 碎單：睇商場准唔准幾張單加埋計
+        const rule = stackRule(mall.stacking);
+        const base = {
           field: "receiptAmount",
-          headline: "今日換唔到泊車",
           saving: null,
-          detail: `按今日（${q.dayLabel}）規則，要消費滿 $${q.minThreshold} 先換到。`,
           warn: true,
           max: null,
           basis: null,
           hours: 0,
         };
+        if (rule.max === 1)
+          return {
+            ...base,
+            headline: "呢張單換唔到泊車，放唔到",
+            detail: `${mall.name}唔准幾張單加埋計，今日（${q.dayLabel}）要一張單滿 $${q.minThreshold} 先換到。呢張單放上去冇人用得到。`,
+            blocked: `${mall.name}唔准夾單，呢張單自己換唔到泊車`,
+          };
+        if (rule.minEach && amt < rule.minEach)
+          return {
+            ...base,
+            headline: "呢張單太細，放唔到",
+            detail: `${mall.name}每張單最少 $${rule.minEach} 先計得，呢張單 $${amt}。`,
+            blocked: `${mall.name}每張單最少 $${rule.minEach} 先計得`,
+          };
+        const minHours = calcParkingHours(q.cond, q.minThreshold, { dining }).hours || 1;
+        const shortBy = Math.ceil(q.minThreshold - amt);
+        // 參考價按佔門檻幾多計（例如 $407 / $500 × 1 個鐘）
+        const share = Math.round(((minHours * amt) / q.minThreshold) * 10) / 10;
+        return {
+          ...base,
+          headline: `碎單：差 $${shortBy} 先夠換 ${minHours} 個鐘`,
+          detail: `${mall.name}今日（${q.dayLabel}）要消費滿 $${q.minThreshold}。${
+            rule.known
+              ? `商場准最多 ${rule.max} 張唔同舖嘅單加埋計`
+              : "未知商場准唔准幾張單加埋計，叫對方去登記處問清楚"
+          }，要嘅人要有其他今日嘅單加埋先換到。會標明「碎單」。`,
+          fragment: { shortBy, minSpend: q.minThreshold, minHours, share },
+        };
       }
       const detail = [
-        q.rate != null ? `按今日（${q.dayLabel}）時租 $${q.rate}` : `按今日（${q.dayLabel}）規則；呢個商場未有時租資料`,
+        q.rate != null
+          ? `按今日（${q.dayLabel}）時租 $${q.rate}`
+          : `按今日（${q.dayLabel}）規則；呢個商場未有時租資料`,
         q.extraApplied ? `已計食肆單額外 ${q.extraApplied} 個鐘` : null,
         q.discRate != null ? `換到嘅鐘數每個鐘仲要俾停車場 $${q.discRate}（共 $${q.copay}）` : null,
-        !dining && q.hoursIfDining > q.hours ? `如果入面有食肆單，可以換到 ${q.hoursIfDining} 個鐘` : null,
+        !dining && q.hoursIfDining > q.hours
+          ? `如果入面有食肆單，可以換到 ${q.hoursIfDining} 個鐘`
+          : null,
       ]
         .filter(Boolean)
         .join("；");
@@ -237,9 +338,15 @@ function NewPost() {
   // 唔支持炒飛：泊車單參考價 = 商場時租 × 比例 × 鐘數（餐廳排隊飛冇參考價）
   const rules = getRules();
   const mallRate = mallRateToday(mall, now);
-  const unitsFor = { hours: suggestion?.hours ?? fields.hours, rate: mallRate };
+  const unitsFor = {
+    hours: suggestion?.fragment ? suggestion.fragment.share : (suggestion?.hours ?? fields.hours),
+    rate: mallRate,
+  };
+  const fragBlocked = !!suggestion?.blocked;
   const noRate = scenario === "parking" && direction === "have" && !!mall && mallRate == null;
-  const refInfo = scenario ? priceCheck({ scenario, direction, price: 0, ...unitsFor }, rules) : null;
+  const refInfo = scenario
+    ? priceCheck({ scenario, direction, price: 0, ...unitsFor }, rules)
+    : null;
 
   // 一撳發佈：用戶未填價錢時用嘅價（泊車、有面值嘅優惠用建議價，唔會高過參考價；冇面值嘅優惠用免費）
   // 餐廳排隊飛唔預設免費，要自己填多謝費（或者揀免費）
@@ -254,19 +361,45 @@ function NewPost() {
     return null;
   }, [s, free, price, suggestion, refInfo?.ref]); // eslint-disable-line react-hooks/exhaustive-deps
   const effPrice = priceNum ?? quickPrice;
-  const pc = scenario ? priceCheck({ scenario, direction, price: effPrice, ...unitsFor }, rules) : null;
+  const pcRaw = scenario
+    ? priceCheck({ scenario, direction, price: effPrice, ...unitsFor }, rules)
+    : null;
+  // 碎單：唔好寫「0.8 個鐘」，講清楚係按佔門檻幾多計
+  const frag = suggestion?.fragment;
+  const pc =
+    pcRaw && frag
+      ? {
+          ...pcRaw,
+          basis: `張單佔 $${frag.minSpend} 門檻嘅 ${Math.round((Number(fields.receiptAmount) / frag.minSpend) * 100)}%，按換 ${frag.minHours} 個鐘計`,
+        }
+      : pcRaw;
   const priceBlocked = pc?.level === "blocked";
 
   // 每日上限：一入嚟就講，唔使填完先知
   // 影單據讀到日期唔係今日：唔俾放（商場一般只收即日單據）；要再影過先解除
-  const receiptBlocked = scenario === "parking" && direction === "have" && receiptCheck?.date.status === "other";
+  // 用家話「張單係今日，係讀錯咗」：照放，但唔會標「今日單據（影相讀到）」
+  const [dateOverride, setDateOverride] = useState(false);
+  const receiptBlocked =
+    scenario === "parking" &&
+    direction === "have" &&
+    receiptCheck?.date.status === "other" &&
+    !dateOverride;
   const limitMsg =
     scenario && user.registered
-      ? dailyLimitMessage(posts, user.id, { scenario, direction, mallId: mall?.id, mallName: mall?.name, shop }, rules, now)
+      ? dailyLimitMessage(
+          posts,
+          user.id,
+          { scenario, direction, mallId: mall?.id, mallName: mall?.name, shop },
+          rules,
+          now,
+        )
       : null;
 
   // 用法紀錄（每週問題報告用）：開始放、放到一半走咗、撞到上限、價錢太高
-  const draftRef = useRef<{ scenario: ScenarioId | null; direction: Direction }>({ scenario: null, direction: "have" });
+  const draftRef = useRef<{ scenario: ScenarioId | null; direction: Direction }>({
+    scenario: null,
+    direction: "have",
+  });
   draftRef.current = { scenario, direction };
   useEffect(() => {
     if (scenario) logEvent("post_start", { scenario, direction });
@@ -274,7 +407,8 @@ function NewPost() {
   useEffect(
     () => () => {
       const d = draftRef.current;
-      if (d.scenario && !published.current) logEvent("post_abandon", { scenario: d.scenario, direction: d.direction });
+      if (d.scenario && !published.current)
+        logEvent("post_abandon", { scenario: d.scenario, direction: d.direction });
     },
     [],
   );
@@ -282,7 +416,12 @@ function NewPost() {
     if (limitMsg && scenario) logEvent("limit_hit", { scenario });
   }, [!!limitMsg]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (pc && pc.level !== "ok" && scenario) logEvent(pc.level === "blocked" ? "price_blocked" : "price_warned", { scenario, price: effPrice ?? 0, ref: pc.ref });
+    if (pc && pc.level !== "ok" && scenario)
+      logEvent(pc.level === "blocked" ? "price_blocked" : "price_warned", {
+        scenario,
+        price: effPrice ?? 0,
+        ref: pc.ref,
+      });
   }, [pc?.level]); // eslint-disable-line react-hooks/exhaustive-deps
   /** 自己冇揀收款方式就用現金（掣上面會寫） */
   const effPay: PayMethod[] = pay.length ? pay : ["cash"];
@@ -296,7 +435,8 @@ function NewPost() {
       if (f.required && !v) return `${f.type === "choice" ? "揀" : "填"}「${f.label}」`;
       if (f.type === "number" && v && !(Number(v) > 0)) return `填啱「${f.label}」`;
     }
-    if (s.hasPrice && effPrice == null) return s.id === "dining" ? "填多謝費（可以揀免費）" : "填價錢（可以揀免費）";
+    if (s.hasPrice && effPrice == null)
+      return s.id === "dining" ? "填多謝費（可以揀免費）" : "填價錢（可以揀免費）";
     if (s.hasPrice && priceNum != null && priceNum > 0 && pay.length === 0) return "揀收款方式";
     if (!leaveAt) return "揀時間";
     return null;
@@ -314,15 +454,23 @@ function NewPost() {
       return;
     }
     if (!mall || (!current.verified && !testLocationAllowed())) {
-      toast.error("去到商場先放得", { description: "對方會即刻嚟搵你見面交收，所以要 GPS 確認你喺商場" });
+      toast.error("去到商場先放得", {
+        description: "對方會即刻嚟搵你見面交收，所以要 GPS 確認你喺商場",
+      });
       return;
     }
     if (limitMsg) {
       toast.error(limitMsg);
       return;
     }
+    if (suggestion?.blocked) {
+      toast.error(suggestion.blocked);
+      return;
+    }
     if (receiptBlocked) {
-      toast.error("張單唔係今日，放唔到", { description: "商場一般只收即日單據。讀錯咗就再影清楚啲。" });
+      toast.error("張單唔係今日，放唔到", {
+        description: "商場一般只收即日單據。讀錯咗就再影清楚啲。",
+      });
       return;
     }
     if (priceBlocked && pc) {
@@ -336,7 +484,14 @@ function NewPost() {
       if (v == null || v === "") continue;
       f[def.key] = def.type === "number" ? Number(v) : v.trim();
     }
-    if (scenario === "parking" && direction === "have" && suggestion?.hours) f.hours = suggestion.hours;
+    if (scenario === "parking" && direction === "have" && suggestion?.hours)
+      f.hours = suggestion.hours;
+    if (scenario === "parking" && direction === "have" && suggestion?.fragment) {
+      f.fragment = 1;
+      f.shortBy = suggestion.fragment.shortBy;
+      f.minSpend = suggestion.fragment.minSpend;
+      f.minHours = suggestion.fragment.minHours;
+    }
     if (scenario === "parking" && direction === "have" && receiptCheck) {
       if (receiptCheck.date.status === "today") f.receiptDate = receiptCheck.date.iso;
       if (receiptCheck.shop) f.receiptShop = receiptCheck.shop.name;
@@ -345,26 +500,29 @@ function NewPost() {
 
     setSubmitting(true);
     try {
-    const post = await aah.createPost({
-      scenario,
-      direction,
-      mallId: mall.id,
-      mallName: mall.name,
-      shop: shop.trim() || "停車場",
-      fields: f,
-      price: s.hasPrice ? effPrice : null,
-      payMethods: s.hasPrice && effPrice && effPrice > 0 ? effPay : [],
-      leaveAt,
-      verifiedOnSite: current.verified,
-      pushedCount: Math.round(demoAudience(mall.id) * (user.notifyCats.length / 4 || 1)),
-      autoAccept,
-      acceptEnRoute: scenario !== "groupbuy" && acceptEnRoute,
-      needCount: scenario === "groupbuy" ? needCount : undefined,
-    }, { mallRate });
-    published.current = true;
-    logEvent("post_done", { scenario, direction });
-    toast.success("已經發佈！");
-    navigate({ to: "/post/$postId", params: { postId: post.id }, replace: true });
+      const post = await aah.createPost(
+        {
+          scenario,
+          direction,
+          mallId: mall.id,
+          mallName: mall.name,
+          shop: shop.trim() || "停車場",
+          fields: f,
+          price: s.hasPrice ? effPrice : null,
+          payMethods: s.hasPrice && effPrice && effPrice > 0 ? effPay : [],
+          leaveAt,
+          verifiedOnSite: current.verified,
+          pushedCount: Math.round(demoAudience(mall.id) * (user.notifyCats.length / 4 || 1)),
+          autoAccept,
+          acceptEnRoute: scenario !== "groupbuy" && acceptEnRoute,
+          needCount: scenario === "groupbuy" ? needCount : undefined,
+        },
+        { mallRate },
+      );
+      published.current = true;
+      logEvent("post_done", { scenario, direction });
+      toast.success("已經發佈！");
+      navigate({ to: "/post/$postId", params: { postId: post.id }, replace: true });
     } catch (e) {
       toast.error(aahErrorText(e));
     } finally {
@@ -388,8 +546,11 @@ function NewPost() {
         const shop = findShopInText(text ?? "", shops);
         const otherMall = shop ? null : findOtherMallInText(text ?? "", malls, mall);
         setReceiptCheck({ date, shop, otherMall });
-        if (shop?.category === "dining" && hasDiningRule) setFields((x) => (x.receiptCategory ? x : { ...x, receiptCategory: "有食肆單" }));
-        if (date.status === "other") logEvent("limit_hit", { scenario: "parking", reason: "receipt_date" });
+        setDateOverride(false);
+        if (shop?.category === "dining" && hasDiningRule)
+          setFields((x) => (x.receiptCategory ? x : { ...x, receiptCategory: "有食肆單" }));
+        if (date.status === "other")
+          logEvent("limit_hit", { scenario: "parking", reason: "receipt_date" });
       }
       if (best != null) {
         setFields((x) => ({ ...x, [key]: fmtAmount(best) }));
@@ -416,11 +577,17 @@ function NewPost() {
   const summary = useMemo(() => {
     if (!s || missing || !leaveAt) return null;
     const parts: string[] = [];
-    if (s.id === "parking" && direction === "have" && suggestion?.hours) parts.push(`可換 ${suggestion.hours} 個鐘`);
-    if (s.id === "parking" && direction === "want" && fields.hours) parts.push(`要 ${fields.hours} 個鐘`);
-    if (s.id === "dining" && fields.queueNo) parts.push(`${fields.queueNo}・${fields.partySize} 位`);
+    if (s.id === "parking" && direction === "have" && suggestion?.hours)
+      parts.push(`可換 ${suggestion.hours} 個鐘`);
+    if (s.id === "parking" && direction === "have" && suggestion?.fragment)
+      parts.push(`碎單・差 $${suggestion.fragment.shortBy}`);
+    if (s.id === "parking" && direction === "want" && fields.hours)
+      parts.push(`要 ${fields.hours} 個鐘`);
+    if (s.id === "dining" && fields.queueNo)
+      parts.push(`${fields.queueNo}・${fields.partySize} 位`);
     if (s.id === "groupbuy") parts.push(`${fields.deal}・搵 ${needCount} 個人`);
-    if (s.hasPrice) parts.push(effPrice && effPrice > 0 ? `$${effPrice}・${payLabel(effPay)}` : "免費");
+    if (s.hasPrice)
+      parts.push(effPrice && effPrice > 0 ? `$${effPrice}・${payLabel(effPay)}` : "免費");
     parts.push(`${fmtClock(leaveAt)} 前有效`);
     return parts.join("・");
   }, [s, missing, leaveAt, direction, suggestion, fields, needCount, effPrice, effPay]);
@@ -431,31 +598,47 @@ function NewPost() {
       ? "今日已經放夠，聽日再嚟"
       : receiptBlocked
         ? "張單唔係今日，放唔到"
-      : priceBlocked && pc
-        ? `價錢太高：最多 $${pc.cap}`
-        : missing
-      ? `仲要${missing}`
-      : s?.hasPrice && priceNum == null && quickPrice != null
-        ? quickPrice > 0
-          ? `用建議價 $${quickPrice} 即刻發佈`
-          : "免費即刻發佈"
-        : "發佈";
+        : fragBlocked
+          ? "呢張單換唔到泊車，放唔到"
+          : priceBlocked && pc
+            ? `價錢太高：最多 $${pc.cap}`
+            : missing
+              ? `仲要${missing}`
+              : s?.hasPrice && priceNum == null && quickPrice != null
+                ? quickPrice > 0
+                  ? `用建議價 $${quickPrice} 即刻發佈`
+                  : "免費即刻發佈"
+                : "發佈";
 
   // 「更多設定」入面揀咗咩：收埋都睇到
   const moreSummary = useMemo(() => {
     if (!s) return "";
     const parts: string[] = [];
-    if (s.id === "parking" && direction === "have") parts.push(`${fields.receiptCount ?? "1 張"}${fields.receiptType ?? ""}`);
+    if (s.id === "parking" && direction === "have")
+      parts.push(`${fields.receiptCount ?? "1 張"}${fields.receiptType ?? ""}`);
     if (s.id === "groupbuy") parts.push(`搵 ${needCount} 個人`);
     if (s.hasPrice && effPrice && effPrice > 0) parts.push(payLabel(effPay));
     if (leaveAt) parts.push(`${fmtClock(leaveAt)} 前有效`);
     if (s.id !== "groupbuy") parts.push(acceptEnRoute ? "去緊嘅人都接" : "只限喺場嘅人");
     if (autoAccept) parts.push("自動配對");
     return parts.join("・");
-  }, [s, direction, fields, needCount, effPrice, effPay, leaveAt, timeWord, acceptEnRoute, autoAccept]);
+  }, [
+    s,
+    direction,
+    fields,
+    needCount,
+    effPrice,
+    effPay,
+    leaveAt,
+    timeWord,
+    acceptEnRoute,
+    autoAccept,
+  ]);
 
   const essentialField = (f: FieldDef) => !MORE_KEYS.has(f.key);
-  const shownFields = s ? s.fields.filter((f) => fieldShown(f) && !(s.id === "groupbuy" && f.key === "deal")) : [];
+  const shownFields = s
+    ? s.fields.filter((f) => fieldShown(f) && !(s.id === "groupbuy" && f.key === "deal"))
+    : [];
 
   function renderField(f: FieldDef) {
     return (
@@ -480,14 +663,21 @@ function NewPost() {
           <>
             <div className="flex flex-wrap gap-2">
               {(f.options ?? []).map((o) => (
-                <Chip key={o} active={fields[f.key] === o} onClick={() => setFields({ ...fields, [f.key]: o })}>{o}</Chip>
+                <Chip
+                  key={o}
+                  active={fields[f.key] === o}
+                  onClick={() => setFields({ ...fields, [f.key]: o })}
+                >
+                  {o}
+                </Chip>
               ))}
             </div>
-            {f.key === "receiptCount" && receiptCountNote(fields.receiptCount, "giver", mall?.stacking) && (
-              <div className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900 border border-amber-200">
-                {receiptCountNote(fields.receiptCount, "giver", mall?.stacking)}
-              </div>
-            )}
+            {f.key === "receiptCount" &&
+              receiptCountNote(fields.receiptCount, "giver", mall?.stacking) && (
+                <div className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900 border border-amber-200">
+                  {receiptCountNote(fields.receiptCount, "giver", mall?.stacking)}
+                </div>
+              )}
           </>
         ) : (
           <div className="flex items-center gap-2 h-12 px-4 rounded-2xl border border-border bg-card">
@@ -517,29 +707,46 @@ function NewPost() {
             data-testid="calc-card"
             className={cn(
               "rounded-xl px-3 py-2.5 border",
-              suggestion.warn ? "bg-amber-50 text-amber-900 border-amber-200" : "bg-[#E3F5EC] text-[#1d6b47] border-[#c5e8d5]",
+              suggestion.warn
+                ? "bg-amber-50 text-amber-900 border-amber-200"
+                : "bg-[#E3F5EC] text-[#1d6b47] border-[#c5e8d5]",
             )}
           >
             <div className="flex items-baseline justify-between gap-3">
               <span className="font-bold text-sm">{suggestion.headline}</span>
               {suggestion.saving != null && suggestion.saving > 0 && (
-                <span className="font-black text-lg leading-none whitespace-nowrap">慳 ${suggestion.saving}</span>
+                <span className="font-black text-lg leading-none whitespace-nowrap">
+                  慳 ${suggestion.saving}
+                </span>
               )}
             </div>
-            {suggestion.detail && <div className="text-xs mt-1 leading-relaxed opacity-90">{suggestion.detail}</div>}
+            {suggestion.detail && (
+              <div className="text-xs mt-1 leading-relaxed opacity-90">{suggestion.detail}</div>
+            )}
             {s?.id === "parking" && direction === "have" && hasDiningRule && (
               <button
                 type="button"
-                onClick={() => setFields((x) => ({ ...x, receiptCategory: diningFlag(x) ? "冇食肆單" : "有食肆單" }))}
+                onClick={() =>
+                  setFields((x) => ({
+                    ...x,
+                    receiptCategory: diningFlag(x) ? "冇食肆單" : "有食肆單",
+                  }))
+                }
                 className={cn(
                   "mt-2 h-8 px-3 rounded-full text-xs font-bold border",
-                  diningFlag(fields) ? "bg-[#1d6b47] text-white border-[#1d6b47]" : "bg-white border-[#c5e8d5]",
+                  diningFlag(fields)
+                    ? "bg-[#1d6b47] text-white border-[#1d6b47]"
+                    : "bg-white border-[#c5e8d5]",
                 )}
               >
                 {diningFlag(fields) ? "✓ 入面有食肆單" : "入面有食肆單？撳呢度"}
               </button>
             )}
-            {mall?.source === "sample" && <div className="mt-1"><DemoBadge /></div>}
+            {mall?.source === "sample" && (
+              <div className="mt-1">
+                <DemoBadge />
+              </div>
+            )}
           </div>
         )}
       </Section>
@@ -547,7 +754,11 @@ function NewPost() {
   }
 
   const wantMode = direction === "want";
-  const catName = s ? (wantMode ? `我要${s.id === "parking" ? "泊車" : "優惠券"}` : GIVE_CATS[s.id].name) : "";
+  const catName = s
+    ? wantMode
+      ? `我要${s.id === "parking" ? "泊車" : "優惠券"}`
+      : GIVE_CATS[s.id].name
+    : "";
 
   return (
     <AppLayout hideNav>
@@ -566,12 +777,22 @@ function NewPost() {
         }}
       />
       <header className="sticky top-0 z-30 bg-background/95 backdrop-blur px-4 pt-4 pb-3 flex items-center gap-3 border-b border-border/60">
-        <button onClick={() => (scenario && !quick ? setScenario(null) : navigate({ to: "/" }))} aria-label="返回" className="w-9 h-9 grid place-items-center rounded-full hover:bg-accent">
+        <button
+          onClick={() => (scenario && !quick ? setScenario(null) : navigate({ to: "/" }))}
+          aria-label="返回"
+          className="w-9 h-9 grid place-items-center rounded-full hover:bg-accent"
+        >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <div className="font-black text-lg leading-tight">{wantMode && scenario ? "話人知你要" : "放出去"}</div>
-          <div className="text-[11px] text-muted-foreground">{mall ? `📍 ${mall.name}${current.test ? "（測試位置）" : ""}` : "未喺商場：可以先睇吓點放"}</div>
+          <div className="font-black text-lg leading-tight">
+            {wantMode && scenario ? "話人知你要" : "放出去"}
+          </div>
+          <div className="text-[11px] text-muted-foreground">
+            {mall
+              ? `📍 ${mall.name}${current.test ? "（測試位置）" : ""}`
+              : "未喺商場：可以先睇吓點放"}
+          </div>
         </div>
       </header>
 
@@ -589,31 +810,58 @@ function NewPost() {
                 className="w-full flex items-center gap-3 rounded-3xl p-4 text-left text-white active:scale-[0.99] transition-transform"
                 style={{ background: GIVE_TILE_COLOR[id] }}
               >
-                <span className="text-3xl shrink-0" aria-hidden="true">{SCENARIOS[id].emoji}</span>
+                <span className="text-3xl shrink-0" aria-hidden="true">
+                  {SCENARIOS[id].emoji}
+                </span>
                 <span className="flex-1 min-w-0">
-                  <span className="block text-[11px] font-bold opacity-90">{GIVE_CATS[id].name}</span>
-                  <span className="block font-black text-lg leading-snug">{GIVE_CATS[id].head}</span>
+                  <span className="block text-[11px] font-bold opacity-90">
+                    {GIVE_CATS[id].name}
+                  </span>
+                  <span className="block font-black text-lg leading-snug">
+                    {GIVE_CATS[id].head}
+                  </span>
                   <span className="block text-xs opacity-90">{GIVE_CATS[id].sub}</span>
                 </span>
-                {id === "parking" && <Camera className="w-5 h-5 shrink-0 opacity-90" aria-label="影相" />}
+                {id === "parking" && (
+                  <Camera className="w-5 h-5 shrink-0 opacity-90" aria-label="影相" />
+                )}
               </button>
             ))}
-            {!mall && <p className="text-xs text-muted-foreground px-1">放出去要喺商場先發佈得，因為對方會即刻嚟搵你見面交收。可以先睇吓點放。</p>}
+            {!mall && (
+              <p className="text-xs text-muted-foreground px-1">
+                放出去要喺商場先發佈得，因為對方會即刻嚟搵你見面交收。可以先睇吓點放。
+              </p>
+            )}
           </div>
         ) : (
           s && (
             <>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-bold px-3 py-1.5 rounded-full text-white" style={{ background: GIVE_TILE_COLOR[s.id] }}>
+                <span
+                  className="text-sm font-bold px-3 py-1.5 rounded-full text-white"
+                  style={{ background: GIVE_TILE_COLOR[s.id] }}
+                >
                   {s.emoji} {catName}
                 </span>
-                {!quick && <button onClick={() => setScenario(null)} className="text-xs text-muted-foreground underline">換類別</button>}
+                {!quick && (
+                  <button
+                    onClick={() => setScenario(null)}
+                    className="text-xs text-muted-foreground underline"
+                  >
+                    換類別
+                  </button>
+                )}
               </div>
 
               {limitMsg && (
-                <div data-testid="daily-limit" className="rounded-2xl px-4 py-3 bg-[#FFF0C2] text-[#5C3B00] text-sm leading-relaxed">
+                <div
+                  data-testid="daily-limit"
+                  className="rounded-2xl px-4 py-3 bg-[#FFF0C2] text-[#5C3B00] text-sm leading-relaxed"
+                >
                   {limitMsg}
-                  <div className="text-xs mt-1 opacity-80">手上同時有幾多張都冇問題，淨係限每日放幾多張。</div>
+                  <div className="text-xs mt-1 opacity-80">
+                    手上同時有幾多張都冇問題，淨係限每日放幾多張。
+                  </div>
                 </div>
               )}
 
@@ -631,20 +879,37 @@ function NewPost() {
                       ? shopMatches(shop, shops).map((x) => x.name)
                       : s.shopSuggestions
                     ).map((n) => (
-                      <Chip key={n} active={shop === n} onClick={() => setShop(n)}>{n}</Chip>
+                      <Chip key={n} active={shop === n} onClick={() => setShop(n)}>
+                        {n}
+                      </Chip>
                     ))}
                   </div>
-                  {mall && shops.length > 0 && normShop(shop).length >= 2 && !shopInList(shop, shops) && (
-                    <div className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900 leading-relaxed" data-testid="shop-not-in-mall">
-                      我哋 {mall.name} 嘅舖頭名單入面搵唔到「{shop.trim()}」。可能係我哋名單未齊，或者打錯字、身處另一個商場，自己睇清楚先放。
-                    </div>
-                  )}
+                  {mall &&
+                    shops.length > 0 &&
+                    normShop(shop).length >= 2 &&
+                    !shopInList(shop, shops) && (
+                      <div
+                        className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900 leading-relaxed"
+                        data-testid="shop-not-in-mall"
+                      >
+                        我哋 {mall.name} 嘅舖頭名單入面搵唔到「{shop.trim()}
+                        」。可能係我哋名單未齊，或者打錯字、身處另一個商場，自己睇清楚先放。
+                      </div>
+                    )}
                 </Section>
               )}
 
-              {((s.id === "parking" && direction === "have") || (s.id === "offer" && direction === "have")) && (
+              {((s.id === "parking" && direction === "have") ||
+                (s.id === "offer" && direction === "have")) && (
                 <div>
-                  <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => onPhoto(e.target.files?.[0])} />
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={(e) => onPhoto(e.target.files?.[0])}
+                  />
                   {s.id === "parking" && !fields.receiptAmount && !ocrBusy ? (
                     <button
                       onClick={() => fileRef.current?.click()}
@@ -658,31 +923,71 @@ function NewPost() {
                       disabled={ocrBusy}
                       className="h-10 px-4 rounded-full border border-border bg-card inline-flex items-center gap-2 text-sm font-semibold"
                     >
-                      {ocrBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                      {ocrBusy ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Camera className="w-4 h-4" />
+                      )}
                       {ocrBusy ? "讀緊張相…" : s.id === "parking" ? "再影過" : "影券，自動讀面值"}
                     </button>
                   )}
                   {ocrNote && <div className="text-xs text-muted-foreground mt-1.5">{ocrNote}</div>}
                   {s.id === "parking" && receiptCheck && (
                     <div className="mt-2 space-y-1.5" data-testid="receipt-check">
-                      {receiptCheck.date.status === "other" ? (
-                        <div className="text-sm rounded-xl px-3 py-2.5 bg-red-50 text-red-800 leading-relaxed" data-testid="receipt-date-bad">
-                          <b>張單日期係 {receiptCheck.date.label}，唔係今日。</b>商場一般只收即日單據，所以放唔到。讀錯咗？再影清楚啲。
+                      {receiptCheck.date.status === "other" && dateOverride ? (
+                        <div
+                          className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900"
+                          data-testid="receipt-date-override"
+                        >
+                          你話張單係今日（讀到 {receiptCheck.date.label}
+                          ，係讀錯咗）。要嘅人會喺現場睇清楚日期，唔係今日換唔到泊車。
+                          <button onClick={() => setDateOverride(false)} className="underline ml-1">
+                            撤回
+                          </button>
+                        </div>
+                      ) : receiptCheck.date.status === "other" ? (
+                        <div
+                          className="text-sm rounded-xl px-3 py-2.5 bg-red-50 text-red-800 leading-relaxed space-y-2"
+                          data-testid="receipt-date-bad"
+                        >
+                          <div>
+                            <b>讀到張單日期係 {receiptCheck.date.label}，唔係今日。</b>
+                            商場一般只收即日單據，唔係今日就放唔到。
+                          </div>
+                          <button
+                            data-testid="receipt-date-ok"
+                            onClick={() => setDateOverride(true)}
+                            className="w-full h-10 rounded-xl bg-white border border-red-200 font-bold text-red-800"
+                          >
+                            張單係今日，係讀錯咗
+                          </button>
                         </div>
                       ) : receiptCheck.date.status === "unknown" ? (
-                        <div className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900">讀唔到張單日期。記得要係今日嘅單據先放。</div>
+                        <div className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900">
+                          讀唔到張單日期。記得要係今日嘅單據先放。
+                        </div>
                       ) : (
                         <div className="text-xs text-[#1d6b47] font-semibold">✓ 張單係今日嘅</div>
                       )}
                       {receiptCheck.shop ? (
-                        <div className="text-xs text-[#1d6b47] font-semibold">✓ 張單係 {receiptCheck.shop.name}</div>
+                        <div className="text-xs text-[#1d6b47] font-semibold">
+                          ✓ 張單係 {receiptCheck.shop.name}
+                        </div>
                       ) : receiptCheck.otherMall && mall ? (
-                        <div className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900 leading-relaxed" data-testid="receipt-other-mall">
-                          張單好似係 {receiptCheck.otherMall.name} 嘅單，唔係 {mall.name}。可能係我哋讀錯，自己睇清楚張單係咪呢個商場嘅。
+                        <div
+                          className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900 leading-relaxed"
+                          data-testid="receipt-other-mall"
+                        >
+                          張單好似係 {receiptCheck.otherMall.name} 嘅單，唔係 {mall.name}
+                          。可能係我哋讀錯，自己睇清楚張單係咪呢個商場嘅。
                         </div>
                       ) : shops.length > 0 && mall ? (
-                        <div className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900 leading-relaxed" data-testid="receipt-shop-unknown">
-                          張單上面搵唔到 {mall.name} 嘅舖頭名。可能係我哋讀唔到或者名單未齊，自己睇清楚張單係咪呢個商場嘅。
+                        <div
+                          className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900 leading-relaxed"
+                          data-testid="receipt-shop-unknown"
+                        >
+                          張單上面搵唔到 {mall.name}{" "}
+                          嘅舖頭名。可能係我哋讀唔到或者名單未齊，自己睇清楚張單係咪呢個商場嘅。
                         </div>
                       ) : null}
                     </div>
@@ -693,7 +998,11 @@ function NewPost() {
                         const key = s.id === "offer" ? "faceValue" : "receiptAmount";
                         const v = fmtAmount(n);
                         return (
-                          <Chip key={n} active={fields[key] === v} onClick={() => setFields((x) => ({ ...x, [key]: v }))}>
+                          <Chip
+                            key={n}
+                            active={fields[key] === v}
+                            onClick={() => setFields((x) => ({ ...x, [key]: v }))}
+                          >
                             ${v}
                           </Chip>
                         );
@@ -707,12 +1016,20 @@ function NewPost() {
                 <Section title="夾咩？">
                   <div className="flex flex-wrap gap-2">
                     {GROUPBUY_DEALS.map((d) => (
-                      <Chip key={d} active={fields.deal === d} onClick={() => setFields({ ...fields, deal: d })}>{d}</Chip>
+                      <Chip
+                        key={d}
+                        active={fields.deal === d}
+                        onClick={() => setFields({ ...fields, deal: d })}
+                      >
+                        {d}
+                      </Chip>
                     ))}
                   </div>
                   <div className="flex items-center gap-2 h-12 px-4 rounded-2xl border border-border bg-card">
                     <input
-                      value={fields.deal && !GROUPBUY_DEALS.includes(fields.deal) ? fields.deal : ""}
+                      value={
+                        fields.deal && !GROUPBUY_DEALS.includes(fields.deal) ? fields.deal : ""
+                      }
                       onChange={(e) => setFields({ ...fields, deal: e.target.value.slice(0, 30) })}
                       placeholder="或者自己寫，例如 滿 $500 減 $100"
                       aria-label="自己寫"
@@ -726,11 +1043,30 @@ function NewPost() {
 
               {s.hasPrice && (
                 <Section
-                  title={direction === "want" ? "你願意俾幾多錢？" : s.id === "dining" ? "你想收幾多多謝費？" : "你想收幾多錢？"}
-                  hint={s.id === "dining" ? "多謝費係對方多謝你讓張飛，唔係賣飛；見面時直接俾，唔經平台" : "見面交收時直接俾，唔經平台"}
+                  title={
+                    direction === "want"
+                      ? "你願意俾幾多錢？"
+                      : s.id === "dining"
+                        ? "你想收幾多多謝費？"
+                        : "你想收幾多錢？"
+                  }
+                  hint={
+                    s.id === "dining"
+                      ? "多謝費係對方多謝你讓張飛，唔係賣飛；見面時直接俾，唔經平台"
+                      : "見面交收時直接俾，唔經平台"
+                  }
                 >
                   <div className="flex items-center gap-2">
-                    <div className={cn("flex-1 min-w-0 flex items-center gap-2 h-12 px-4 rounded-2xl border bg-card", priceBlocked ? "border-red-400" : overSuggest || pc?.level === "over" ? "border-amber-400" : "border-border")}>
+                    <div
+                      className={cn(
+                        "flex-1 min-w-0 flex items-center gap-2 h-12 px-4 rounded-2xl border bg-card",
+                        priceBlocked
+                          ? "border-red-400"
+                          : overSuggest || pc?.level === "over"
+                            ? "border-amber-400"
+                            : "border-border",
+                      )}
+                    >
                       <span className="font-bold text-muted-foreground">$</span>
                       <input
                         inputMode="numeric"
@@ -742,16 +1078,25 @@ function NewPost() {
                         className="flex-1 min-w-0 w-full bg-transparent outline-none text-lg font-bold"
                       />
                     </div>
-                    <Chip active={free} onClick={() => setFree(!free)}>免費</Chip>
+                    <Chip active={free} onClick={() => setFree(!free)}>
+                      免費
+                    </Chip>
                   </div>
                   {!mall && s.id === "parking" && direction !== "want" && (
-                    <div data-testid="no-mall-price" className="text-xs rounded-xl px-3 py-2 leading-relaxed bg-background text-muted-foreground">
+                    <div
+                      data-testid="no-mall-price"
+                      className="text-xs rounded-xl px-3 py-2 leading-relaxed bg-background text-muted-foreground"
+                    >
                       去到商場會自動認到你喺邊，到時會按嗰個商場嘅換泊車規則同時租，計埋可以換幾多個鐘同建議價。
                     </div>
                   )}
                   {noRate && (
-                    <div data-testid="no-rate" className="text-xs rounded-xl px-3 py-2 leading-relaxed bg-amber-50 text-amber-900">
-                      我哋未有{mall?.name ?? "呢個商場"}嘅停車場時租資料，所以冇參考價。放之前請確認呢個商場有「消費換免費泊車」，同埋張單換得到。
+                    <div
+                      data-testid="no-rate"
+                      className="text-xs rounded-xl px-3 py-2 leading-relaxed bg-amber-50 text-amber-900"
+                    >
+                      我哋未有{mall?.name ?? "呢個商場"}
+                      嘅停車場時租資料，所以冇參考價。放之前請確認呢個商場有「消費換免費泊車」，同埋張單換得到。
                     </div>
                   )}
                   {pc && (
@@ -759,20 +1104,27 @@ function NewPost() {
                       data-testid="fair-price"
                       className={cn(
                         "text-xs rounded-xl px-3 py-2 leading-relaxed",
-                        pc.level === "blocked" ? "bg-red-50 text-red-800" : pc.level === "over" ? "bg-amber-50 text-amber-900" : "bg-background text-muted-foreground",
+                        pc.level === "blocked"
+                          ? "bg-red-50 text-red-800"
+                          : pc.level === "over"
+                            ? "bg-amber-50 text-amber-900"
+                            : "bg-background text-muted-foreground",
                       )}
                     >
                       {pc.level === "blocked" ? (
                         <>
-                          <b>{limitText.priceTooHigh(pc.cap, rules.priceBlockMultiple)}</b> 參考價 ${pc.ref}（{pc.basis}）。
+                          <b>{limitText.priceTooHigh(pc.cap, rules.priceBlockMultiple)}</b> 參考價 $
+                          {pc.ref}（{pc.basis}）。
                         </>
                       ) : pc.level === "over" ? (
                         <>
-                          呢個價高過參考價 <b>${pc.ref}</b>（{pc.basis}）。啱啱好唔支持炒飛，價錢合理啲會快啲有人要。
+                          呢個價高過參考價 <b>${pc.ref}</b>（{pc.basis}
+                          ）。啱啱好唔支持炒飛，價錢合理啲會快啲有人要。
                         </>
                       ) : (
                         <>
-                          參考價 ${pc.ref}（{pc.basis}），超過{multipleWord(rules.priceBlockMultiple)}就放唔到。
+                          參考價 ${pc.ref}（{pc.basis}），超過
+                          {multipleWord(rules.priceBlockMultiple)}就放唔到。
                         </>
                       )}
                     </div>
@@ -780,11 +1132,18 @@ function NewPost() {
                   {suggestion?.max != null && suggestion.max > 0 && (
                     <div
                       data-testid="price-hint"
-                      className={cn("text-xs rounded-xl px-3 py-2", overSuggest ? "bg-amber-50 text-amber-800" : "bg-[#E3F5EC] text-[#1d6b47]")}
+                      className={cn(
+                        "text-xs rounded-xl px-3 py-2",
+                        overSuggest ? "bg-amber-50 text-amber-800" : "bg-[#E3F5EC] text-[#1d6b47]",
+                      )}
                     >
                       建議唔好超過 <b className="text-sm">${suggestion.max}</b>
                       {suggestion.basis && <span>（{suggestion.basis}）</span>}
-                      {overSuggest ? "。而家高過建議價，可能較難有人接。" : price === "" ? "。唔填就用建議價，想改自己填。" : "。價錢由你自己定。"}
+                      {overSuggest
+                        ? "。而家高過建議價，可能較難有人接。"
+                        : price === ""
+                          ? "。唔填就用建議價，想改自己填。"
+                          : "。價錢由你自己定。"}
                     </div>
                   )}
                 </Section>
@@ -800,17 +1159,29 @@ function NewPost() {
                 >
                   <span className="min-w-0">
                     <span className="block font-bold text-sm">更多設定（唔改都得）</span>
-                    <span className="block text-xs text-muted-foreground truncate">{moreSummary}</span>
+                    <span className="block text-xs text-muted-foreground truncate">
+                      {moreSummary}
+                    </span>
                   </span>
-                  <ChevronDown className={cn("w-4 h-4 shrink-0 text-muted-foreground transition-transform", moreOpen && "rotate-180")} />
+                  <ChevronDown
+                    className={cn(
+                      "w-4 h-4 shrink-0 text-muted-foreground transition-transform",
+                      moreOpen && "rotate-180",
+                    )}
+                  />
                 </button>
                 {moreOpen && (
                   <div className="px-4 pb-4 space-y-6">
                     {s.id === "groupbuy" && (
-                      <Section title="仲要幾多個人一齊夾？" hint="買二送一就揀 2 個人；夠人先算配對成功">
+                      <Section
+                        title="仲要幾多個人一齊夾？"
+                        hint="買二送一就揀 2 個人；夠人先算配對成功"
+                      >
                         <div className="flex gap-2">
                           {[1, 2, 3].map((n) => (
-                            <Chip key={n} active={needCount === n} onClick={() => setNeedCount(n)}>{n} 個人</Chip>
+                            <Chip key={n} active={needCount === n} onClick={() => setNeedCount(n)}>
+                              {n} 個人
+                            </Chip>
                           ))}
                         </div>
                       </Section>
@@ -824,7 +1195,13 @@ function NewPost() {
                           {PAY_METHODS.map((p) => {
                             const on = pay.includes(p.id);
                             return (
-                              <Chip key={p.id} active={on} onClick={() => setPay(on ? pay.filter((x) => x !== p.id) : [...pay, p.id])}>
+                              <Chip
+                                key={p.id}
+                                active={on}
+                                onClick={() =>
+                                  setPay(on ? pay.filter((x) => x !== p.id) : [...pay, p.id])
+                                }
+                              >
                                 {p.label}
                               </Chip>
                             );
@@ -833,14 +1210,26 @@ function NewPost() {
                       </Section>
                     )}
 
-                    <Section title={s.timeQuestion} hint={leaveAt ? `大約 ${fmtClock(leaveAt)} ${timeWord}，到時個 post 會自動過期` : undefined}>
+                    <Section
+                      title={s.timeQuestion}
+                      hint={
+                        leaveAt
+                          ? `大約 ${fmtClock(leaveAt)} ${timeWord}，到時個 post 會自動過期`
+                          : undefined
+                      }
+                    >
                       <div className="flex flex-wrap gap-2">
                         {[15, 30, 60].map((m) => (
                           <Chip key={m} active={leaveMode === m} onClick={() => setLeaveMode(m)}>
                             {m === 60 ? "1 個鐘後" : `${m} 分鐘後`}
                           </Chip>
                         ))}
-                        <Chip active={leaveMode === "custom"} onClick={() => setLeaveMode("custom")}>自己揀時間</Chip>
+                        <Chip
+                          active={leaveMode === "custom"}
+                          onClick={() => setLeaveMode("custom")}
+                        >
+                          自己揀時間
+                        </Chip>
                       </div>
                       {leaveMode === "custom" && (
                         <input
@@ -862,7 +1251,11 @@ function NewPost() {
                         aria-label="備注"
                         className="w-full px-4 py-3 rounded-2xl border border-border bg-background outline-none resize-none text-[15px]"
                       />
-                      {remark.length > 0 && <div className="text-[11px] text-muted-foreground text-right">{remark.length}/{REMARK_MAX}</div>}
+                      {remark.length > 0 && (
+                        <div className="text-[11px] text-muted-foreground text-right">
+                          {remark.length}/{REMARK_MAX}
+                        </div>
+                      )}
                     </Section>
 
                     {s.id !== "groupbuy" && (
@@ -882,7 +1275,10 @@ function NewPost() {
                     <label className="flex items-center justify-between gap-3">
                       <div>
                         <div className="font-semibold text-sm">第一個有興趣嘅自動配對</div>
-                        <div className="text-xs text-muted-foreground">想快就開；唔開就由你喺名單揀人{s.id !== "groupbuy" && acceptEnRoute ? "。只會自動揀已喺場嘅人" : ""}</div>
+                        <div className="text-xs text-muted-foreground">
+                          想快就開；唔開就由你喺名單揀人
+                          {s.id !== "groupbuy" && acceptEnRoute ? "。只會自動揀已喺場嘅人" : ""}
+                        </div>
                       </div>
                       <Switch checked={autoAccept} onCheckedChange={setAutoAccept} />
                     </label>
@@ -891,7 +1287,12 @@ function NewPost() {
               </div>
 
               {s.id === "parking" && <ParkingHandover mall={mall} />}
-              <ScenarioTips scenario={s.id} role={authorRole(direction)} mall={mall} title="放之前要知" />
+              <ScenarioTips
+                scenario={s.id}
+                role={authorRole(direction)}
+                mall={mall}
+                title="放之前要知"
+              />
               <p className="text-[11px] text-muted-foreground">
                 發佈即表示你會遵守商場同商戶嘅規則，唔會炒賣。平台只係顯示資訊同配對，唔參與交易，亦唔收任何費用。
               </p>
@@ -905,14 +1306,24 @@ function NewPost() {
           <div className="max-w-lg mx-auto px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 bg-gradient-to-t from-background via-background to-transparent">
             {summary && (
               <div className="flex justify-center pb-2">
-                <div data-testid="publish-summary" className="max-w-full truncate bg-card border border-border rounded-full px-3 py-1 text-xs font-semibold text-[#1a1a1a]/75 shadow-sm">
+                <div
+                  data-testid="publish-summary"
+                  className="max-w-full truncate bg-card border border-border rounded-full px-3 py-1 text-xs font-semibold text-[#1a1a1a]/75 shadow-sm"
+                >
                   {summary}
                 </div>
               </div>
             )}
             <button
               onClick={submit}
-              disabled={!!missing || submitting || !!limitMsg || priceBlocked || receiptBlocked}
+              disabled={
+                !!missing ||
+                submitting ||
+                !!limitMsg ||
+                priceBlocked ||
+                receiptBlocked ||
+                fragBlocked
+              }
               className="w-full h-14 rounded-2xl bg-[#F5C518] text-[#1a1a1a] font-black text-base shadow-lg disabled:opacity-50"
             >
               {submitLabel}
