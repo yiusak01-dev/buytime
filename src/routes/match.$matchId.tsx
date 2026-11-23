@@ -63,6 +63,8 @@ function MatchPage() {
   const [reportOpen, setReportOpen] = useState(false);
   const [releaseAsk, setReleaseAsk] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [confirmDone, setConfirmDone] = useState(false);
+  const doneShownAt = useRef(0);
   const lastSent = useRef<{ text: string; at: number } | null>(null);
 
   // 有新訊息先自動捲落去（第一次打開唔捲，等用家先睇到見面資料）
@@ -74,6 +76,16 @@ function MatchPage() {
       bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
     seenMsgs.current = n;
   }, [m?.messages.length]);
+
+  const everyoneHere = !!m && m.participants.length > 0 && m.participants.every((p) => m.arrived[p.userId]);
+  useEffect(() => {
+    if (everyoneHere) doneShownAt.current = Date.now();
+  }, [everyoneHere]);
+  useEffect(() => {
+    if (!confirmDone) return;
+    const t = setTimeout(() => setConfirmDone(false), 5000);
+    return () => clearTimeout(t);
+  }, [confirmDone]);
 
   // 已讀：開住畫面就話對方知睇咗；我最後一句對方睇咗就顯示「已讀」
   const lastOther = m?.messages.filter((x) => x.from !== "system" && x.from !== user.id).at(-1);
@@ -621,7 +633,7 @@ function MatchPage() {
             </div>
           ) : !active ? (
             <div className="text-center text-xs bg-card rounded-2xl py-3 text-muted-foreground">
-              配對已結束，對話會喺 {fmtClock((m.endedAt ?? now) + CHAT_CLOSE_AFTER_MIN * MIN)} 關閉
+              配對已結束，{fmtClock((m.endedAt ?? now) + CHAT_CLOSE_AFTER_MIN * MIN)} 之前仲睇得返對話
             </div>
           ) : (
             <>
@@ -660,11 +672,23 @@ function MatchPage() {
               <div className="flex gap-2">
                 {allArrived ? (
                   <button
-                    onClick={() => void act(aah.completeHandover(m.id), "完成！多謝你哋互相幫忙")}
-                    className="flex-1 h-14 rounded-2xl bg-[#2E9E6A] text-white font-black text-base shadow-lg"
+                    onClick={() => {
+                      // 「我到咗」撳完個掣即刻變「交收完成」，好易撳多下：啱啱出現嘅 1.5 秒唔理，第一下只係問確認
+                      if (Date.now() - doneShownAt.current < 1500) return;
+                      if (!confirmDone) {
+                        setConfirmDone(true);
+                        return;
+                      }
+                      setConfirmDone(false);
+                      void act(aah.completeHandover(m.id), "完成！多謝你哋互相幫忙");
+                    }}
+                    className={cn(
+                      "flex-1 h-14 rounded-2xl text-white font-black shadow-lg",
+                      confirmDone ? "bg-[#1d6b47] text-sm" : "bg-[#2E9E6A] text-base",
+                    )}
                     data-testid="handover-done"
                   >
-                    交收完成
+                    {confirmDone ? "錢同嘢都搞掂？再撳一下確認" : "交收完成"}
                   </button>
                 ) : (
                   <button

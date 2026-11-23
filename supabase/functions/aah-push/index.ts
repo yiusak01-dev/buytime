@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
   const { recipient_id, title, body, url, tag } = payload as Record<string, string | undefined>;
   if (!recipient_id || !title) return json({ error: "missing fields" }, 400);
 
-  const { data: subs, error } = await admin.from("aah_push_subscriptions").select("endpoint, subscription").eq("user_id", recipient_id);
+  const { data: subs, error } = await admin.from("aah_push_subscriptions").select("endpoint, subscription, user_agent").eq("user_id", recipient_id);
   if (error) {
     console.error("[aah-push] lookup", error.message);
     return json({ error: "lookup" }, 500);
@@ -168,9 +168,19 @@ Deno.serve(async (req) => {
   const message = JSON.stringify({ title, body: body ?? "", url: url ?? "/", tag: tag ?? null });
   let sent = 0;
   let removed = 0;
+  let skipped = 0;
+  // 同一部 iPhone／Android 又裝咗 app、又喺 Safari／Chrome 開過網頁版通知：淨係用 app 嗰個，唔好一句訊息響兩次
+  const hasApns = subs.some((s: any) => s.subscription?.type === "apns");
+  const hasFcm = subs.some((s: any) => s.subscription?.type === "fcm");
+  const sameDeviceWeb = (ua: string | null) =>
+    (hasApns && /iPhone|iPod/i.test(ua ?? "")) || (hasFcm && /Android/i.test(ua ?? ""));
   await Promise.all(
-    subs.map(async (s: { endpoint: string; subscription: any }) => {
+    subs.map(async (s: { endpoint: string; subscription: any; user_agent: string | null }) => {
       const sub = s.subscription;
+      if (sub?.type !== "apns" && sub?.type !== "fcm" && sameDeviceWeb(s.user_agent)) {
+        skipped++;
+        return;
+      }
       if (sub?.type === "apns") {
         const r = await sendAPNs(sub.token, title, body ?? "", url ?? "/", tag ?? null);
         if (r === "ok") sent++;
@@ -203,5 +213,5 @@ Deno.serve(async (req) => {
       }
     }),
   );
-  return json({ ok: true, sent, removed });
+  return json({ ok: true, sent, removed, skipped });
 });
