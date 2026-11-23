@@ -19,6 +19,9 @@ export type Interest = {
   offer?: number;
   messages: { from: string; text: string; at: number }[];
   status: "pending" | "accepted" | "declined";
+  /** 已讀：買家／出 post 嘅人最後睇對話嘅時間（雲端模式） */
+  buyerReadAt?: number;
+  authorReadAt?: number;
   /** 未到商場，去緊 */
   enRoute?: boolean;
   /** 去緊：講咗幾點到 */
@@ -99,6 +102,8 @@ export type Match = {
   /** 邊啲人已經確認見面地點時間（確認時會彈冇出現警告） */
   confirmedBy: string[];
   arrived: Record<string, number>;
+  /** 已讀：每個參與者最後睇對話嘅時間（雲端模式） */
+  readAt?: Record<string, number>;
   outfits: Record<string, Outfit>;
   messages: Message[];
   status: MatchStatus;

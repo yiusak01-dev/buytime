@@ -6,6 +6,7 @@ import { aah, getRules, testLocationAllowed, useAahMode, useAahState, LEAVE_GRAC
 import { useAahMalls, nearbyMalls } from "@/lib/aah/malls";
 import { useAutoStartGeo, useCurrentMall, useGeo, useNow } from "@/lib/aah/geo";
 import { syncPush } from "@/lib/aah/push";
+import { buzz } from "@/lib/aah/buzz";
 
 const MIN = 60000;
 
@@ -274,12 +275,39 @@ export function AahRuntime() {
         const k = `int:${p.id}:${i.userId}`;
         if (i.status !== "pending" || alerted.current.has(k) || !fresh(i.at)) continue;
         alerted.current.add(k);
+        void buzz();
         if (pathname === `/post/${p.id}`) continue;
         const last = i.messages[i.messages.length - 1]?.text;
         toast(`${i.name} 對你個 post 有興趣`, {
           description: last ? `${p.shop}・「${last}」` : p.shop,
           action: { label: "睇吓", onClick: () => navigate({ to: "/post/$postId", params: { postId: p.id } }) },
           duration: 12000,
+        });
+      }
+    }
+  }, [posts, user.id, user.registered, pathname, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 未配對之前嘅對話：對方覆咗你（買家）或者有興趣嘅人再講嘢（出 post 嘅人）
+  useEffect(() => {
+    if (!user.registered) return;
+    for (const p of posts) {
+      if (p.status !== "open") continue;
+      const mineAuthor = p.authorId === user.id;
+      for (const i of p.interests) {
+        if (i.status !== "pending" || (!mineAuthor && i.userId !== user.id)) continue;
+        const last = i.messages[i.messages.length - 1];
+        // 第一句（撳有興趣嗰句）上面已經提示咗
+        if (!last || last.from === user.id || i.messages.length < 2) continue;
+        const k = `imsg:${p.id}:${i.userId}:${last.at}`;
+        if (alerted.current.has(k) || !fresh(last.at)) continue;
+        alerted.current.add(k);
+        void buzz();
+        if (pathname === `/post/${p.id}`) continue;
+        const name = mineAuthor ? i.name : p.authorName || "對方";
+        toast(`${name}：${last.text}`, {
+          description: p.shop,
+          action: { label: "睇吓", onClick: () => navigate({ to: "/post/$postId", params: { postId: p.id } }) },
+          duration: 10000,
         });
       }
     }
@@ -307,6 +335,7 @@ export function AahRuntime() {
       const km = `msg:${last.id}`;
       if (alerted.current.has(km) || !fresh(last.at)) continue;
       alerted.current.add(km);
+      void buzz();
       if (onMatch) continue;
       const name = m.participants.find((p) => p.userId === last.from)?.name ?? "對方";
       toast(`${name}：${last.text}`, {

@@ -27,6 +27,7 @@ import {
   PIN_PROMPT_AFTER_MIN,
 } from "@/lib/aah/store";
 import { useAahMalls, nearbyMalls, demoAudience } from "@/lib/aah/malls";
+import { useDocVisible } from "@/lib/aah/visible";
 import { useCurrentMall, useNow, fmtClock, fmtLeft, fmtAgo, useGeo, geoStore } from "@/lib/aah/geo";
 import { distanceM } from "@/lib/aah/malls";
 import {
@@ -254,6 +255,19 @@ function PostDetailView({ post }: { post: Post }) {
       chatEnd.current?.scrollIntoView({ behavior: "smooth", block: "end" });
     seenMsgs.current = n;
   }, [mine?.messages.length]);
+
+  // 已讀：開住畫面，對方講咗嘢就當睇咗
+  const visible = useDocVisible();
+  const markedRef = useRef<string | null>(null);
+  const lastFromAuthor = mine?.messages.filter((x) => x.from !== user.id).at(-1);
+  useEffect(() => {
+    if (!visible || !mine?.id || mine.status !== "pending" || !lastFromAuthor) return;
+    if (lastFromAuthor.at <= (mine.buyerReadAt ?? 0)) return;
+    const k = `${mine.id}:${lastFromAuthor.at}`;
+    if (markedRef.current === k) return;
+    markedRef.current = k;
+    aah.markRead("interest", mine.id);
+  }, [visible, mine?.id, mine?.status, lastFromAuthor?.at, mine?.buyerReadAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 對方揀咗你 → 去配對畫面
   useEffect(() => {
@@ -518,9 +532,23 @@ function PostDetailView({ post }: { post: Post }) {
                 </div>
               </div>
             ))}
-            {mine.status === "pending" && (
-              <div className="text-xs text-muted-foreground text-center pt-1">等緊對方覆…</div>
-            )}
+            {mine.status === "pending" &&
+              (() => {
+                const last = mine.messages.at(-1);
+                const seen = !!last && last.from === user.id && (mine.authorReadAt ?? 0) >= last.at;
+                return (
+                  <>
+                    {seen && (
+                      <div className="text-right text-[10px] text-muted-foreground -mt-1 pr-1" data-testid="read-mark">
+                        已讀
+                      </div>
+                    )}
+                    <div className="text-xs text-muted-foreground text-center pt-1">
+                      {seen ? "對方睇咗，等緊佢覆…" : "等緊對方覆…"}
+                    </div>
+                  </>
+                );
+              })()}
             <div ref={chatEnd} className="scroll-mb-44" />
           </div>
         )}
@@ -743,6 +771,21 @@ function MyPostView({ post }: { post: Post }) {
     !pinned &&
     post.interests.length === 0 &&
     age >= PIN_PROMPT_AFTER_MIN * 60000;
+
+  // 已讀：開住自己個 post，有興趣嘅人講嘢就當睇咗
+  const visible = useDocVisible();
+  const markedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!visible || post.status !== "open") return;
+    for (const it of pending) {
+      const last = it.messages.at(-1);
+      if (!it.id || !last || last.from === user.id || last.at <= (it.authorReadAt ?? 0)) continue;
+      const k = `${it.id}:${last.at}`;
+      if (markedRef.current.has(k)) continue;
+      markedRef.current.add(k);
+      aah.markRead("interest", it.id);
+    }
+  }, [pending, visible, post.status, user.id]);
 
   useEffect(() => {
     if (post.status === "matched" && post.matchId)
@@ -972,11 +1015,22 @@ function MyPostView({ post }: { post: Post }) {
                     {it.messages.map((m, i) => (
                       <div
                         key={i}
-                        className="inline-block mr-1.5 px-3 py-1.5 rounded-2xl bg-accent text-sm"
+                        className={cn(
+                          "inline-block mr-1.5 px-3 py-1.5 rounded-2xl text-sm",
+                          m.from === user.id ? "bg-[#1a1a1a] text-white" : "bg-accent",
+                        )}
                       >
                         {m.text}
                       </div>
                     ))}
+                    {(() => {
+                      const last = it.messages.at(-1);
+                      return last && last.from === user.id && (it.buyerReadAt ?? 0) >= last.at ? (
+                        <span className="text-[10px] text-muted-foreground" data-testid="read-mark">
+                          已讀
+                        </span>
+                      ) : null;
+                    })()}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button

@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { Camera } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { TabHeader } from "@/components/aah/TabHeader";
+import { LiveBanner } from "@/components/aah/LiveBanner";
 import { FeedRow, rowTitle } from "@/components/aah/FeedRow";
 import { CatIcon, LiveDot } from "@/components/aah/CatIcon";
 import { CatGroup } from "@/components/aah/Group";
@@ -129,6 +130,7 @@ function Give() {
     <AppLayout tint={VERBS.give.page}>
       <TabHeader active="give" />
       <div className="px-4 space-y-3">
+        <LiveBanner />
         {demand && (
           <span
             className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-card text-[13px] font-bold"

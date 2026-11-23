@@ -296,7 +296,7 @@ export function createRemote(host: Host) {
     }
     const { data, error } = await sb()
       .from("aah_posts")
-      .select("status, match_id, interests:aah_interests(id, status, msgs:aah_interest_messages(count))")
+      .select("status, match_id, interests:aah_interests(id, status, buyer_read_at, author_read_at, msgs:aah_interest_messages(count))")
       .eq("id", id)
       .maybeSingle();
     if (error || !data) return error ? undefined : "none";
@@ -417,6 +417,13 @@ export function createRemote(host: Host) {
     refresh,
     watch,
     resume,
+
+    /** 已讀：唔使等同步，realtime／指紋會帶返新狀態俾對方 */
+    async markRead(kind: "match" | "interest", id: string) {
+      if (!uid) return;
+      const { error } = await sb().rpc("aah_mark_read", { p_kind: kind, p_id: id });
+      if (error) console.warn("[aah] mark read", error.message);
+    },
     get uid() {
       return uid;
     },
@@ -772,6 +779,8 @@ function rowToPost(r: any, interests: any[], imsgs: any[]): Post {
       completed: i.completed ?? undefined,
       noShows: i.no_shows ?? undefined,
       messages: imsgs.filter((m) => m.interest_id === i.id).map((m) => ({ from: m.from_id, text: m.text, at: Date.parse(m.created_at) })),
+      buyerReadAt: ts(i.buyer_read_at),
+      authorReadAt: ts(i.author_read_at),
     }));
   return {
     id: r.id,
@@ -819,6 +828,7 @@ function rowToMatch(m: any, parts: any[], msgs: any[], uid: string, prefs: Local
     meetAt: Date.parse(m.meet_at),
     confirmedBy: ps.filter((p) => p.confirmed_at).map((p) => p.user_id),
     arrived: Object.fromEntries(ps.filter((p) => p.arrived_at).map((p) => [p.user_id, Date.parse(p.arrived_at)])),
+    readAt: Object.fromEntries(ps.filter((p) => p.read_at).map((p) => [p.user_id, Date.parse(p.read_at)])),
     outfits: Object.fromEntries(ps.filter((p) => p.outfit).map((p) => [p.user_id, p.outfit])),
     messages: msgs.filter((x) => x.match_id === m.id).map((x) => ({ id: x.id, from: x.from_id ?? "system", text: x.text, at: Date.parse(x.created_at) })),
     status: m.status,

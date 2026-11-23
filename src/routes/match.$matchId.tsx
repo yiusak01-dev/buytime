@@ -17,6 +17,7 @@ import {
 } from "@/lib/aah/store";
 import { geoStore } from "@/lib/aah/geo";
 import { useAahMalls } from "@/lib/aah/malls";
+import { useDocVisible } from "@/lib/aah/visible";
 import { useCurrentMall, useNow, fmtClock, fmtLeft } from "@/lib/aah/geo";
 import { LATE_GRACE_MIN, CANCEL_GRACE_MIN, cancelIsLate } from "@/lib/aah/enroute";
 import { SCENARIOS, payLabel, authorRole } from "@/lib/aah/scenarios";
@@ -73,6 +74,24 @@ function MatchPage() {
       bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
     seenMsgs.current = n;
   }, [m?.messages.length]);
+
+  // 已讀：開住畫面就話對方知睇咗；我最後一句對方睇咗就顯示「已讀」
+  const lastOther = m?.messages.filter((x) => x.from !== "system" && x.from !== user.id).at(-1);
+  const myRead = m?.readAt?.[user.id] ?? 0;
+  const markedRef = useRef<string | null>(null);
+  const visible = useDocVisible();
+  useEffect(() => {
+    if (!m || m.status !== "active" || !lastOther || lastOther.at <= myRead || !visible) return;
+    if (markedRef.current === lastOther.id) return;
+    markedRef.current = lastOther.id;
+    aah.markRead("match", m.id);
+  }, [m?.id, m?.status, lastOther?.id, lastOther?.at, myRead, visible]); // eslint-disable-line react-hooks/exhaustive-deps
+  const lastMsg = m?.messages.filter((x) => x.from !== "system").at(-1);
+  const seenMine =
+    !!m?.readAt &&
+    !!lastMsg &&
+    lastMsg.from === user.id &&
+    m.participants.filter((p) => p.userId !== user.id).every((p) => (m.readAt?.[p.userId] ?? 0) >= lastMsg.at);
 
   const others = useMemo(
     () => (m ? m.participants.filter((p) => p.userId !== user.id) : []),
@@ -562,6 +581,11 @@ function MatchPage() {
                 </div>
               </div>
             ),
+          )}
+          {seenMine && (
+            <div className="text-right text-[10px] text-muted-foreground -mt-1 pr-1" data-testid="read-mark">
+              已讀
+            </div>
           )}
           {/* scroll-mb：捲落嚟時唔好俾底部嗰排掣遮住 */}
           <div ref={bottomRef} className="scroll-mb-52" />

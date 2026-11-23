@@ -95,10 +95,14 @@ function MePage() {
 
   return (
     <AppLayout>
-      <header className="bg-[#F5C518] text-[#1a1a1a] px-5 pt-6 pb-5 rounded-b-[28px] space-y-3">
-        <div className="text-[22px] font-black">我的配對</div>
+      {/* 同「搵」「放」一樣嘅頭：左邊個名，下面一張卡 */}
+      <header className="px-4 pt-4 pb-2 space-y-3">
+        <div className="flex items-center justify-between gap-2 h-9">
+          <span className="text-[22px] font-black tracking-tight">啱啱好</span>
+          <span className="text-[13px] font-bold text-muted-foreground">我的</span>
+        </div>
         {user.registered ? (
-          <div className="flex items-center justify-between bg-white/60 rounded-2xl px-4 py-3">
+          <div className="flex items-center justify-between bg-card shadow-[var(--shadow-card)] rounded-2xl px-4 py-3">
             <div>
               <div className="font-black text-lg">{user.nickname}</div>
               <div className="text-xs opacity-70">
@@ -113,7 +117,7 @@ function MePage() {
         ) : (
           <button
             onClick={() => setRegOpen(true)}
-            className="w-full flex items-center justify-between bg-white/60 rounded-2xl px-4 py-3 text-left"
+            className="w-full flex items-center justify-between bg-card shadow-[var(--shadow-card)] rounded-2xl px-4 py-3 text-left"
           >
             <div>
               <div className="font-black">{user.signedIn ? "未完成註冊" : "未註冊"}</div>
@@ -126,7 +130,7 @@ function MePage() {
         )}
       </header>
 
-      <div className="px-4 pt-4 pb-10 space-y-5">
+      <div className="px-4 pt-2 pb-10 space-y-5">
         {/* 停用 + 申訴 */}
         {banned && (
           <div className="bg-red-50 border border-red-200 rounded-2xl p-4 space-y-3">

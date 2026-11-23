@@ -1150,6 +1150,12 @@ const isRemote = () => mode === "remote" && !!remote;
 /** 畫面用嘅 action（兩個模式一樣） */
 export const aah = {
   get: () => state,
+
+  /** 已讀（淨係雲端模式有意義；示範模式冇對方） */
+  markRead(kind: "match" | "interest", id: string | undefined) {
+    if (!id || !isRemote()) return;
+    void R().markRead(kind, id);
+  },
   subscribe: (fn: () => void) => local.subscribe(fn),
 
   updateUser(patch: Partial<User>) {

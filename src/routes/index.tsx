@@ -4,6 +4,7 @@ import { Bell } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
 import { TabHeader } from "@/components/aah/TabHeader";
+import { LiveBanner } from "@/components/aah/LiveBanner";
 import { FeedRow } from "@/components/aah/FeedRow";
 import { CatGroup, LockRow } from "@/components/aah/Group";
 import { CatIcon, LiveDot } from "@/components/aah/CatIcon";
@@ -124,6 +125,8 @@ function Home() {
   const unlock = () => ask("註冊咗就睇晒全部，免費");
 
   const hereCount = feed.main.length;
+  // 嘢唔多：全部分類都打開，唔使逐個撳
+  const fewPosts = feed.main.length + feed.others.length <= 8;
   const nothingAnywhere = live.length === 0;
 
   // 搵唔到嘢：記低（每個商場一次），每週問題報告用
@@ -166,7 +169,7 @@ function Home() {
           key={`${g.id}-${cat ?? ""}`}
           scenario={g.id}
           count={g.posts.length}
-          defaultOpen={!cat || cat === g.id}
+          defaultOpen={!cat || cat === g.id || fewPosts}
         >
           {shown.map((p) => row(p, other(p)))}
           {locked > 0 && <LockRow count={locked} onClick={unlock} />}
@@ -179,6 +182,7 @@ function Home() {
       <TabHeader active="find" />
 
       <div className="px-4 space-y-3">
+        <LiveBanner />
         {mode === "local" && isOffline() && (
           <div data-testid="offline" className="flex items-center gap-2 text-xs text-red-800 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
             <span>連唔到網絡，而家睇唔到附近嘅 post，亦放唔到嘢出去。</span>
