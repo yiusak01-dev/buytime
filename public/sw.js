@@ -15,6 +15,8 @@ self.addEventListener('push', (event) => {
     (async () => {
       // 用家正望住 app：app 入面會自己彈提示，唔使再彈系統通知
       const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      // 叫開住嘅 app 即刻拎新資料
+      wins.forEach((w) => w.postMessage({ type: 'aah:push' }));
       if (wins.some((w) => w.visibilityState === 'visible' && w.focused)) return;
       await self.registration.showNotification(title, {
         body: data.body || '',

@@ -41,7 +41,12 @@ export async function initNative(go: (path: string) => void) {
     // 撳推送通知：跳去通知講嘅嗰版（只接受 app 入面嘅路徑）
     if (Capacitor.isPluginAvailable("PushNotifications")) {
       const { PushNotifications } = await import("@capacitor/push-notifications");
+      // app 開住收到通知：即刻拎新資料（唔使等，亦唔使退出再入）
+      void PushNotifications.addListener("pushNotificationReceived", () => {
+        window.dispatchEvent(new Event("aah:resume"));
+      });
       void PushNotifications.addListener("pushNotificationActionPerformed", (a) => {
+        window.dispatchEvent(new Event("aah:resume"));
         const url = (a.notification?.data as { url?: unknown } | undefined)?.url;
         if (typeof url === "string" && url.startsWith("/") && !url.startsWith("//")) go(url);
       });

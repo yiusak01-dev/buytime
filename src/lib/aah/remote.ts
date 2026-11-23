@@ -394,6 +394,10 @@ export function createRemote(host: Host) {
       window.addEventListener("pageshow", resume);
       // iPhone／Android app 由背景返嚟（native.ts 發出）
       window.addEventListener("aah:resume", resume);
+      // 網頁版：service worker 收到推送就叫一聲
+      navigator.serviceWorker?.addEventListener?.("message", (e: MessageEvent) => {
+        if (e.data?.type === "aah:push") resume();
+      });
     }
   }
 
