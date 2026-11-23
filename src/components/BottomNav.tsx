@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useAahState } from "@/lib/aah/store";
 import { MUTED, VERBS } from "@/lib/aah/theme";
 
-/** 唔係搵／放兩頁時用（例如「我的」）：同頂部兩個分頁一樣，加「我的」 */
+/** 搵、放、我的三個主畫面共用嘅底部列：每頁位置一樣 */
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { matches, user } = useAahState();

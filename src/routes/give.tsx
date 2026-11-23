@@ -126,7 +126,7 @@ function Give() {
   };
 
   return (
-    <AppLayout hideNav tint={VERBS.give.page}>
+    <AppLayout tint={VERBS.give.page}>
       <TabHeader active="give" />
       <div className="px-4 space-y-3">
         {demand && (

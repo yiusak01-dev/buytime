@@ -175,7 +175,7 @@ function Home() {
     });
 
   return (
-    <AppLayout hideNav tint={VERBS.find.page}>
+    <AppLayout tint={VERBS.find.page}>
       <TabHeader active="find" />
 
       <div className="px-4 space-y-3">

@@ -1,6 +1,6 @@
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { ChevronDown, UserRound } from "lucide-react";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { LiveDot } from "./CatIcon";
 import { MallPicker } from "./MallPicker";
 import { RegisterSheet } from "./RegisterSheet";
@@ -9,11 +9,12 @@ import { aah, useAahState } from "@/lib/aah/store";
 import { useAahMalls } from "@/lib/aah/malls";
 import { useCurrentMall, useViewMall } from "@/lib/aah/geo";
 import { useLivePeople } from "@/lib/aah/live";
-import { MUTED, VERBS, type Verb } from "@/lib/aah/theme";
+import { VERBS, type Verb } from "@/lib/aah/theme";
 
-/** 搵／放兩個版面共用嘅頭：商場掣（即時人數）、登入／我的、兩個切換掣；第一次開先出新手教學 */
+/** 搵／放兩個版面共用嘅頭：商場掣（即時人數）、未登入就出登入掣；切換頁面用底部列（每頁一樣）；第一次開先出新手教學 */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function TabHeader({ active }: { active: Verb }) {
-  const { user, matches } = useAahState();
+  const { user } = useAahState();
   const { malls } = useAahMalls();
   const current = useCurrentMall(malls);
   const view = useViewMall(malls);
@@ -27,13 +28,6 @@ export function TabHeader({ active }: { active: Verb }) {
   const [howSeen, setHowSeen] = useState(readHowSeen);
   const showHow = replay || (!howSeen && !user.onboarded);
 
-  const hasActive = useMemo(
-    () =>
-      matches.some(
-        (m) => m.status === "active" && m.participants.some((p) => p.userId === user.id),
-      ),
-    [matches, user.id],
-  );
   const n = live.at(view.mall?.id);
   const label = view.mall
     ? `${view.mall.name}${n ? ` ${n} 人喺度` : ""}`
@@ -55,18 +49,7 @@ export function TabHeader({ active }: { active: Verb }) {
             <span className="truncate max-w-[10rem]">{label}</span>
             <ChevronDown className="w-3.5 h-3.5 shrink-0" />
           </button>
-          {user.registered ? (
-            <Link
-              to="/me"
-              aria-label={hasActive ? "我的，有進行中嘅配對" : "我的"}
-              className="relative w-10 h-10 rounded-full bg-card shadow-[0_4px_12px_rgba(80,40,20,0.08)] grid place-items-center shrink-0"
-            >
-              <UserRound className="w-5 h-5" />
-              {hasActive && (
-                <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-[#9A3B0E] ring-2 ring-card" />
-              )}
-            </Link>
-          ) : (
+          {!user.registered && (
             <button
               type="button"
               onClick={() => setRegOpen(true)}
@@ -78,27 +61,6 @@ export function TabHeader({ active }: { active: Verb }) {
           )}
         </div>
       </div>
-
-      <nav
-        aria-label="搵放"
-        className="grid grid-cols-2 gap-1.5 bg-card rounded-3xl p-1.5 shadow-[var(--shadow-card)]"
-      >
-        {(["find", "give"] as Verb[]).map((v) => {
-          const s = VERBS[v];
-          const on = v === active;
-          return (
-            <Link
-              key={v}
-              to={s.to}
-              aria-current={on ? "page" : undefined}
-              className="rounded-[18px] py-2 flex flex-col items-center"
-              style={on ? { background: s.soft, color: s.text } : { color: MUTED }}
-            >
-              <span className="text-[24px] font-black leading-tight">{s.word}</span>
-            </Link>
-          );
-        })}
-      </nav>
 
       <MallPicker
         open={pickerOpen}
