@@ -4,7 +4,7 @@ import type { AahMall, Interest, Match, Message, Outfit, Post, User } from "./ty
 import { SCENARIOS } from "./scenarios";
 import { quoteParkingReceipt } from "./pricing";
 import { POINTS, canEarnPoints } from "./points";
-import { cancelIsLate } from "./enroute";
+import { cancelIsLate, sortInterests } from "./enroute";
 import { nicknameProblem, nextNicknameChangeAt } from "./nickname";
 import { DEFAULT_RULES, dailyLimitMessage, priceCheck, type Rules } from "./rules";
 import {
@@ -467,8 +467,9 @@ const local = {
       patchPost(postId, (x) => ({ ...x, interests: [...x.interests, it] }));
     }
     const fresh = state.posts.find((x) => x.id === postId)!;
-    // 自動配對只揀已喺場嘅人
-    if (fresh.autoAccept && !existing && !enRoute) {
+    // 自動配對只揀已喺場、照原價嘅人（出低價嘅留返俾放單嘅人揀）
+    const fullPrice = offer == null || fresh.price == null || offer >= fresh.price;
+    if (fresh.autoAccept && !existing && !enRoute && fullPrice) {
       return local.acceptInterest(postId, me.id);
     }
     // 示範：其他用戶嘅 post，賣家一陣就會覆
@@ -503,6 +504,18 @@ const local = {
       }, 1800);
     }
     return undefined;
+  },
+
+  /** 放咗之後開／閂自動配對；開嗰陣已經有人喺場等緊（照原價），即刻配對最早嗰個 */
+  setAutoAccept(postId: string, on: boolean): string | undefined {
+    const p = state.posts.find((x) => x.id === postId);
+    if (!p || p.status !== "open") return;
+    patchPost(postId, (x) => ({ ...x, autoAccept: on }));
+    if (!on) return;
+    const first = sortInterests(p.interests.filter((i) => i.status === "pending")).find(
+      (i) => !i.enRoute && (i.offer == null || p.price == null || i.offer >= p.price),
+    );
+    return first ? local.acceptInterest(postId, first.userId) : undefined;
   },
 
   /** 賣家喺「有興趣」名單揀人 */
@@ -1321,6 +1334,17 @@ export const aah = {
   },
   async declineInterest(postId: string, userId: string) {
     return isRemote() ? R().declineInterest(postId, userId) : local.declineInterest(postId, userId);
+  },
+  async setAutoAccept(postId: string, on: boolean): Promise<string | undefined> {
+    return isRemote() ? R().setAutoAccept(postId, on) : local.setAutoAccept(postId, on);
+  },
+  /** 等緊嘅人：前面仲有幾多人（同放單嗰邊見到嘅次序一樣） */
+  async queuePosition(postId: string): Promise<{ ahead: number; total: number } | null> {
+    if (isRemote()) return R().queuePosition(postId);
+    const p = state.posts.find((x) => x.id === postId);
+    const list = sortInterests((p?.interests ?? []).filter((i) => i.status === "pending"));
+    const idx = list.findIndex((i) => i.userId === state.user.id);
+    return idx < 0 ? null : { ahead: idx, total: list.length };
   },
 
   async confirmMeet(matchId: string) {

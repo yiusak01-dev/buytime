@@ -27,6 +27,7 @@ import {
   PIN_PROMPT_AFTER_MIN,
 } from "@/lib/aah/store";
 import { useAahMalls, nearbyMalls, demoAudience } from "@/lib/aah/malls";
+import { Switch } from "@/components/ui/switch";
 import { useDocVisible } from "@/lib/aah/visible";
 import { useCurrentMall, useNow, fmtClock, fmtLeft, fmtAgo, useGeo, geoStore } from "@/lib/aah/geo";
 import { distanceM } from "@/lib/aah/malls";
@@ -268,6 +269,21 @@ function PostDetailView({ post }: { post: Post }) {
     markedRef.current = k;
     aah.markRead("interest", mine.id);
   }, [visible, mine?.id, mine?.status, lastFromAuthor?.at, mine?.buyerReadAt]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 排第幾：每 10 秒問一次（睇唔到其他人嘅興趣，要問伺服器）
+  const [queue, setQueue] = useState<{ ahead: number; total: number } | null>(null);
+  const pendingMine = mine?.status === "pending";
+  useEffect(() => {
+    if (!pendingMine || !visible) return;
+    let alive = true;
+    const load = () => void aah.queuePosition(post.id).then((q) => alive && setQueue(q));
+    load();
+    const t = setInterval(load, 10000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, [post.id, pendingMine, visible, mine?.messages.length]);
 
   // 對方揀咗你 → 去配對畫面
   useEffect(() => {
@@ -543,8 +559,15 @@ function PostDetailView({ post }: { post: Post }) {
                 const seen = !!last && last.from === user.id && (mine.authorReadAt ?? 0) >= last.at;
                 return (
                   <>
-                    <div className="text-xs text-muted-foreground text-center pt-1">
+                    <div className="text-xs text-muted-foreground text-center pt-1" data-testid="queue">
                       {seen ? "對方睇咗，等緊佢覆…" : "等緊對方覆…"}
+                      {queue && queue.total > 1 && (
+                        <span className="block mt-0.5 font-semibold text-foreground">
+                          {queue.ahead === 0
+                            ? `你排第一（一共 ${queue.total} 個人有興趣）`
+                            : `前面仲有 ${queue.ahead} 個人（一共 ${queue.total} 個），放單嘅人會揀`}
+                        </span>
+                      )}
                     </div>
                   </>
                 );
@@ -945,10 +968,24 @@ function MyPostView({ post }: { post: Post }) {
           <section className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="font-bold">有興趣嘅人（{pending.length}）</div>
-              {post.autoAccept && (
-                <span className="text-[11px] text-muted-foreground">第一個喺場嘅人會自動配對</span>
-              )}
             </div>
+            {/* 唔得閒望住部機：開咗就自動俾第一個喺場、照原價嘅人 */}
+            <label className="flex items-center justify-between gap-3 bg-card rounded-2xl px-4 py-3" data-testid="auto-accept">
+              <div>
+                <div className="font-semibold text-sm">自動配對</div>
+                <div className="text-xs text-muted-foreground">
+                  {post.autoAccept
+                    ? `開咗：第一個喺場、照原價${post.price ? `（$${post.price}）` : ""}嘅人會即刻配對，唔使你揀`
+                    : "唔得閒望住部機？開咗就自動俾第一個喺場、照原價嘅人"}
+                </div>
+              </div>
+              <Switch
+                checked={!!post.autoAccept}
+                onCheckedChange={(on) =>
+                  void act(aah.setAutoAccept(post.id, on), on ? "開咗自動配對" : "閂咗自動配對")
+                }
+              />
+            </label>
             {pending.length > 1 && (
               <div className="text-[11px] text-muted-foreground">
                 已喺場嘅排前；去緊嘅按邊個快到排。⭐

@@ -422,6 +422,16 @@ export function createRemote(host: Host) {
     watch,
     resume,
 
+    async setAutoAccept(postId: string, on: boolean): Promise<string | undefined> {
+      return (await rpc("aah_set_auto_accept", { p_post: postId, p_on: on })) ?? undefined;
+    },
+
+    async queuePosition(postId: string): Promise<{ ahead: number; total: number } | null> {
+      const { data, error } = await sb().rpc("aah_queue_position", { p_post: postId });
+      if (error || !data) return null;
+      return { ahead: Number(data.ahead) || 0, total: Number(data.total) || 0 };
+    },
+
     /** 已讀：唔使等同步，realtime／指紋會帶返新狀態俾對方 */
     async markRead(kind: "match" | "interest", id: string) {
       if (!uid) return;

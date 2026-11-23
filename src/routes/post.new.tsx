@@ -1274,10 +1274,9 @@ function NewPost() {
 
                     <label className="flex items-center justify-between gap-3">
                       <div>
-                        <div className="font-semibold text-sm">第一個有興趣嘅自動配對</div>
+                        <div className="font-semibold text-sm">自動配對</div>
                         <div className="text-xs text-muted-foreground">
-                          想快就開；唔開就由你喺名單揀人
-                          {s.id !== "groupbuy" && acceptEnRoute ? "。只會自動揀已喺場嘅人" : ""}
+                          唔得閒望住部機就開：第一個喺場、照原價嘅人會即刻配對；出低價嘅留返俾你揀。放咗之後都可以開／閂
                         </div>
                       </div>
                       <Switch checked={autoAccept} onCheckedChange={setAutoAccept} />
