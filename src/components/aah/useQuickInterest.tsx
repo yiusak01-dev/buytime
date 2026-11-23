@@ -7,6 +7,7 @@ import { useAahMalls } from "@/lib/aah/malls";
 import { useCurrentMall } from "@/lib/aah/geo";
 import { actWord, canActOn } from "@/lib/aah/act";
 import type { Post } from "@/lib/aah/types";
+import { done } from "@/lib/aah/notify";
 
 /**
  * 列表直接撳「有興趣／我夾」：
@@ -44,10 +45,10 @@ export function useQuickInterest() {
         current.verified ? { onSite: true } : undefined,
       );
       if (matchId) {
-        toast.success("配對成功！");
+        done("配對成功！");
         navigate({ to: "/match/$matchId", params: { matchId } });
       } else {
-        toast.success("已話佢知", { description: "佢一應你就會通知你", duration: 2000 });
+        done("已話佢知", "佢一應你就會通知你");
       }
     } catch (e) {
       toast.error(aahErrorText(e));

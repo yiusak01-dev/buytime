@@ -29,6 +29,7 @@ import {
 import { useAahMalls, nearbyMalls, demoAudience } from "@/lib/aah/malls";
 import { Switch } from "@/components/ui/switch";
 import { useDocVisible } from "@/lib/aah/visible";
+import { done } from "@/lib/aah/notify";
 import { useCurrentMall, useNow, fmtClock, fmtLeft, fmtAgo, useGeo, geoStore } from "@/lib/aah/geo";
 import { distanceM } from "@/lib/aah/malls";
 import {
@@ -288,7 +289,7 @@ function PostDetailView({ post }: { post: Post }) {
   // 對方揀咗你 → 去配對畫面
   useEffect(() => {
     if (mine?.status === "accepted" && post.matchId) {
-      toast.success("配對成功！");
+      done("配對成功！");
       navigate({ to: "/match/$matchId", params: { matchId: post.matchId } });
     }
   }, [mine?.status, post.matchId, navigate]);
@@ -344,7 +345,7 @@ function PostDetailView({ post }: { post: Post }) {
     try {
       const matchId = await aah.expressInterest(post.id, text, off, opts);
       if (matchId) {
-        toast.success("配對成功！");
+        done("配對成功！");
         navigate({ to: "/match/$matchId", params: { matchId } });
       }
     } catch (e) {
@@ -824,7 +825,7 @@ function MyPostView({ post }: { post: Post }) {
   async function act(p: Promise<unknown>, ok?: string) {
     try {
       await p;
-      if (ok) toast(ok);
+      if (ok) done(ok);
     } catch (e) {
       toast.error(aahErrorText(e));
     }

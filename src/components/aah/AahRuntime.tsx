@@ -7,6 +7,7 @@ import { useAahMalls, nearbyMalls } from "@/lib/aah/malls";
 import { useAutoStartGeo, useCurrentMall, useGeo, useNow } from "@/lib/aah/geo";
 import { syncPush } from "@/lib/aah/push";
 import { buzz } from "@/lib/aah/buzz";
+import { done, notify } from "@/lib/aah/notify";
 
 const MIN = 60000;
 
@@ -52,67 +53,7 @@ export function AahRuntime() {
   const leftSince = useRef<number | null>(null);
   const leaveWarned = useRef(false);
 
-  // 雲端模式：開住 app 嘅時候，有新興趣、配對、訊息即時彈提示（原生 app 未接推送都唔會錯過）
-  const seen = useRef({
-    ready: false,
-    interests: new Set<string>(),
-    imsgs: new Map<string, number>(),
-    matches: new Map<string, string>(),
-    mmsgs: new Map<string, number>(),
-  });
-  useEffect(() => {
-    const t = setTimeout(() => (seen.current.ready = true), 4000);
-    return () => clearTimeout(t);
-  }, []);
-  useEffect(() => {
-    if (mode !== "remote" || !user.registered) return;
-    const s = seen.current;
-    const alerts: (() => void)[] = [];
-    const goPost = (postId: string) => () => navigate({ to: "/post/$postId", params: { postId } });
-    const goMatch = (matchId: string) => () => navigate({ to: "/match/$matchId", params: { matchId } });
-    for (const p of posts) {
-      const iAmAuthor = p.authorId === user.id;
-      const onPage = pathname === `/post/${p.id}`;
-      for (const it of p.interests) {
-        if (!iAmAuthor && it.userId !== user.id) continue;
-        const key = `${p.id}:${it.userId}`;
-        if (iAmAuthor && it.status === "pending" && !s.interests.has(key)) {
-          s.interests.add(key);
-          if (s.ready && !onPage)
-            alerts.push(() => toast(`${it.name} 對你嘅 post 有興趣`, { description: `${p.shop}・${p.mallName}`, action: { label: "去睇", onClick: goPost(p.id) } }));
-        }
-        const fromOthers = it.messages.filter((m) => m.from !== user.id);
-        const prev = s.imsgs.get(key);
-        s.imsgs.set(key, fromOthers.length);
-        if (s.ready && prev != null && fromOthers.length > prev && !onPage) {
-          const last = fromOthers[fromOthers.length - 1];
-          const who = iAmAuthor ? it.name : p.authorName;
-          alerts.push(() => toast(`${who}：${last.text}`, { description: p.shop, action: { label: "去睇", onClick: goPost(p.id) } }));
-        }
-      }
-    }
-    for (const m of matches) {
-      if (!m.participants.some((x) => x.userId === user.id)) continue;
-      const onPage = pathname === `/match/${m.id}`;
-      const prevStatus = s.matches.get(m.id);
-      s.matches.set(m.id, m.status);
-      if (s.ready && !onPage) {
-        if (prevStatus == null && m.status === "active" && m.authorId !== user.id)
-          alerts.push(() => toast.success("配對成功！", { description: `${m.shop}・${m.mallName}`, action: { label: "去睇", onClick: goMatch(m.id) } }));
-        else if (prevStatus === "active" && m.status === "cancelled")
-          alerts.push(() => toast("配對已取消", { description: `${m.shop}・${m.mallName}`, action: { label: "去睇", onClick: goMatch(m.id) } }));
-      }
-      const fromOthers = m.messages.filter((x) => x.from !== user.id && x.from !== "system");
-      const prev = s.mmsgs.get(m.id);
-      s.mmsgs.set(m.id, fromOthers.length);
-      if (s.ready && prev != null && fromOthers.length > prev && !onPage && m.status === "active") {
-        const last = fromOthers[fromOthers.length - 1];
-        const who = m.participants.find((x) => x.userId === last.from)?.name ?? "對方";
-        alerts.push(() => toast(`${who}：${last.text}`, { description: m.shop, action: { label: "去睇", onClick: goMatch(m.id) } }));
-      }
-    }
-    alerts.slice(0, 3).forEach((f) => f());
-  }, [posts, matches, mode, user.registered, user.id, pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+  // App 內提示：見下面「App 內提示」（一次只出一個，舊嘅版本會同推送重複彈，已經拎走）
 
   // 我去緊：GPS 確認咗到咗嗰個商場，就自動話對方知（轉做已喺場；自動配對嘅 post 會即刻配對）
   const onSiteTried = useRef<Map<string, number>>(new Map());
@@ -130,10 +71,9 @@ export function AahRuntime() {
         .interestOnSite(p.id, { lat: geo.lat, lng: geo.lng })
         .then((matchId) => {
           if (matchId) {
-            toast.success("配對成功！");
             navigate({ to: "/match/$matchId", params: { matchId } });
           } else {
-            toast("已經話對方知你到咗", { description: `${p.shop}・${m.name}` });
+            done("已經話對方知你到咗", `${p.shop}・${m.name}`);
           }
         })
         .catch(() => {});
@@ -254,10 +194,10 @@ export function AahRuntime() {
       }
       if (first || before !== "active" || m.status !== "cancelled") continue;
       if (!m.participants.some((p) => p.userId === user.id) || !m.cancelledBy || m.cancelledBy === user.id) continue;
-      toast("對方取消咗配對", {
-        description: m.lateCancel && m.arrived[user.id] ? "你已經到咗，已記錄對方臨時取消" : `${m.shop}・${m.mallName}`,
-        action: { label: "睇附近有咩", onClick: () => navigate({ to: "/", search: { cat: m.scenario } }) },
-        duration: 12000,
+      notify("對方取消咗配對，撳睇附近仲有咩", {
+        body: m.lateCancel && m.arrived[user.id] ? "你已經到咗，已記錄對方臨時取消" : `${m.shop}・${m.mallName}`,
+        onOpen: () => navigate({ to: "/", search: { cat: m.scenario } }),
+        duration: 10000,
       });
     }
     prevStatus.current = map;
@@ -278,10 +218,9 @@ export function AahRuntime() {
         void buzz();
         if (pathname === `/post/${p.id}`) continue;
         const last = i.messages[i.messages.length - 1]?.text;
-        toast(`${i.name} 對你個 post 有興趣`, {
-          description: last ? `${p.shop}・「${last}」` : p.shop,
-          action: { label: "睇吓", onClick: () => navigate({ to: "/post/$postId", params: { postId: p.id } }) },
-          duration: 12000,
+        notify(`${i.name} 對你個 post 有興趣`, {
+          body: last ? `${p.shop}・「${last}」` : p.shop,
+          onOpen: () => navigate({ to: "/post/$postId", params: { postId: p.id } }),
         });
       }
     }
@@ -304,10 +243,9 @@ export function AahRuntime() {
         void buzz();
         if (pathname === `/post/${p.id}`) continue;
         const name = mineAuthor ? i.name : p.authorName || "對方";
-        toast(`${name}：${last.text}`, {
-          description: p.shop,
-          action: { label: "睇吓", onClick: () => navigate({ to: "/post/$postId", params: { postId: p.id } }) },
-          duration: 10000,
+        notify(`${name}：${last.text}`, {
+          body: p.shop,
+          onOpen: () => navigate({ to: "/post/$postId", params: { postId: p.id } }),
         });
       }
     }
@@ -323,10 +261,11 @@ export function AahRuntime() {
         alerted.current.add(k);
         // 喺 post 頁面嘅話嗰版會自己跳去配對
         if (!onMatch && pathname !== `/post/${m.postId}`) {
-          toast.success("配對成功！", {
-            description: `${m.shop}・${m.mallName}，去確認見面地點`,
-            action: { label: "去配對", onClick: () => navigate({ to: "/match/$matchId", params: { matchId: m.id } }) },
-            duration: 15000,
+          void buzz();
+          notify("配對成功！撳入去確認見面地點", {
+            body: `${m.shop}・${m.mallName}`,
+            onOpen: () => navigate({ to: "/match/$matchId", params: { matchId: m.id } }),
+            duration: 10000,
           });
         }
       }
@@ -338,10 +277,9 @@ export function AahRuntime() {
       void buzz();
       if (onMatch) continue;
       const name = m.participants.find((p) => p.userId === last.from)?.name ?? "對方";
-      toast(`${name}：${last.text}`, {
-        description: `${m.shop}・${m.mallName}`,
-        action: { label: "睇吓", onClick: () => navigate({ to: "/match/$matchId", params: { matchId: m.id } }) },
-        duration: 10000,
+      notify(`${name}：${last.text}`, {
+        body: `${m.shop}・${m.mallName}`,
+        onOpen: () => navigate({ to: "/match/$matchId", params: { matchId: m.id } }),
       });
     }
   }, [matches, user.id, user.registered, pathname, navigate]); // eslint-disable-line react-hooks/exhaustive-deps

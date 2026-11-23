@@ -127,7 +127,15 @@ function RootComponent() {
       <Outlet />
       <AahRuntime />
       <SplashScreen />
-      <Toaster position="top-center" richColors />
+      {/* 提示放喺標題列下面（唔遮「返上一頁」）；一次最多兩個，可以掃走 */}
+      <Toaster
+        position="top-center"
+        richColors
+        visibleToasts={2}
+        duration={2500}
+        offset={{ top: 88 }}
+        mobileOffset={{ top: "calc(env(safe-area-inset-top, 0px) + 82px)" }}
+      />
     </QueryClientProvider>
   );
 }

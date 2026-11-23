@@ -18,6 +18,7 @@ import {
 import { geoStore } from "@/lib/aah/geo";
 import { useAahMalls } from "@/lib/aah/malls";
 import { useDocVisible } from "@/lib/aah/visible";
+import { done } from "@/lib/aah/notify";
 import { useCurrentMall, useNow, fmtClock, fmtLeft } from "@/lib/aah/geo";
 import { LATE_GRACE_MIN, CANCEL_GRACE_MIN, cancelIsLate } from "@/lib/aah/enroute";
 import { SCENARIOS, payLabel, authorRole } from "@/lib/aah/scenarios";
@@ -173,7 +174,7 @@ function MatchPage() {
   async function act(p: Promise<unknown>, ok?: string) {
     try {
       await p;
-      if (ok) toast.success(ok);
+      if (ok) done(ok);
     } catch (e) {
       toast.error(aahErrorText(e));
     }
@@ -191,8 +192,8 @@ function MatchPage() {
       });
       if (r === "completed") toast.success("見到面喇！已完成");
       else if (r === "all_arrived")
-        toast.success("兩位都到咗", { description: "交收完成之後撳「交收完成」" });
-      else toast("已通知對方你到咗", { description: "喺對話講吓你喺邊、著咩，方便對方搵你" });
+        done("兩位都到咗", "交收完成之後撳「交收完成」");
+      else done("已通知對方你到咗", "喺對話講吓你喺邊、著咩，方便對方搵你");
     } catch (e) {
       toast.error(aahErrorText(e));
     }
@@ -679,7 +680,7 @@ function MatchPage() {
                         return;
                       }
                       setConfirmDone(false);
-                      void act(aah.completeHandover(m.id), "完成！多謝你哋互相幫忙");
+                      void act(aah.completeHandover(m.id));
                     }}
                     className={cn(
                       "flex-1 h-14 rounded-2xl text-white font-black shadow-lg",
@@ -737,7 +738,7 @@ function MatchPage() {
           <button
             onClick={() => {
               setWarnOpen(false);
-              void act(aah.confirmMeet(m.id), "已確認見面");
+              void act(aah.confirmMeet(m.id));
             }}
             className="w-full h-12 rounded-2xl bg-[#1a1a1a] text-white font-bold"
           >

@@ -18,9 +18,9 @@ const config: CapacitorConfig = {
     allowMixedContent: false,
   },
   plugins: {
-    // 用緊 app 嗰陣都彈通知
+    // 用緊 app 嗰陣：唔彈系統橫額（會遮住頂部「返上一頁」），改由 app 自己喺標題下面出一張撳得嘅卡；聲照響
     PushNotifications: {
-      presentationOptions: ["badge", "sound", "alert"],
+      presentationOptions: ["badge", "sound"],
     },
     SplashScreen: {
       launchShowDuration: 600,
@@ -35,7 +35,7 @@ const config: CapacitorConfig = {
       overlaysWebView: false,
     },
     FirebaseMessaging: {
-      presentationOptions: ["badge", "sound", "alert"],
+      presentationOptions: ["badge", "sound"],
     },
   },
 };
