@@ -98,12 +98,10 @@ function MatchPage() {
     markedRef.current = lastOther.id;
     aah.markRead("match", m.id);
   }, [m?.id, m?.status, lastOther?.id, lastOther?.at, myRead, visible]); // eslint-disable-line react-hooks/exhaustive-deps
-  const lastMsg = m?.messages.filter((x) => x.from !== "system").at(-1);
-  const seenMine =
+  // 對方（全部人）睇過呢個時間之前嘅訊息未
+  const readByAll = (at: number) =>
     !!m?.readAt &&
-    !!lastMsg &&
-    lastMsg.from === user.id &&
-    m.participants.filter((p) => p.userId !== user.id).every((p) => (m.readAt?.[p.userId] ?? 0) >= lastMsg.at);
+    m.participants.filter((p) => p.userId !== user.id).every((p) => (m.readAt?.[p.userId] ?? 0) >= at);
 
   const others = useMemo(
     () => (m ? m.participants.filter((p) => p.userId !== user.id) : []),
@@ -574,8 +572,14 @@ function MatchPage() {
             ) : (
               <div
                 key={msg.id}
-                className={cn("flex", msg.from === user.id ? "justify-end" : "justify-start")}
+                className={cn("flex items-end gap-1.5", msg.from === user.id ? "justify-end" : "justify-start")}
               >
+                {/* 已讀：好似 LINE 咁，自己每句旁邊細細隻字 */}
+                {msg.from === user.id && readByAll(msg.at) && (
+                  <span className="text-[10px] text-muted-foreground shrink-0 pb-0.5" data-testid="read-mark">
+                    已讀
+                  </span>
+                )}
                 <div
                   className={cn(
                     "px-3 py-2 rounded-2xl text-sm max-w-[78%]",
@@ -593,11 +597,6 @@ function MatchPage() {
                 </div>
               </div>
             ),
-          )}
-          {seenMine && (
-            <div className="text-right text-[10px] text-muted-foreground -mt-1 pr-1" data-testid="read-mark">
-              已讀
-            </div>
           )}
           {/* scroll-mb：捲落嚟時唔好俾底部嗰排掣遮住 */}
           <div ref={bottomRef} className="scroll-mb-52" />

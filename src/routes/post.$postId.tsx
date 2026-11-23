@@ -520,8 +520,13 @@ function PostDetailView({ post }: { post: Post }) {
             {mine.messages.map((m, i) => (
               <div
                 key={i}
-                className={cn("flex", m.from === user.id ? "justify-end" : "justify-start")}
+                className={cn("flex items-end gap-1.5", m.from === user.id ? "justify-end" : "justify-start")}
               >
+                {m.from === user.id && (mine.authorReadAt ?? 0) >= m.at && (
+                  <span className="text-[10px] text-muted-foreground shrink-0 pb-0.5" data-testid="read-mark">
+                    已讀
+                  </span>
+                )}
                 <div
                   className={cn(
                     "px-3 py-2 rounded-2xl text-sm max-w-[80%]",
@@ -538,11 +543,6 @@ function PostDetailView({ post }: { post: Post }) {
                 const seen = !!last && last.from === user.id && (mine.authorReadAt ?? 0) >= last.at;
                 return (
                   <>
-                    {seen && (
-                      <div className="text-right text-[10px] text-muted-foreground -mt-1 pr-1" data-testid="read-mark">
-                        已讀
-                      </div>
-                    )}
                     <div className="text-xs text-muted-foreground text-center pt-1">
                       {seen ? "對方睇咗，等緊佢覆…" : "等緊對方覆…"}
                     </div>
