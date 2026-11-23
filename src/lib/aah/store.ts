@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import type { AahMall, Interest, Match, Message, Outfit, Post, User } from "./types";
 import { SCENARIOS } from "./scenarios";
 import { quoteParkingReceipt } from "./pricing";
@@ -1488,6 +1488,18 @@ function localBlock(userId: string) {
     posts: state.posts.filter((p) => !(p.authorId === userId && p.status === "open")),
   };
   listeners.forEach((l) => l());
+}
+
+/**
+ * 開住傾偈／等回覆嘅畫面就叫呢個：每 3 秒輕輕查一次有冇新訊息或者狀態變咗，
+ * 唔使等 realtime（iPhone app 入面 realtime 有時會靜靜雞斷咗）。
+ */
+export function useAahLive(kind: "match" | "post", id: string | undefined, enabled: boolean) {
+  const m = useAahMode();
+  useEffect(() => {
+    if (!enabled || !id || m !== "remote" || !remote) return;
+    return remote.watch(kind, id);
+  }, [kind, id, enabled, m]);
 }
 
 export function useAahState() {

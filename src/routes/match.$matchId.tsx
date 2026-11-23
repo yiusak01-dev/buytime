@@ -8,6 +8,7 @@ import { BottomSheet, Chip, DemoBadge, ScenarioTag } from "@/components/aah/ui";
 import {
   aah,
   aahErrorText,
+  useAahLive,
   useAahMode,
   useAahState,
   CHAT_CLOSE_AFTER_MIN,
@@ -44,6 +45,8 @@ function MatchPage() {
   const current = useCurrentMall(malls);
   const now = useNow(5000);
   const m = matches.find((x) => x.id === matchId);
+  // 開住配對畫面：對方傳訊息／撳「我到咗」即刻見到
+  useAahLive("match", matchId, !m || m.status === "active");
   // 標題講清楚係咩（例如「可換 3 個鐘泊車」），唔好淨係寫「停車場」
   const matchPost = m ? posts.find((p) => p.id === m.postId) : undefined;
   const matchTitle = matchPost

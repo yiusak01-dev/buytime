@@ -26,6 +26,12 @@ export async function initNative(go: (path: string) => void) {
     await StatusBar.setBackgroundColor({ color: "#FFFFFF" }).catch(() => {});
     await SplashScreen.hide().catch(() => {});
 
+    // 由背景返嚟：即刻同步（iPhone 有時唔會發 visibilitychange）
+    void App.addListener("resume", () => window.dispatchEvent(new Event("aah:resume")));
+    void App.addListener("appStateChange", ({ isActive }) => {
+      if (isActive) window.dispatchEvent(new Event("aah:resume"));
+    });
+
     // Android 返回掣：有上一版就返上一版，冇就收埋 app
     void App.addListener("backButton", ({ canGoBack }) => {
       if (canGoBack) window.history.back();

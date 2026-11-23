@@ -16,6 +16,7 @@ import {
   getRules,
   pinIsFree,
   testLocationAllowed,
+  useAahLive,
   useAahMode,
   useAahState,
   isBanned,
@@ -55,6 +56,8 @@ function PostPage() {
   const { postId } = Route.useParams();
   const { posts, user } = useAahState();
   const post = posts.find((p) => p.id === postId);
+  // 開住 post：有人有興趣、對方覆訊息、揀咗你，都即刻見到
+  useAahLive("post", postId, !post || post.status === "open");
 
   useEffect(() => {
     if (post) aah.viewPost(post.id);

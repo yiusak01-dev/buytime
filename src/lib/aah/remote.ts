@@ -275,6 +275,94 @@ export function createRemote(host: Host) {
     });
   }
 
+  /* ---------- 傾偈畫面「即時」：開住對話就每 3 秒輕輕問一次有冇新嘢 ----------
+   * realtime 喺 iPhone app 入面唔穩定（退去背景、轉網絡之後條 socket 會靜靜雞斷咗，
+   * 要等成 20 秒後備同步先見到新訊息）。開住傾偈畫面嗰陣，淨係攞「訊息數目＋狀態」
+   * 呢個好細嘅指紋，變咗先做一次完整同步。 */
+  type WatchKey = string; // "match:<id>" 或 "post:<id>"
+  const watches = new Map<WatchKey, { n: number; fp?: string }>();
+  let watchTimer: ReturnType<typeof setInterval> | null = null;
+  let watchBusy = false;
+
+  async function fingerprint(key: WatchKey): Promise<string | undefined> {
+    const [kind, id] = key.split(":");
+    if (kind === "match") {
+      const { data, error } = await sb()
+        .from("aah_matches")
+        .select("status, parts:aah_match_participants(*), msgs:aah_messages(count)")
+        .eq("id", id)
+        .maybeSingle();
+      return error ? undefined : JSON.stringify(data);
+    }
+    const { data, error } = await sb()
+      .from("aah_posts")
+      .select("status, match_id, interests:aah_interests(id, status, msgs:aah_interest_messages(count))")
+      .eq("id", id)
+      .maybeSingle();
+    if (error || !data) return error ? undefined : "none";
+    const ints = [...((data as any).interests ?? [])].sort((a: any, b: any) => String(a.id).localeCompare(String(b.id)));
+    return JSON.stringify({ ...(data as any), interests: ints });
+  }
+
+  async function pollWatches() {
+    if (watchBusy || !uid || !watches.size) return;
+    if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+    watchBusy = true;
+    try {
+      let changed = false;
+      await Promise.all(
+        [...watches.entries()].map(async ([key, w]) => {
+          const fp = await fingerprint(key).catch(() => undefined);
+          if (fp === undefined) return;
+          if (w.fp !== undefined && w.fp !== fp) changed = true;
+          w.fp = fp;
+        }),
+      );
+      if (changed) await refresh();
+    } finally {
+      watchBusy = false;
+    }
+  }
+
+  function watch(kind: "match" | "post", id: string) {
+    const key = `${kind}:${id}`;
+    const w = watches.get(key);
+    if (w) w.n++;
+    else {
+      watches.set(key, { n: 1 });
+      // 打開畫面嗰刻同步一次，之後就靠指紋
+      scheduleRefresh();
+    }
+    if (!watchTimer) watchTimer = setInterval(() => void pollWatches(), 3000);
+    return () => {
+      const cur = watches.get(key);
+      if (!cur) return;
+      if (--cur.n <= 0) watches.delete(key);
+      if (!watches.size && watchTimer) {
+        clearInterval(watchTimer);
+        watchTimer = null;
+      }
+    };
+  }
+
+  /** 由背景返嚟／網絡返咗：即刻同步，並重新接 realtime（舊 socket 可能已經死咗） */
+  let lastResume = 0;
+  function resume() {
+    if (Date.now() - lastResume < 1500) return;
+    lastResume = Date.now();
+    void refresh();
+    try {
+      const rt = (sb() as any).realtime;
+      if (rt && typeof rt.isConnected === "function" && !rt.isConnected()) rt.connect();
+    } catch {
+      /* 唔緊要，後備同步會補 */
+    }
+    // 強制重新訂閱一次：channel 可能停咗喺「以為連住」嘅狀態
+    channelUid = undefined;
+    subscribe();
+    void pollWatches();
+  }
+
   async function start() {
     await refresh();
     subscribe();
@@ -287,14 +375,25 @@ export function createRemote(host: Host) {
     // 後備同步：realtime 正常就每 20 秒一次；realtime 斷咗就每 5 秒一次
     setInterval(() => {
       if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
-      const every = realtimeOk ? 20000 : 5000;
+      // 有進行中嘅配對／等緊對方回覆：唔好等成 20 秒
+      const st = host.get();
+      const busy =
+        st.matches.some((m) => m.status === "active") ||
+        st.posts.some((p) => p.status === "open" && (p.authorId === uid ? p.interests.some((i) => i.status === "pending") : p.interests.some((i) => i.userId === uid && i.status === "pending")));
+      const every = realtimeOk ? (busy ? 8000 : 20000) : 5000;
       if (Date.now() - lastRefresh >= every - 500) void refresh();
     }, 5000);
     // 由背景返嚟即刻同步一次
     if (typeof document !== "undefined") {
       document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") void refresh();
+        if (document.visibilityState === "visible") resume();
       });
+    }
+    if (typeof window !== "undefined") {
+      window.addEventListener("online", resume);
+      window.addEventListener("pageshow", resume);
+      // iPhone／Android app 由背景返嚟（native.ts 發出）
+      window.addEventListener("aah:resume", resume);
     }
   }
 
@@ -316,6 +415,8 @@ export function createRemote(host: Host) {
   return {
     start,
     refresh,
+    watch,
+    resume,
     get uid() {
       return uid;
     },
