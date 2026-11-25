@@ -20,6 +20,11 @@ on:
         description: 淨係試打包（唔用你嘅鎖匙、唔上載）
         type: boolean
         default: false
+      mac:
+        description: iOS 用邊種 Mac 打包（Apple 晶片嗰種排唔到機就揀 Intel）
+        type: choice
+        options: [macos-15, macos-15-intel]
+        default: macos-15
 
 permissions:
   contents: read
@@ -114,7 +119,7 @@ jobs:
 
   ios:
     if: inputs.platform != 'android'
-    runs-on: macos-15
+    runs-on: ${{ inputs.mac || 'macos-15' }}
     timeout-minutes: 50
     env:
       BUILD_NUMBER: ${{ github.run_number }}
