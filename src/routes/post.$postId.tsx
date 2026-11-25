@@ -717,44 +717,59 @@ function PostDetailView({ post }: { post: Post }) {
             </div>
           ) : (
             <>
-              <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-                <button
-                  onClick={() => send("你仲喺唔喺附近？")}
-                  className="shrink-0 h-10 px-3 rounded-full border border-border bg-card text-sm font-semibold"
-                >
-                  你仲喺唔喺附近？
-                </button>
-                {post.price != null && post.price > 0 && (
-                  <div className="shrink-0 flex items-center gap-1 h-10 pl-1 pr-1 rounded-full border border-border bg-card">
-                    <button
-                      aria-label="減"
-                      onClick={() => setOffer((o) => Math.max(0, o - 5))}
-                      className="w-8 h-8 grid place-items-center rounded-full hover:bg-accent"
-                    >
-                      <Minus className="w-3.5 h-3.5" />
-                    </button>
+              {/* 講價：同放單嗰邊對返——照原價撳「有興趣」；想平啲就喺度出價，對方自己揀（自動配對唔會接講價） */}
+              {post.price != null && post.price > 0 && !mine && (
+                <div className="bg-card rounded-2xl px-3 py-2.5 shadow-sm space-y-1.5" data-testid="offer-box">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold shrink-0">想講價？</span>
+                    <div className="flex items-center gap-1 h-10 px-1 rounded-full border border-border bg-background">
+                      <button
+                        aria-label="減 $5"
+                        onClick={() => setOffer((o) => Math.max(0, o - 5))}
+                        className="w-8 h-8 grid place-items-center rounded-full hover:bg-accent"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="text-sm font-black w-12 text-center">${offer}</span>
+                      <button
+                        aria-label="加 $5"
+                        onClick={() => setOffer((o) => Math.min(post.price ?? o, o + 5))}
+                        className="w-8 h-8 grid place-items-center rounded-full hover:bg-accent"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                     <button
                       onClick={() => send(`$${offer} 得唔得？`, offer)}
-                      className="text-sm font-semibold px-1"
+                      disabled={offer >= (post.price ?? 0)}
+                      className="ml-auto shrink-0 h-10 px-3 rounded-full border border-[#1a1a1a] text-sm font-bold disabled:opacity-40"
                     >
-                      ${offer} 得唔得？
-                    </button>
-                    <button
-                      aria-label="加"
-                      onClick={() => setOffer((o) => o + 5)}
-                      className="w-8 h-8 grid place-items-center rounded-full hover:bg-accent"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
+                      問佢得唔得
                     </button>
                   </div>
-                )}
-              </div>
+                  <div className="text-[11px] text-muted-foreground leading-snug">
+                    {post.autoAccept
+                      ? "對方開咗自動配對：照原價撳下面個掣會即刻配對；講價就要等對方自己揀。"
+                      : "照原價就直接撳下面個掣；講價嘅話對方會見到你出幾多，由佢揀。"}
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={() => send("你仲喺唔喺附近？")}
+                className="self-start h-9 px-3 rounded-full border border-border bg-card text-sm font-semibold"
+              >
+                你仲喺唔喺附近？
+              </button>
               <button
                 onClick={() => send(joinWord)}
                 disabled={!!mine}
                 className="w-full h-14 rounded-2xl bg-[#F5C518] text-[#1a1a1a] font-black text-base shadow-lg disabled:opacity-60"
               >
-                {mine ? "已經話咗有興趣" : joinWord}
+                {mine
+                  ? "已經話咗有興趣"
+                  : post.price != null && post.price > 0
+                    ? `${joinWord}（照原價 $${post.price}）`
+                    : joinWord}
               </button>
             </>
           )}
@@ -978,8 +993,8 @@ function MyPostView({ post }: { post: Post }) {
                 <div className="font-semibold text-sm">自動配對</div>
                 <div className="text-xs text-muted-foreground">
                   {post.autoAccept
-                    ? `開咗：第一個喺場、照原價${post.price ? `（$${post.price}）` : ""}嘅人會即刻配對，唔使你揀`
-                    : "唔得閒望住部機？開咗就自動俾第一個喺場、照原價嘅人"}
+                    ? `開咗：第一個喺場、照原價${post.price ? `（$${post.price}）` : ""}嘅人會即刻配對；講價嘅人留喺名單由你揀`
+                    : "唔得閒望住部機？開咗就自動俾第一個喺場、照原價嘅人；講價嘅留返俾你揀"}
                 </div>
               </div>
               <Switch

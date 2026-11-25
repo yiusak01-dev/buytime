@@ -984,6 +984,11 @@ function NewPost() {
                     >
                       <Camera className="w-5 h-5" /> 影單據，自動計晒
                     </button>
+                  ) : null}
+                  {s.id === "parking" && !fields.receiptAmount && !ocrBusy ? (
+                    <div className="text-xs text-muted-foreground mt-1.5">
+                      幾張單加埋先夠數？先影第一張，之後會出「＋ 加多張單」影埋其他。
+                    </div>
                   ) : (
                     <button
                       onClick={() => fileRef.current?.click()}
@@ -1368,7 +1373,7 @@ function NewPost() {
                       <div>
                         <div className="font-semibold text-sm">自動配對</div>
                         <div className="text-xs text-muted-foreground">
-                          唔得閒望住部機就開：第一個喺場、照原價嘅人會即刻配對；出低價嘅留返俾你揀。放咗之後都可以開／閂
+                          唔得閒望住部機就開：第一個喺場、照原價撳「有興趣」嘅人會即刻配對；有人講價（出低過你個價）就唔會自動配對，留返俾你揀。放咗之後都可以開／閂
                         </div>
                       </div>
                       <Switch checked={autoAccept} onCheckedChange={setAutoAccept} />
