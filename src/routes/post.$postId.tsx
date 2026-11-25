@@ -118,11 +118,13 @@ function detailLine(p: Post): string {
     case "parking":
       return p.direction === "have"
         ? [
-            f.receiptAmount ? `單據 $${f.receiptAmount}` : "",
+            f.receiptAmount
+              ? `單據 $${f.receiptAmount}${f.receiptSplit ? `（${f.receiptSplit}）` : ""}`
+              : "",
             f.fragment ? "碎單（要加埋其他單）" : "",
             f.receiptShop ? `${f.receiptShop}單` : "",
             f.receiptDate ? "今日單據（影相讀到）" : "",
-            f.receiptCount && f.receiptCount !== "1 張" ? `${f.receiptCount}單` : "",
+            f.receiptCount && f.receiptCount !== "1 張" && !f.receiptSplit ? `${f.receiptCount}單` : "",
             f.receiptType ? String(f.receiptType) : "",
           ]
             .filter(Boolean)

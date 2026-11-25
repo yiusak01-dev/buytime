@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Camera, ChevronDown, Loader2 } from "lucide-react";
+import { ArrowLeft, Camera, ChevronDown, Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { AppLayout } from "@/components/AppLayout";
@@ -144,6 +144,10 @@ function NewPost() {
     shop: MallShop | null;
     otherMall: AahMall | null;
   } | null>(null);
+  /** 幾張單加埋計（例如餐廳 $195 + 便利店 $9）：第二張開始先用；null = 淨係一張 */
+  type ReceiptPart = { amount: string; date: ReceiptDateCheck | null; shop: MallShop | null };
+  const [parts, setParts] = useState<ReceiptPart[] | null>(null);
+  const addFileRef = useRef<HTMLInputElement>(null);
   const diningExtra = mallDiningExtra(mall);
   const hasDiningRule = mallHasDiningRule(mall);
   const diningTier = diningTierToday(mall, now);
@@ -184,6 +188,19 @@ function NewPost() {
       if (photo) void onPhoto(photo, "receiptAmount");
     }
   }, [quick]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 幾張單：總數 = 每張加埋；張數跟住改；其中一張係食肆單就當有食肆單
+  useEffect(() => {
+    if (!parts) return;
+    const total = parts.reduce((a, x) => a + (Number(x.amount) || 0), 0);
+    const n = parts.length;
+    setFields((x) => ({
+      ...x,
+      receiptAmount: total ? fmtAmount(Math.round(total * 10) / 10) : "",
+      receiptCount: n >= 3 ? "3 張或以上" : n === 2 ? "2 張" : "1 張",
+      ...(hasDiningRule && parts.some((r) => r.shop?.category === "dining") ? { receiptCategory: "有食肆單" } : {}),
+    }));
+  }, [parts, hasDiningRule]);
 
   // 商場有食肆單規則：預設「冇食肆單」（保守計鐘），計數卡會提你有食肆單可以換多啲
   useEffect(() => {
@@ -379,11 +396,9 @@ function NewPost() {
   // 影單據讀到日期唔係今日：唔俾放（商場一般只收即日單據）；要再影過先解除
   // 用家話「張單係今日，係讀錯咗」：照放，但唔會標「今日單據（影相讀到）」
   const [dateOverride, setDateOverride] = useState(false);
-  const receiptBlocked =
-    scenario === "parking" &&
-    direction === "have" &&
-    receiptCheck?.date.status === "other" &&
-    !dateOverride;
+  const anyOtherDate =
+    receiptCheck?.date.status === "other" || !!parts?.some((r) => r.date?.status === "other");
+  const receiptBlocked = scenario === "parking" && direction === "have" && anyOtherDate && !dateOverride;
   const limitMsg =
     scenario && user.registered
       ? dailyLimitMessage(
@@ -493,8 +508,15 @@ function NewPost() {
       f.minHours = suggestion.fragment.minHours;
     }
     if (scenario === "parking" && direction === "have" && receiptCheck) {
-      if (receiptCheck.date.status === "today") f.receiptDate = receiptCheck.date.iso;
-      if (receiptCheck.shop) f.receiptShop = receiptCheck.shop.name;
+      const allToday = !parts || parts.every((r) => r.date?.status === "today");
+      if (receiptCheck.date.status === "today" && allToday) f.receiptDate = receiptCheck.date.iso;
+      if (receiptCheck.shop && !parts) f.receiptShop = receiptCheck.shop.name;
+    }
+    if (scenario === "parking" && direction === "have" && parts) {
+      // 幾張單：俾要嘅人睇清楚係邊幾張、每張幾多
+      f.receiptSplit = parts
+        .map((r) => `${r.shop?.name ?? "單"} $${r.amount || "?"}`)
+        .join(" + ");
     }
     if (remark.trim()) f.remark = remark.trim();
 
@@ -530,6 +552,45 @@ function NewPost() {
     }
   }
 
+  /** 加多張單：讀第二張（或者第三張），同之前嘅加埋計 */
+  async function onAddPhoto(file: File | undefined) {
+    if (!file) return;
+    setOcrBusy(true);
+    setOcrNote("");
+    try {
+      const { best, text } = await readAmountsFromImage(file);
+      const date = checkReceiptDate(text ?? "");
+      const shopHit = findShopInText(text ?? "", shops);
+      const first: ReceiptPart = { amount: fields.receiptAmount ?? "", date: receiptCheck?.date ?? null, shop: receiptCheck?.shop ?? null };
+      setParts((cur) => [...(cur ?? [first]), { amount: best != null ? fmtAmount(best) : "", date, shop: shopHit }]);
+      setOcrOptions([]);
+      setOcrNote(
+        best != null
+          ? `第二張讀到 $${fmtAmount(best)}，已經加埋。唔啱可以喺下面改。`
+          : "讀唔到呢張嘅金額，喺下面自己填。",
+      );
+      if (date.status === "other") logEvent("limit_hit", { scenario: "parking", reason: "receipt_date" });
+    } catch {
+      setOcrNote("讀唔到張相，喺下面自己填呢張嘅金額。");
+      setParts((cur) => [...(cur ?? [{ amount: fields.receiptAmount ?? "", date: receiptCheck?.date ?? null, shop: receiptCheck?.shop ?? null }]), { amount: "", date: null, shop: null }]);
+    } finally {
+      setOcrBusy(false);
+    }
+  }
+
+  function removePart(i: number) {
+    setParts((cur) => {
+      if (!cur) return cur;
+      const next = cur.filter((_, k) => k !== i);
+      if (next.length > 1) return next;
+      // 得返一張：變返普通模式
+      const only = next[0];
+      setFields((x) => ({ ...x, receiptAmount: only?.amount ?? "", receiptCount: "1 張" }));
+      setReceiptCheck(only?.date ? { date: only.date, shop: only.shop, otherMall: null } : null);
+      return null;
+    });
+  }
+
   async function onPhoto(file: File | undefined, keyOverride?: string) {
     if (!file) return;
     const key = keyOverride ?? (scenario === "offer" ? "faceValue" : "receiptAmount");
@@ -537,7 +598,10 @@ function NewPost() {
     setOcrBusy(true);
     setOcrNote("");
     setOcrOptions([]);
-    if (isReceipt) setReceiptCheck(null);
+    if (isReceipt) {
+      setReceiptCheck(null);
+      setParts(null);
+    }
     try {
       const { best, options, text } = await readAmountsFromImage(file);
       if (isReceipt) {
@@ -647,7 +711,9 @@ function NewPost() {
         title={f.label}
         hint={
           f.key === "receiptAmount"
-            ? "實際俾咗嘅總數；幾張單就加埋"
+            ? parts
+              ? `${parts.length} 張單加埋嘅總數（喺上面逐張改）`
+              : "實際俾咗嘅總數；幾張單就加埋"
             : f.key === "receiptCount"
               ? "好多商場最多合併 2 張，有啲唔收合併"
               : f.key === "receiptType"
@@ -697,6 +763,7 @@ function NewPost() {
               }
               placeholder={f.placeholder}
               aria-label={f.label}
+              readOnly={f.key === "receiptAmount" && !!parts}
               className="flex-1 bg-transparent outline-none"
             />
             {f.suffix && <span className="text-sm text-muted-foreground">{f.suffix}</span>}
@@ -992,7 +1059,32 @@ function NewPost() {
                       ) : null}
                     </div>
                   )}
-                  {ocrOptions.length > 1 && (
+                  {s.id === "parking" && (parts || fields.receiptAmount) && (
+                    <ReceiptParts
+                      parts={parts}
+                      busy={ocrBusy}
+                      stacking={mall?.stacking}
+                      onAdd={() => addFileRef.current?.click()}
+                      onChange={(i, amount) =>
+                        setParts((cur) => cur && cur.map((r, k) => (k === i ? { ...r, amount } : r)))
+                      }
+                      onRemove={removePart}
+                      onDateOk={() => setDateOverride(true)}
+                      dateOverride={dateOverride}
+                    />
+                  )}
+                  <input
+                    ref={addFileRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={(e) => {
+                      void onAddPhoto(e.target.files?.[0]);
+                      e.target.value = "";
+                    }}
+                  />
+                  {!parts && ocrOptions.length > 1 && (
                     <div className="flex flex-wrap gap-2 mt-2">
                       {ocrOptions.map((n) => {
                         const key = s.id === "offer" ? "faceValue" : "receiptAmount";
@@ -1341,5 +1433,120 @@ function NewPost() {
         }}
       />
     </AppLayout>
+  );
+}
+
+/**
+ * 幾張單加埋計：例如餐廳 $195 + 便利店 $9 夠 $200 換泊車。
+ * 一張嘅時候淨係出「加多張單」掣；加咗之後逐張列出（每張金額改得、刪得）。
+ */
+function ReceiptParts({
+  parts,
+  busy,
+  stacking,
+  onAdd,
+  onChange,
+  onRemove,
+  onDateOk,
+  dateOverride,
+}: {
+  parts: { amount: string; date: ReceiptDateCheck | null; shop: MallShop | null }[] | null;
+  busy: boolean;
+  stacking: string | null | undefined;
+  onAdd: () => void;
+  onChange: (i: number, amount: string) => void;
+  onRemove: (i: number) => void;
+  onDateOk: () => void;
+  dateOverride: boolean;
+}) {
+  const rule = stackRule(stacking);
+  if (rule.max === 1) return null; // 商場唔准夾單，唔好引人加
+  const n = parts?.length ?? 1;
+  const canAdd = rule.max == null || n < rule.max;
+  const total = parts?.reduce((a, r) => a + (Number(r.amount) || 0), 0) ?? 0;
+  const shopIds = (parts ?? []).map((r) => r.shop?.name).filter(Boolean) as string[];
+  const sameShop = new Set(shopIds).size < shopIds.length;
+  const small = rule.minEach ? (parts ?? []).filter((r) => (Number(r.amount) || 0) < rule.minEach!) : [];
+  const badDate = (parts ?? []).some((r) => r.date?.status === "other");
+
+  return (
+    <div className="mt-2 space-y-2" data-testid="receipt-parts">
+      {parts && (
+        <div className="rounded-2xl bg-card border border-border p-3 space-y-2">
+          <div className="text-xs font-bold text-muted-foreground">{parts.length} 張單加埋計</div>
+          {parts.map((r, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground w-10 shrink-0">第 {i + 1} 張</span>
+              <div className="flex items-center gap-1 h-10 px-3 rounded-xl border border-border bg-background w-28 shrink-0">
+                <span className="text-sm text-muted-foreground">$</span>
+                <input
+                  inputMode="decimal"
+                  value={r.amount}
+                  onChange={(e) => onChange(i, cleanMoneyInput(e.target.value))}
+                  aria-label={`第 ${i + 1} 張單金額`}
+                  className="w-full bg-transparent outline-none text-sm font-bold"
+                />
+              </div>
+              <span className="text-xs min-w-0 flex-1 truncate">
+                {r.shop ? r.shop.name : ""}
+                {r.date?.status === "other" ? (
+                  <span className="text-red-700 font-semibold"> {r.date.label}・唔係今日</span>
+                ) : r.date?.status === "today" ? (
+                  <span className="text-[#1d6b47]"> ✓今日</span>
+                ) : null}
+              </span>
+              <button
+                type="button"
+                onClick={() => onRemove(i)}
+                aria-label={`刪走第 ${i + 1} 張單`}
+                className="w-8 h-8 grid place-items-center rounded-full text-muted-foreground hover:bg-accent shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+          <div className="flex justify-between text-sm font-black border-t border-border pt-2">
+            <span>加埋</span>
+            <span>${fmtAmount(Math.round(total * 10) / 10)}</span>
+          </div>
+          {sameShop && (
+            <div className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900">
+              有兩張好似係同一間舖。好多商場要「唔同舖」嘅單先加埋計，自己睇清楚。
+            </div>
+          )}
+          {small.length > 0 && (
+            <div className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900">
+              呢個商場每張單最少 ${rule.minEach} 先計得，有張未夠，加埋都可能唔計。
+            </div>
+          )}
+          {rule.max != null && parts.length > rule.max && (
+            <div className="text-xs rounded-xl px-3 py-2 bg-amber-50 text-amber-900">
+              呢個商場最多 {rule.max} 張加埋計。
+            </div>
+          )}
+          {badDate && !dateOverride && (
+            <button
+              type="button"
+              onClick={onDateOk}
+              className="w-full h-10 rounded-xl bg-white border border-red-200 text-sm font-bold text-red-800"
+            >
+              全部都係今日嘅單，係讀錯咗
+            </button>
+          )}
+        </div>
+      )}
+      {canAdd && (
+        <button
+          type="button"
+          onClick={onAdd}
+          disabled={busy}
+          data-testid="add-receipt"
+          className="h-10 px-4 rounded-full border border-dashed border-[#1E7F52] bg-[#E3F5EC] text-[#1d6b47] inline-flex items-center gap-1.5 text-sm font-bold disabled:opacity-50"
+        >
+          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+          加多張單（另一間舖）一齊計
+        </button>
+      )}
+    </div>
   );
 }
