@@ -422,6 +422,10 @@ export function createRemote(host: Host) {
     watch,
     resume,
 
+    async lowerPrice(postId: string, price: number) {
+      await rpc("aah_lower_price", { p_post: postId, p_price: price });
+    },
+
     async setAutoAccept(postId: string, on: boolean): Promise<string | undefined> {
       return (await rpc("aah_set_auto_accept", { p_post: postId, p_on: on })) ?? undefined;
     },

@@ -1335,6 +1335,15 @@ export const aah = {
   async declineInterest(postId: string, userId: string) {
     return isRemote() ? R().declineInterest(postId, userId) : local.declineInterest(postId, userId);
   },
+  /** 冇人理：自己減價（取代講價），雲端會再推俾附近嘅人 */
+  async lowerPrice(postId: string, price: number) {
+    if (isRemote()) return R().lowerPrice(postId, price);
+    patchPost(postId, (x) => ({
+      ...x,
+      price,
+      fields: { ...x.fields, priceDropAt: new Date().toISOString(), priceWas: x.price ?? 0 },
+    }));
+  },
   async setAutoAccept(postId: string, on: boolean): Promise<string | undefined> {
     return isRemote() ? R().setAutoAccept(postId, on) : local.setAutoAccept(postId, on);
   },

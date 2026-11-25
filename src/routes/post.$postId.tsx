@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Eye, Send, Pin, Minus, Plus, Clock, Flag } from "lucide-react";
+import { ArrowLeft, Eye, Send, Pin, Clock, Flag } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
 import { PushPrompt } from "@/components/aah/PushPrompt";
@@ -237,9 +237,6 @@ function PostDetailView({ post }: { post: Post }) {
     offer?: number;
     opts?: InterestOpts;
   } | null>(null);
-  const [offer, setOffer] = useState(() =>
-    post.price && post.price > 10 ? post.price - 5 : (post.price ?? 0),
-  );
   const [entry, setEntry] = useState("");
   const [pickTime, setPickTime] = useState(false);
   const [draft, setDraft] = useState("");
@@ -612,14 +609,6 @@ function PostDetailView({ post }: { post: Post }) {
                 >
                   你仲喺唔喺附近？
                 </button>
-                {post.price != null && post.price > 0 && (
-                  <button
-                    onClick={() => send(`$${offer} 得唔得？`, offer)}
-                    className="shrink-0 h-9 px-3 rounded-full border border-border bg-card text-sm font-semibold"
-                  >
-                    ${offer} 得唔得？
-                  </button>
-                )}
               </div>
               <form
                 onSubmit={(e) => {
@@ -717,41 +706,9 @@ function PostDetailView({ post }: { post: Post }) {
             </div>
           ) : (
             <>
-              {/* 講價：同放單嗰邊對返——照原價撳「有興趣」；想平啲就喺度出價，對方自己揀（自動配對唔會接講價） */}
-              {post.price != null && post.price > 0 && !mine && (
-                <div className="bg-card rounded-2xl px-3 py-2.5 shadow-sm space-y-1.5" data-testid="offer-box">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold shrink-0">想講價？</span>
-                    <div className="flex items-center gap-1 h-10 px-1 rounded-full border border-border bg-background">
-                      <button
-                        aria-label="減 $5"
-                        onClick={() => setOffer((o) => Math.max(0, o - 5))}
-                        className="w-8 h-8 grid place-items-center rounded-full hover:bg-accent"
-                      >
-                        <Minus className="w-3.5 h-3.5" />
-                      </button>
-                      <span className="text-sm font-black w-12 text-center">${offer}</span>
-                      <button
-                        aria-label="加 $5"
-                        onClick={() => setOffer((o) => Math.min(post.price ?? o, o + 5))}
-                        className="w-8 h-8 grid place-items-center rounded-full hover:bg-accent"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => send(`$${offer} 得唔得？`, offer)}
-                      disabled={offer >= (post.price ?? 0)}
-                      className="ml-auto shrink-0 h-10 px-3 rounded-full border border-[#1a1a1a] text-sm font-bold disabled:opacity-40"
-                    >
-                      問佢得唔得
-                    </button>
-                  </div>
-                  <div className="text-[11px] text-muted-foreground leading-snug">
-                    {post.autoAccept
-                      ? "對方開咗自動配對：照原價撳下面個掣會即刻配對；講價就要等對方自己揀。"
-                      : "照原價就直接撳下面個掣；講價嘅話對方會見到你出幾多，由佢揀。"}
-                  </div>
+              {post.autoAccept && post.price != null && post.price > 0 && !mine && (
+                <div className="text-[11px] text-muted-foreground text-center">
+                  對方開咗自動配對：撳「有興趣」就即刻配對。
                 </div>
               )}
               <button
@@ -832,6 +789,20 @@ function MyPostView({ post }: { post: Post }) {
     if (post.status === "matched" && post.matchId)
       navigate({ to: "/match/$matchId", params: { matchId: post.matchId } });
   }, [post.status, post.matchId, navigate]);
+
+  // 減價提示：有價錢、放咗 10 分鐘、冇人有興趣；每次減完 10 分鐘內唔再出
+  const lastDrop = post.fields.priceDropAt ? Date.parse(String(post.fields.priceDropAt)) : 0;
+  const showDropPrompt =
+    post.status === "open" &&
+    (post.price ?? 0) > 0 &&
+    post.interests.length === 0 &&
+    age >= 10 * 60000 &&
+    now - lastDrop >= 10 * 60000;
+  const dropOptions = (() => {
+    const pr = post.price ?? 0;
+    const opts = [pr - 5, pr - 10].filter((v) => v > 0);
+    return [...opts.slice(0, 2), ...(pr <= 10 ? [0] : [])];
+  })();
 
   const joined =
     post.scenario === "groupbuy" && post.matchId
@@ -961,6 +932,24 @@ function MyPostView({ post }: { post: Post }) {
           </div>
         )}
 
+        {/* 冇人理：自己減價，減完再推俾附近嘅人（取代講價） */}
+        {showDropPrompt && (
+          <div className="bg-[#FFF6D6] border border-[#F5C518] rounded-2xl p-4 space-y-2" data-testid="price-drop">
+            <div className="font-bold">{Math.round(age / 60000)} 分鐘都未有人理</div>
+            <div className="text-sm">減少少價再推俾而家喺{s.pushNearby ? "呢度同附近商場" : ` ${post.mallName} `}嘅人？</div>
+            <div className="flex flex-wrap gap-2">
+              {dropOptions.map((v) => (
+                <button
+                  key={v}
+                  onClick={() => void act(aah.lowerPrice(post.id, v), v === 0 ? "已改做免費，再推咗俾附近嘅人" : `已減到 $${v}，再推咗俾附近嘅人`)}
+                  className="h-11 px-4 rounded-2xl bg-[#1a1a1a] text-white font-bold"
+                >
+                  {v === 0 ? "改做免費" : `減到 $${v}`}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {showPinPrompt && (
           <div className="bg-[#FFF6D6] border border-[#F5C518] rounded-2xl p-4 space-y-2">
             <div className="font-bold">15 分鐘都未有人理</div>
@@ -993,8 +982,8 @@ function MyPostView({ post }: { post: Post }) {
                 <div className="font-semibold text-sm">自動配對</div>
                 <div className="text-xs text-muted-foreground">
                   {post.autoAccept
-                    ? `開咗：第一個喺場、照原價${post.price ? `（$${post.price}）` : ""}嘅人會即刻配對；講價嘅人留喺名單由你揀`
-                    : "唔得閒望住部機？開咗就自動俾第一個喺場、照原價嘅人；講價嘅留返俾你揀"}
+                    ? `開咗：第一個喺場、照原價${post.price ? `（$${post.price}）` : ""}嘅人一撳「有興趣」就即刻配對，唔使你揀`
+                    : "唔得閒望住部機？開咗就自動俾第一個喺場撳「有興趣」嘅人"}
                 </div>
               </div>
               <Switch

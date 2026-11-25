@@ -129,6 +129,23 @@ export function AahRuntime() {
           duration: 10000,
         });
       }
+      // 10 分鐘冇人理（有價錢）：提佢可以減價再推（取代講價）
+      const k3 = `drop:${p.id}`;
+      if (
+        !getRules().pinEnabled &&
+        (p.price ?? 0) > 0 &&
+        age >= 10 * MIN &&
+        p.interests.length === 0 &&
+        !p.fields.priceDropAt &&
+        !toasted.current.has(k3)
+      ) {
+        toasted.current.add(k3);
+        notify("10 分鐘都未有人理，減少少價再推？", {
+          body: `${p.shop}・而家 $${p.price}`,
+          onOpen: () => navigate({ to: "/post/$postId", params: { postId: p.id } }),
+          duration: 10000,
+        });
+      }
       // 置頂：配對成功、過期或者離開商場都會結束（喺 store 處理過期同配對）
     }
   }, [now, posts, user.id, navigate]);

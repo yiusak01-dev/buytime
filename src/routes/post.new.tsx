@@ -1373,7 +1373,7 @@ function NewPost() {
                       <div>
                         <div className="font-semibold text-sm">自動配對</div>
                         <div className="text-xs text-muted-foreground">
-                          唔得閒望住部機就開：第一個喺場、照原價撳「有興趣」嘅人會即刻配對；有人講價（出低過你個價）就唔會自動配對，留返俾你揀。放咗之後都可以開／閂
+                          唔得閒望住部機就開：第一個喺場撳「有興趣」嘅人會即刻配對。放咗之後都可以開／閂
                         </div>
                       </div>
                       <Switch checked={autoAccept} onCheckedChange={setAutoAccept} />
