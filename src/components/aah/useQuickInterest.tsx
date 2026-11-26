@@ -44,11 +44,15 @@ export function useQuickInterest() {
         undefined,
         current.verified ? { onSite: true } : undefined,
       );
-      if (matchId) {
+      // 撳完直接入去：即刻配對就去交收版面；未配對就去詳情頁等（對方一揀你會自動跳去交收版面）
+      const now = aah.get().posts.find((x) => x.id === p.id);
+      const mid = matchId ?? (now?.interests.some((i) => i.userId === me.id && i.status === "accepted") ? now?.matchId : undefined);
+      if (mid) {
         done("配對成功！");
-        navigate({ to: "/match/$matchId", params: { matchId } });
+        navigate({ to: "/match/$matchId", params: { matchId: mid } });
       } else {
-        done("已話佢知", "佢一應你就會通知你");
+        done("已話佢知", "喺度等佢覆，佢揀你就會自動入交收版面");
+        navigate({ to: "/post/$postId", params: { postId: p.id } });
       }
     } catch (e) {
       toast.error(aahErrorText(e));

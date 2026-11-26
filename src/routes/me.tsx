@@ -12,6 +12,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import type { Match } from "@/lib/aah/types";
 import { Switch } from "@/components/ui/switch";
 import { rowTitle } from "@/components/aah/FeedRow";
 import { AppLayout } from "@/components/AppLayout";
@@ -85,6 +87,38 @@ function MePage() {
   const myOldPosts = posts
     .filter((p) => p.authorId === user.id && (p.status === "expired" || p.status === "cancelled"))
     .slice(0, 10);
+
+  // 配對同過期／取消咗嘅 post 合埋一條，最新排頭
+  const [showAllHistory, setShowAllHistory] = useState(false);
+  const history = [
+    ...pastMatches.map((m) => {
+      const mp = posts.find((p) => p.id === m.postId);
+      return {
+        key: `m-${m.id}`,
+        to: "/match/$matchId" as const,
+        params: { matchId: m.id },
+        at: m.endedAt ?? m.createdAt,
+        emoji: SCENARIOS[m.scenario].emoji,
+        title: mp ? rowTitle(mp) : m.scenario === "parking" ? "泊車單" : m.shop,
+        mall: m.mallName,
+        status: m.status as string,
+        label: STATUS_LABEL[m.status],
+        rated: m.rated,
+      };
+    }),
+    ...myOldPosts.map((p) => ({
+      key: `p-${p.id}`,
+      to: "/post/$postId" as const,
+      params: { postId: p.id },
+      at: p.createdAt,
+      emoji: SCENARIOS[p.scenario].emoji,
+      title: p.scenario === "parking" ? rowTitle(p) : p.shop,
+      mall: p.mallName,
+      status: p.status as string,
+      label: p.status === "expired" ? "已過期" : "已取消",
+      rated: undefined as Match["rated"] | undefined,
+    })),
+  ].sort((x, y) => y.at - x.at);
 
   const banned = isBanned(user, now);
   const banStart = user.bannedUntil ? user.bannedUntil - BAN_DAYS * DAY : 0;
@@ -244,48 +278,62 @@ function MePage() {
           )}
         </section>
 
-        {/* 紀錄 */}
-        {(pastMatches.length > 0 || myOldPosts.length > 0) && (
-          <section className="space-y-2">
-            <div className="font-bold">紀錄</div>
-            {pastMatches.map((m) => (
-              <Link
-                key={m.id}
-                to="/match/$matchId"
-                params={{ matchId: m.id }}
-                className="flex items-center justify-between bg-card rounded-2xl px-4 py-3"
-              >
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold truncate">
-                    {SCENARIOS[m.scenario].emoji} {m.scenario === "parking" ? "泊車單" : m.shop}・
-                    {m.mallName}
+        {/* 紀錄：一張卡、按日分組、預設淨係睇最近 5 個（好多就撳「睇晒」） */}
+        {history.length > 0 && (
+          <section className="space-y-2" data-testid="history">
+            <div className="flex items-baseline justify-between">
+              <div className="font-bold">紀錄</div>
+              <div className="text-xs text-muted-foreground">
+                完成 {history.filter((h) => h.status === "completed").length} 次・共 {history.length} 個
+              </div>
+            </div>
+            <div className="bg-card rounded-2xl divide-y divide-border overflow-hidden">
+              {(showAllHistory ? history : history.slice(0, HISTORY_PREVIEW)).map((h, i, arr) => {
+                const day = dayLabel(h.at, now);
+                const newDay = i === 0 || dayLabel(arr[i - 1].at, now) !== day;
+                return (
+                  <div key={h.key}>
+                    {newDay && (
+                      <div className="px-4 pt-2.5 pb-1 text-[11px] font-bold text-muted-foreground bg-background/60">
+                        {day}
+                      </div>
+                    )}
+                    <Link
+                      to={h.to}
+                      params={h.params}
+                      className="flex items-center gap-3 px-4 py-2.5"
+                    >
+                      <span className="text-base shrink-0">{h.emoji}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-semibold truncate">{h.title}</div>
+                        <div className="text-[11px] text-muted-foreground truncate">
+                          {fmtClock(h.at)}・{h.mall}
+                          {h.rated ? (h.rated === "up" ? "・👍" : "・👎") : ""}
+                        </div>
+                      </div>
+                      <span
+                        className={cn(
+                          "text-[11px] shrink-0 px-2 py-0.5 rounded-full",
+                          h.status === "completed"
+                            ? "bg-[#E3F5EC] text-[#1d6b47]"
+                            : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {h.label}
+                      </span>
+                    </Link>
                   </div>
-                  <div className="text-[11px] text-muted-foreground">
-                    {fmtAgo(m.createdAt, now)}
-                    {m.rated ? (m.rated === "up" ? "・👍" : "・👎") : ""}
-                  </div>
-                </div>
-                <span className="text-xs text-muted-foreground shrink-0">
-                  {STATUS_LABEL[m.status]}
-                </span>
-              </Link>
-            ))}
-            {myOldPosts.map((p) => (
-              <Link
-                key={p.id}
-                to="/post/$postId"
-                params={{ postId: p.id }}
-                className="flex items-center justify-between bg-card rounded-2xl px-4 py-3"
+                );
+              })}
+            </div>
+            {history.length > HISTORY_PREVIEW && (
+              <button
+                onClick={() => setShowAllHistory((v) => !v)}
+                className="w-full h-10 rounded-2xl bg-card text-sm font-semibold text-muted-foreground"
               >
-                <div className="text-sm font-semibold truncate">
-                  {SCENARIOS[p.scenario].emoji} {p.scenario === "parking" ? rowTitle(p) : p.shop}・
-                  {p.mallName}
-                </div>
-                <span className="text-xs text-muted-foreground shrink-0">
-                  {p.status === "expired" ? "已過期" : "已取消"}
-                </span>
-              </Link>
-            ))}
+                {showAllHistory ? "收埋" : `睇晒全部（${history.length}）`}
+              </button>
+            )}
           </section>
         )}
 
@@ -651,4 +699,16 @@ function FeedbackCard({ registered, onRegister }: { registered: boolean; onRegis
       )}
     </section>
   );
+}
+
+const HISTORY_PREVIEW = 5;
+
+/** 紀錄分組：今日／尋日／11月23日（香港時間） */
+function dayLabel(at: number, now: number): string {
+  const key = (t: number) => new Date(t + 8 * 3600_000).toISOString().slice(0, 10);
+  const d = key(at);
+  if (d === key(now)) return "今日";
+  if (d === key(now - 86400_000)) return "尋日";
+  const dt = new Date(at + 8 * 3600_000);
+  return `${dt.getUTCMonth() + 1}月${dt.getUTCDate()}日`;
 }
