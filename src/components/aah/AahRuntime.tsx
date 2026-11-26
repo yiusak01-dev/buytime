@@ -315,23 +315,7 @@ export function AahRuntime() {
     if (user.registered) wasBanned.current = banned;
   }, [user.bannedUntil, user.appeal?.status, user.registered]);
 
-  // 完成之後：離開商場（或者完成 10 分鐘後）喺通知入面撳 👍 👎，可以唔答
-  useEffect(() => {
-    for (const m of matches) {
-      if (m.status !== "completed" || m.rated || m.ratePromptShown) continue;
-      if (!m.participants.some((p) => p.userId === user.id)) continue;
-      // 只有 GPS 真係確認咗唔喺嗰個商場先當離開（未搵到位置唔算）
-      const left = geo.status === "ok" && !current.test && current.mall?.id !== m.mallId;
-      const later = now - (m.endedAt ?? now) > 10 * MIN;
-      if (!left && !later) continue;
-      aah.markRatePrompt(m.id);
-      toast(`啱啱喺 ${m.mallName} ${m.scenario === "groupbuy" ? "夾單" : "交收"}順唔順利？`, {
-        action: { label: "👍", onClick: () => void aah.rateMatch(m.id, "up").catch(() => {}) },
-        cancel: { label: "👎", onClick: () => void aah.rateMatch(m.id, "down").catch(() => {}) },
-        duration: 20000,
-      });
-    }
-  }, [now, matches, current.mall?.id, current.test, geo.status, user.id]);
+  // 完成之後問交收順唔順利：改咗喺「搵」「放」頂部嘅卡度問（LiveBanner），唔再彈提示遮住畫面
 
   return null;
 }

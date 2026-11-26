@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronRight } from "lucide-react";
-import { useAahState } from "@/lib/aah/store";
+import { ChevronRight, X } from "lucide-react";
+import { aah, useAahState } from "@/lib/aah/store";
 import { useNow } from "@/lib/aah/geo";
 import { rowTitle } from "./FeedRow";
 
@@ -64,7 +64,48 @@ export function LiveBanner() {
       hot: replied && last!.at > (mine.buyerReadAt ?? 0),
     });
   }
-  if (!items.length) return null;
+  // 交收完咗 5 分鐘至 6 個鐘、未評：喺度問一句（一次一個，可以 ✕ 唔答）
+  const rateMe = matches
+    .filter(
+      (m) =>
+        m.status === "completed" &&
+        !m.rated &&
+        !m.ratePromptShown &&
+        m.participants.some((p) => p.userId === user.id) &&
+        now - (m.endedAt ?? m.createdAt) > 5 * 60000 &&
+        now - (m.endedAt ?? m.createdAt) < 6 * 3600000,
+    )
+    .sort((a, b) => (b.endedAt ?? b.createdAt) - (a.endedAt ?? a.createdAt))[0];
+  const rateCard = rateMe ? (
+    <div className="flex items-center gap-2 rounded-2xl bg-card px-4 py-2.5 shadow-sm" data-testid="rate-card">
+      <div className="min-w-0 flex-1 text-[13px] font-semibold truncate">
+        啱啱喺 {rateMe.mallName} {rateMe.scenario === "groupbuy" ? "夾單" : "交收"}順唔順利？
+      </div>
+      <button
+        onClick={() => void aah.rateMatch(rateMe.id, "down").catch(() => {})}
+        aria-label="唔順利"
+        className="w-10 h-9 rounded-xl bg-muted text-lg"
+      >
+        👎
+      </button>
+      <button
+        onClick={() => void aah.rateMatch(rateMe.id, "up").catch(() => {})}
+        aria-label="順利"
+        className="w-10 h-9 rounded-xl bg-[#1a1a1a] text-lg"
+      >
+        👍
+      </button>
+      <button
+        onClick={() => aah.markRatePrompt(rateMe.id)}
+        aria-label="唔答"
+        className="w-7 h-9 grid place-items-center text-muted-foreground"
+      >
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+  ) : null;
+
+  if (!items.length) return rateCard;
   // 有新嘢嘅排頭；最多出三行，唔好遮晒個 feed
   items.sort((a, b) => Number(b.hot) - Number(a.hot));
 
@@ -85,6 +126,7 @@ export function LiveBanner() {
           <ChevronRight className="w-4 h-4 shrink-0 opacity-70" />
         </Link>
       ))}
+      {rateCard}
     </div>
   );
 }
